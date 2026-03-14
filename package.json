@@ -16,7 +16,7 @@
     "lint:rust": "cargo clippy --workspace --all-targets -- -D warnings",
     "typecheck": "pnpm --filter @emoji-picker/emoji-picker typecheck",
     "test": "pnpm --filter @emoji-picker/emoji-picker test",
-    "test:rust": "cargo test --workspace --locked",
+    "test:rust": "cargo nextest run --workspace --locked --config-file nextest.toml --profile ci",
     "build": "pnpm --filter @emoji-picker/emoji-picker build",
     "build:rust": "cargo build --workspace --locked",
     "validate": "pnpm format:check && pnpm format:rust:check && pnpm lint && pnpm lint:rust && pnpm typecheck && pnpm test && pnpm test:rust && pnpm build && pnpm build:rust",

@@ -54,6 +54,7 @@ Examples:
 - CI-style aggregate alias: `pnpm ci:all`
 - When you change frontend TypeScript or React code, run at least `pnpm lint`, `pnpm typecheck`, and `pnpm test`.
 - When you change Rust crates, Tauri configuration, plugin wiring, or permissions, run at least `pnpm format:rust:check`, `pnpm lint:rust`, `pnpm test:rust`, and the relevant build command.
+- `pnpm test:rust` uses `cargo-nextest`, so `cargo-nextest` must be installed anywhere you want to run the shared Rust test command.
 - If you cannot run a relevant validation command, say so clearly in your hand-off.
 
 ## Tauri v2 Rules

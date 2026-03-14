@@ -14,7 +14,7 @@ Emoji Nook is still early in its tooling maturity:
 - Root scripts cover development and builds, but not dedicated lint, format, or test gates
 - The frontend app currently has `build`, but no explicit `test`, `typecheck`, or `lint` scripts
 - There is no checked-in formatter, linter, or test-runner configuration
-- The Rust workspace builds locally, but there is no CI enforcement for `cargo fmt`, `cargo clippy`, or `cargo test`
+- The Rust workspace builds locally, but there is no CI enforcement for `cargo fmt`, `cargo clippy`, or workspace tests
 - There is no required branch-protection or merge-gate policy documented yet
 
 ## Related Repository Review
@@ -113,9 +113,11 @@ Recommended baseline:
 
 - `cargo fmt --check`
 - `cargo clippy --workspace --all-targets -- -D warnings`
-- `cargo test --workspace --locked`
+- `cargo nextest run --workspace --locked --config-file nextest.toml --profile ci`
 
-Recommendation: align with the direction already being discussed in `threshold` and `liminal-notes`: use `cargo test` as the documented baseline, keep the runner policy explicit, and adopt `cargo nextest` only where it demonstrates measurable reliability or speed wins.
+Recommendation: align with the direction already being discussed in `threshold` and `liminal-notes`: keep the Rust test runner policy explicit, and adopt `cargo nextest` where it provides immediate reporting and reliability value.
+
+Current implementation direction: Emoji Nook uses `cargo nextest` for the shared Rust test path so local commands and CI stay aligned and emit JUnit-compatible output from the same runner configuration.
 
 ## Implementation Phases
 
@@ -170,13 +172,13 @@ Add enough tests and static analysis for CI to enforce something meaningful.
 
 #### Phase 4: Rust validation baseline
 
-- [ ] Add `cargo test --workspace --locked` coverage for the app backend and plugin workspace
+- [ ] Add `cargo nextest` coverage for the app backend and plugin workspace
 - [ ] Add `cargo fmt --check`
 - [ ] Add `cargo clippy --workspace --all-targets -- -D warnings`
 - [ ] Document Rust test runner policy explicitly:
-  - `cargo test` is the baseline
-  - `cargo nextest` is allowed when justified by measured value
-  - fallback behaviour is documented
+  - `cargo nextest` is the shared Rust test path
+  - installation expectations are documented
+  - any fallback behaviour is documented if it is kept
 - [ ] Confirm plugin permission generation and build-time metadata do not make CI flaky
 
 **Gate 2 result: the repository has meaningful frontend and Rust validation checks that are suitable for CI enforcement.**

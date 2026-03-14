@@ -269,12 +269,38 @@ jobs:
       - name: Cache Rust
         uses: swatinem/rust-cache@v2
 
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@nextest
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run Rust tests
+      - name: Run Rust tests with JUnit output
         id: rust_tests
         run: pnpm test:rust
+
+      - name: Upload Rust test artefacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: rust-test-results
+          path: target/nextest/ci/junit.xml
+          if-no-files-found: error
+
+      - name: Publish Rust unit test results
+        if: always()
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          check_name: Emoji Nook Rust Tests
+          files: target/nextest/ci/junit.xml
+
+      - name: Publish Rust dorny test report
+        if: always()
+        uses: dorny/test-reporter@v2
+        with:
+          name: Emoji Nook Rust Tests (dorny)
+          path: target/nextest/ci/junit.xml
+          reporter: java-junit
 
       - name: Write summary
         if: always()
@@ -285,6 +311,7 @@ jobs:
             echo "- Runner: \`ubuntu-24.04\`"
             echo "- Container: \`ghcr.io/liminal-hq/tauri-ci-desktop:latest\`"
             echo "- Rust tests: \`${{ steps.rust_tests.outcome }}\`"
+            echo "- Test artefact: \`target/nextest/ci/junit.xml\`"
             echo "- Run URL: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           } >> "${GITHUB_STEP_SUMMARY}"
 
