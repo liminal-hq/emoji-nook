@@ -21,11 +21,11 @@ The emoji picker UI plan must be complete (Gates 1 and 2 passed). The following 
 
 Linux has two display server protocols with fundamentally different security models:
 
-| Capability | X11 | Wayland |
-|-----------|-----|---------|
+| Capability       | X11                                             | Wayland                                                                |
+| ---------------- | ----------------------------------------------- | ---------------------------------------------------------------------- |
 | Global shortcuts | `tauri-plugin-global-shortcut` (works directly) | `xdg-desktop-portal` GlobalShortcuts (requires user permission prompt) |
-| Input injection | `enigo` via `xdotool` | `xdg-desktop-portal` RemoteDesktop (requires session) |
-| Clipboard | `arboard` via `xclip`/`xsel` | `arboard` via `wl-clipboard` |
+| Input injection  | `enigo` via `xdotool`                           | `xdg-desktop-portal` RemoteDesktop (requires session)                  |
+| Clipboard        | `arboard` via `xclip`/`xsel`                    | `arboard` via `wl-clipboard`                                           |
 
 Detection: check `WAYLAND_DISPLAY` environment variable at startup. Route all shortcut and injection calls through the appropriate backend.
 
@@ -178,9 +178,9 @@ Add settings and polish.
 - [ ] Create settings store with defaults:
   ```json
   {
-    "shortcut": "Alt+Shift+E",
-    "skinTone": "none",
-    "closeOnSelect": true
+  	"shortcut": "Alt+Shift+E",
+  	"skinTone": "none",
+  	"closeOnSelect": true
   }
   ```
 - [ ] Build settings panel component:
@@ -218,14 +218,15 @@ Add settings and polish.
 
 ## Dependencies to Add
 
-| Crate / Package | Purpose | Phase |
-|----------------|---------|-------|
-| `tauri-plugin-global-shortcut` | X11 global shortcuts | 3 |
-| `tauri-plugin-store` | Settings persistence | 6 |
-| `arboard` | Clipboard read/write for shuffle | 4 |
-| `enigo` | Keystroke simulation on X11 | 4 |
+| Crate / Package                | Purpose                          | Phase |
+| ------------------------------ | -------------------------------- | ----- |
+| `tauri-plugin-global-shortcut` | X11 global shortcuts             | 3     |
+| `tauri-plugin-store`           | Settings persistence             | 6     |
+| `arboard`                      | Clipboard read/write for shuffle | 4     |
+| `enigo`                        | Keystroke simulation on X11      | 4     |
 
 System runtime dependencies:
+
 - `wl-clipboard` (Wayland clipboard access)
 - `xdotool` / `libxdo-dev` (X11 input injection via `enigo`)
 
@@ -253,15 +254,15 @@ The `RemoteDesktop` portal session may be rejected, revoked, or time out. Mitiga
 
 ## File Map (anticipated)
 
-| File | Purpose |
-|------|---------|
-| `apps/emoji-picker/src-tauri/src/lib.rs` | App setup, tray, shortcut routing |
-| `apps/emoji-picker/src-tauri/src/injection.rs` | Clipboard shuffle and injection logic |
-| `apps/emoji-picker/src-tauri/src/shortcuts.rs` | Display server detection, shortcut registration |
-| `apps/emoji-picker/src/components/SettingsPanel.tsx` | Settings UI with shortcut capture |
-| `apps/emoji-picker/src/hooks/useSettings.ts` | Settings state and store IPC |
-| `plugins/xdg-portal/src/global_shortcuts.rs` | Real GlobalShortcuts portal implementation |
-| `plugins/xdg-portal/src/remote_desktop.rs` | Real RemoteDesktop portal implementation |
+| File                                                 | Purpose                                         |
+| ---------------------------------------------------- | ----------------------------------------------- |
+| `apps/emoji-picker/src-tauri/src/lib.rs`             | App setup, tray, shortcut routing               |
+| `apps/emoji-picker/src-tauri/src/injection.rs`       | Clipboard shuffle and injection logic           |
+| `apps/emoji-picker/src-tauri/src/shortcuts.rs`       | Display server detection, shortcut registration |
+| `apps/emoji-picker/src/components/SettingsPanel.tsx` | Settings UI with shortcut capture               |
+| `apps/emoji-picker/src/hooks/useSettings.ts`         | Settings state and store IPC                    |
+| `plugins/xdg-portal/src/global_shortcuts.rs`         | Real GlobalShortcuts portal implementation      |
+| `plugins/xdg-portal/src/remote_desktop.rs`           | Real RemoteDesktop portal implementation        |
 
 ## Follow-On (outside this plan)
 

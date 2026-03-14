@@ -37,6 +37,26 @@ Examples:
   - `apps/emoji-picker/src-tauri`
   - `plugins/xdg-portal`
 
+## Validation Checks
+
+- Prefer the shared root commands so local development and CI stay aligned.
+- Core validation commands:
+  - `pnpm format:check`
+  - `pnpm format:rust:check`
+  - `pnpm lint`
+  - `pnpm lint:rust`
+  - `pnpm typecheck`
+  - `pnpm test`
+  - `pnpm test:rust`
+  - `pnpm build`
+  - `pnpm build:rust`
+- Full local validation pass: `pnpm validate`
+- CI-style aggregate alias: `pnpm ci:all`
+- When you change frontend TypeScript or React code, run at least `pnpm lint`, `pnpm typecheck`, and `pnpm test`.
+- When you change Rust crates, Tauri configuration, plugin wiring, or permissions, run at least `pnpm format:rust:check`, `pnpm lint:rust`, `pnpm test:rust`, and the relevant build command.
+- `pnpm test:rust` uses `cargo-nextest`, so `cargo-nextest` must be installed anywhere you want to run the shared Rust test command.
+- If you cannot run a relevant validation command, say so clearly in your hand-off.
+
 ## Tauri v2 Rules
 
 - Use Tauri v2 capabilities (not v1 allowlist patterns).
