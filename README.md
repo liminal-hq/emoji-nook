@@ -1,4 +1,6 @@
-# Emoji Nook
+<p align="center">
+  <img src="docs/images/hero.svg" alt="Emoji Nook — A native Linux emoji picker that blends with your desktop" width="100%">
+</p>
 
 A native Linux emoji picker built with Tauri v2 and React 19, designed to blend seamlessly with GNOME, KDE, and other desktop environments.
 

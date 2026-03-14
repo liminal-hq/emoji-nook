@@ -1,0 +1,320 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 480" role="img" aria-labelledby="theme-title theme-desc">
+  <title id="theme-title">Native Theme Detection Flow</title>
+  <desc id="theme-desc">Animated diagram showing how Emoji Nook reads theme properties from xdg-desktop-portal via D-Bus and maps them to CSS custom properties through Adwaita or Breeze token sets.</desc>
+
+  <defs>
+    <linearGradient id="t-bg" x1="0" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#0a0a12"/>
+      <stop offset="50%" stop-color="#0f1628"/>
+      <stop offset="100%" stop-color="#1a0e2e"/>
+    </linearGradient>
+
+    <pattern id="t-dots" x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="12" cy="12" r="0.6" fill="#ffffff08"/>
+    </pattern>
+
+    <!-- Zone colours -->
+    <linearGradient id="t-portal" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#818cf8"/>
+      <stop offset="100%" stop-color="#6366f1"/>
+    </linearGradient>
+    <linearGradient id="t-detect" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#c2410c"/>
+    </linearGradient>
+    <linearGradient id="t-adwaita" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3584e4"/>
+      <stop offset="100%" stop-color="#1c71d8"/>
+    </linearGradient>
+    <linearGradient id="t-breeze" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2dd4bf"/>
+      <stop offset="100%" stop-color="#0d9488"/>
+    </linearGradient>
+    <linearGradient id="t-css" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+
+    <!-- Flow gradients -->
+    <linearGradient id="flow-violet" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#818cf8" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#818cf8" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#818cf8" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="flow-teal" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#2dd4bf" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#2dd4bf" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#2dd4bf" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="flow-gold" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#fbbf24" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#fbbf24" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#fbbf24" stop-opacity="0"/>
+    </linearGradient>
+
+    <marker id="t-arrow" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="10" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 3.5 L0 7 L1.5 3.5 Z" fill="#818cf8"/>
+    </marker>
+    <marker id="t-arrow-gold" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="10" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 3.5 L0 7 L1.5 3.5 Z" fill="#fbbf24"/>
+    </marker>
+
+    <filter id="t-glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="t-shadow">
+      <feDropShadow dx="2" dy="3" stdDeviation="4" flood-color="#00000040"/>
+    </filter>
+
+    <style>
+      .t-heading { font: 700 26px "Space Grotesk", "Inter", system-ui, sans-serif; fill: #818cf8; letter-spacing: -0.02em; }
+      .t-sub { font: 500 13px "Inter", system-ui, sans-serif; fill: #8892a8; }
+      .t-title { font: 700 13px "Space Grotesk", "Inter", system-ui, sans-serif; fill: #fff; letter-spacing: 0.02em; }
+      .t-code { font: 600 11px "JetBrains Mono", "Fira Code", monospace; fill: #b4bfce; }
+      .t-val { font: 600 11px "JetBrains Mono", "Fira Code", monospace; }
+      .t-label { font: 600 10px "JetBrains Mono", monospace; letter-spacing: 0.06em; }
+      .t-num { font: 800 44px "Space Grotesk", system-ui, sans-serif; fill: #ffffff08; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="480" rx="14" fill="url(#t-bg)"/>
+  <rect width="1200" height="480" rx="14" fill="url(#t-dots)"/>
+
+  <!-- Ambient orbs -->
+  <g opacity="0.05">
+    <circle cx="200" cy="350" r="160" fill="#818cf8">
+      <animate attributeName="r" values="160;175;160" dur="18s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="700" cy="120" r="200" fill="#3584e4">
+      <animate attributeName="r" values="200;215;200" dur="22s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="1050" cy="300" r="150" fill="#fbbf24">
+      <animate attributeName="r" values="150;165;150" dur="16s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- Title -->
+  <text x="50" y="42" class="t-heading">NATIVE THEME DETECTION</text>
+  <text x="50" y="62" class="t-sub">xdg-desktop-portal → token sets → CSS custom properties</text>
+
+  <!-- ═══ STAGE 1: PORTAL (D-Bus) ═══ -->
+  <g transform="translate(50, 90)">
+    <text x="85" y="8" class="t-num" text-anchor="middle">01</text>
+    <rect width="170" height="190" rx="10" fill="#0f1520" stroke="#818cf830" stroke-width="1.5" filter="url(#t-shadow)"/>
+    <rect width="170" height="4" rx="2" fill="url(#t-portal)"/>
+    <text x="14" y="28" class="t-title">XDG PORTAL</text>
+    <text x="14" y="46" class="t-code" style="fill:#818cf8;">D-Bus Settings</text>
+    <line x1="14" y1="56" x2="156" y2="56" stroke="#ffffff10" stroke-width="1"/>
+
+    <text x="14" y="76" class="t-code">colour_scheme</text>
+    <rect x="120" y="64" width="36" height="16" rx="4" fill="#818cf820"/>
+    <text x="138" y="76" class="t-val" text-anchor="middle" fill="#818cf8">1</text>
+
+    <text x="14" y="100" class="t-code">accent_color</text>
+    <circle cx="140" cy="96" r="6" fill="#3584e4"/>
+
+    <text x="14" y="124" class="t-code">contrast</text>
+    <rect x="120" y="112" width="36" height="16" rx="4" fill="#818cf820"/>
+    <text x="138" y="124" class="t-val" text-anchor="middle" fill="#818cf8">0</text>
+
+    <line x1="14" y1="138" x2="156" y2="138" stroke="#ffffff10" stroke-width="1"/>
+    <text x="14" y="158" class="t-code" style="fill:#f97316;">+ detect_de()</text>
+    <text x="14" y="178" class="t-code">XDG_CURRENT_DESKTOP</text>
+  </g>
+
+  <!-- ═══ STAGE 2: DETECTION / ROUTING ═══ -->
+  <g transform="translate(310, 90)">
+    <text x="85" y="8" class="t-num" text-anchor="middle">02</text>
+    <rect width="170" height="190" rx="10" fill="#0f1520" stroke="#f9731630" stroke-width="1.5" filter="url(#t-shadow)"/>
+    <rect width="170" height="4" rx="2" fill="url(#t-detect)"/>
+    <text x="14" y="28" class="t-title">ENVIRONMENT</text>
+    <text x="14" y="46" class="t-code" style="fill:#f97316;">detect_desktop_env()</text>
+    <line x1="14" y1="56" x2="156" y2="56" stroke="#ffffff10" stroke-width="1"/>
+
+    <text x="14" y="80" class="t-code">GNOME</text>
+    <text x="14" y="100" class="t-code">Cinnamon</text>
+    <text x="14" y="120" class="t-code">MATE / XFCE</text>
+    <rect x="105" y="67" width="50" height="60" rx="6" fill="#3584e420" stroke="#3584e440" stroke-width="1"/>
+    <text x="130" y="104" class="t-label" text-anchor="middle" fill="#3584e4">GTK</text>
+
+    <line x1="14" y1="138" x2="156" y2="138" stroke="#ffffff10" stroke-width="1"/>
+    <text x="14" y="158" class="t-code">KDE Plasma</text>
+    <rect x="105" y="145" width="50" height="24" rx="6" fill="#2dd4bf20" stroke="#2dd4bf40" stroke-width="1"/>
+    <text x="130" y="162" class="t-label" text-anchor="middle" fill="#2dd4bf">QT</text>
+  </g>
+
+  <!-- ═══ STAGE 3A: ADWAITA TOKENS ═══ -->
+  <g transform="translate(570, 90)">
+    <text x="90" y="8" class="t-num" text-anchor="middle">03</text>
+    <rect width="180" height="86" rx="10" fill="#0f1520" stroke="#3584e430" stroke-width="1.5" filter="url(#t-shadow)"/>
+    <rect width="180" height="4" rx="2" fill="url(#t-adwaita)"/>
+    <text x="14" y="28" class="t-title">ADWAITA TOKENS</text>
+    <line x1="14" y1="38" x2="166" y2="38" stroke="#ffffff10" stroke-width="1"/>
+    <text x="14" y="56" class="t-code">Cantarell font</text>
+    <text x="14" y="74" class="t-code">radius: 12px, shadow: soft</text>
+  </g>
+
+  <!-- ═══ STAGE 3B: BREEZE TOKENS ═══ -->
+  <g transform="translate(570, 200)">
+    <rect width="180" height="80" rx="10" fill="#0f1520" stroke="#2dd4bf30" stroke-width="1.5" filter="url(#t-shadow)"/>
+    <rect width="180" height="4" rx="2" fill="url(#t-breeze)"/>
+    <text x="14" y="28" class="t-title">BREEZE TOKENS</text>
+    <line x1="14" y1="38" x2="166" y2="38" stroke="#ffffff10" stroke-width="1"/>
+    <text x="14" y="56" class="t-code">Noto Sans font</text>
+    <text x="14" y="74" class="t-code">radius: 4px, shadow: crisp</text>
+  </g>
+
+  <!-- ═══ STAGE 4: CSS CUSTOM PROPERTIES ═══ -->
+  <g transform="translate(840, 90)">
+    <text x="90" y="8" class="t-num" text-anchor="middle">04</text>
+    <rect width="180" height="190" rx="10" fill="#0f1520" stroke="#fbbf2430" stroke-width="1.5" filter="url(#t-shadow)"/>
+    <rect width="180" height="4" rx="2" fill="url(#t-css)"/>
+    <text x="14" y="28" class="t-title">CSS PROPERTIES</text>
+    <text x="14" y="46" class="t-code" style="fill:#fbbf24;">document.style</text>
+    <line x1="14" y1="56" x2="166" y2="56" stroke="#ffffff10" stroke-width="1"/>
+
+    <text x="14" y="76" class="t-val" fill="#fbbf24">--bg-primary</text>
+    <text x="14" y="96" class="t-val" fill="#fbbf24">--bg-surface</text>
+    <text x="14" y="116" class="t-val" fill="#fbbf24">--accent</text>
+    <text x="14" y="136" class="t-val" fill="#fbbf24">--text-primary</text>
+    <text x="14" y="156" class="t-val" fill="#fbbf24">--font-family</text>
+    <text x="14" y="176" class="t-val" fill="#fbbf24">--radius-md</text>
+  </g>
+
+  <!-- ═══ STAGE 5: PICKER ═══ -->
+  <g transform="translate(1100, 120)">
+    <rect width="70" height="130" rx="10" fill="#0f1520" stroke="#f43f5e30" stroke-width="1.5" filter="url(#t-shadow)"/>
+    <!-- Mini picker mockup -->
+    <rect x="6" y="8" width="58" height="8" rx="3" fill="#ffffff10"/>
+    <rect x="6" y="20" width="58" height="2" rx="1" fill="#ffffff08"/>
+    <g opacity="0.5">
+      <text x="14" y="40" font-size="12">😀</text>
+      <text x="34" y="40" font-size="12">😂</text>
+      <text x="54" y="40" font-size="12">🥰</text>
+      <text x="14" y="58" font-size="12">😎</text>
+      <text x="34" y="58" font-size="12">🤔</text>
+      <text x="54" y="58" font-size="12">👋</text>
+      <text x="14" y="76" font-size="12">🎉</text>
+      <text x="34" y="76" font-size="12">✨</text>
+      <text x="54" y="76" font-size="12">🦀</text>
+      <text x="14" y="94" font-size="12">💜</text>
+      <text x="34" y="94" font-size="12">🔥</text>
+      <text x="54" y="94" font-size="12">🐧</text>
+    </g>
+    <rect x="6" y="108" width="58" height="16" rx="3" fill="#ffffff08"/>
+    <text x="12" y="120" font-size="8" fill="#ffffff30">preview</text>
+  </g>
+
+  <!-- ═══ CONNECTION PATHS ═══ -->
+  <!-- Portal → Detection -->
+  <g filter="url(#t-glow)">
+    <path d="M220 185 L310 185" fill="none" stroke="#818cf8" stroke-width="3" marker-end="url(#t-arrow)">
+      <animate attributeName="opacity" values="0.4;1;0.4" dur="2.5s" repeatCount="indefinite"/>
+    </path>
+  </g>
+
+  <!-- Detection → Adwaita -->
+  <path id="path-adwaita" d="M480 160 C520 140, 540 135, 570 133" fill="none" stroke="none"/>
+  <g filter="url(#t-glow)">
+    <path d="M480 160 C520 140, 540 135, 570 133" fill="none" stroke="#3584e4" stroke-width="2.5" marker-end="url(#t-arrow)">
+      <animate attributeName="opacity" values="0.3;0.9;0.3" dur="3s" repeatCount="indefinite"/>
+    </path>
+  </g>
+
+  <!-- Detection → Breeze -->
+  <path id="path-breeze" d="M480 230 C520 240, 540 240, 570 240" fill="none" stroke="none"/>
+  <g filter="url(#t-glow)">
+    <path d="M480 230 C520 240, 540 240, 570 240" fill="none" stroke="#2dd4bf" stroke-width="2.5" marker-end="url(#t-arrow)">
+      <animate attributeName="opacity" values="0.3;0.9;0.3" dur="3s" begin="0.5s" repeatCount="indefinite"/>
+    </path>
+  </g>
+
+  <!-- Tokens → CSS -->
+  <g filter="url(#t-glow)">
+    <path d="M750 145 L840 185" fill="none" stroke="#fbbf24" stroke-width="2.5" marker-end="url(#t-arrow-gold)">
+      <animate attributeName="opacity" values="0.3;0.9;0.3" dur="2.5s" begin="0.8s" repeatCount="indefinite"/>
+    </path>
+    <path d="M750 240 L840 210" fill="none" stroke="#fbbf24" stroke-width="2.5" marker-end="url(#t-arrow-gold)">
+      <animate attributeName="opacity" values="0.3;0.9;0.3" dur="2.5s" begin="1.2s" repeatCount="indefinite"/>
+    </path>
+  </g>
+
+  <!-- CSS → Picker -->
+  <g filter="url(#t-glow)">
+    <path d="M1020 185 L1100 185" fill="none" stroke="#fbbf24" stroke-width="2.5" marker-end="url(#t-arrow-gold)">
+      <animate attributeName="opacity" values="0.4;1;0.4" dur="2s" begin="1.5s" repeatCount="indefinite"/>
+    </path>
+  </g>
+
+  <!-- Animated data particles -->
+  <circle r="3.5" fill="#818cf8" opacity="0.8">
+    <animateMotion dur="3s" repeatCount="indefinite" path="M220 185 L310 185"/>
+    <animate attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite"/>
+  </circle>
+  <circle r="3" fill="#3584e4" opacity="0.7">
+    <animateMotion dur="2.5s" repeatCount="indefinite" path="M480 160 C520 140, 540 135, 570 133"/>
+  </circle>
+  <circle r="3" fill="#fbbf24" opacity="0.8">
+    <animateMotion dur="2.5s" repeatCount="indefinite" path="M750 145 L840 185" begin="0.8s"/>
+  </circle>
+  <circle r="3" fill="#fbbf24" opacity="0.8">
+    <animateMotion dur="2s" repeatCount="indefinite" path="M1020 185 L1100 185" begin="1.5s"/>
+  </circle>
+
+  <!-- ═══ BOTTOM: COLOUR SCHEME LEGEND ═══ -->
+  <g transform="translate(50, 340)">
+    <text x="0" y="0" class="t-heading" style="font-size:16px;">Colour Scheme Mapping</text>
+
+    <!-- Light -->
+    <g transform="translate(0, 20)">
+      <rect width="350" height="46" rx="8" fill="#0f1520" stroke="#ffffff10" stroke-width="1"/>
+      <rect width="4" height="46" rx="2" fill="#fbbf24"/>
+      <text x="16" y="18" class="t-label" fill="#fbbf24">SCHEME: 0 (NO PREFERENCE)</text>
+      <text x="16" y="36" class="t-code">→ CSS prefers-color-scheme fallback</text>
+    </g>
+
+    <!-- Dark -->
+    <g transform="translate(0, 76)">
+      <rect width="350" height="46" rx="8" fill="#0f1520" stroke="#ffffff10" stroke-width="1"/>
+      <rect width="4" height="46" rx="2" fill="#818cf8"/>
+      <text x="16" y="18" class="t-label" fill="#818cf8">SCHEME: 1 (PREFER DARK)</text>
+      <text x="16" y="36" class="t-code">→ dark token set applied</text>
+    </g>
+  </g>
+
+  <!-- Accent colour examples -->
+  <g transform="translate(450, 360)">
+    <text x="0" y="0" class="t-heading" style="font-size:16px;">Accent Colours</text>
+    <g transform="translate(0, 16)">
+      <circle cx="10" cy="10" r="8" fill="#3584e4"/><text x="26" y="14" class="t-code">GNOME Blue</text>
+      <circle cx="130" cy="10" r="8" fill="#e5a50a"/><text x="146" y="14" class="t-code">Bark</text>
+      <circle cx="210" cy="10" r="8" fill="#c01c28"/><text x="226" y="14" class="t-code">Red</text>
+      <circle cx="280" cy="10" r="8" fill="#613583"/><text x="296" y="14" class="t-code">Purple</text>
+    </g>
+    <g transform="translate(0, 44)">
+      <circle cx="10" cy="10" r="8" fill="#26a269"/><text x="26" y="14" class="t-code">Green</text>
+      <circle cx="130" cy="10" r="8" fill="#f97316"/><text x="146" y="14" class="t-code">Orange</text>
+      <circle cx="210" cy="10" r="8" fill="#e66100"/><text x="226" y="14" class="t-code">Tangerine</text>
+      <circle cx="280" cy="10" r="8" fill="#f8e45c"/><text x="296" y="14" class="t-code">Yellow</text>
+    </g>
+  </g>
+
+  <!-- useTheme hook annotation -->
+  <g transform="translate(840, 340)">
+    <text x="0" y="0" class="t-heading" style="font-size:16px; fill:#2dd4bf;">useTheme() Hook</text>
+    <g transform="translate(0, 16)">
+      <text x="0" y="14" class="t-code">1. invoke("get_theme_info")</text>
+      <text x="0" y="34" class="t-code">2. Select Adwaita | Breeze tokens</text>
+      <text x="0" y="54" class="t-code">3. style.setProperty(--var, val)</text>
+      <text x="0" y="74" class="t-code">4. Re-run on portal signal</text>
+    </g>
+  </g>
+
+  <!-- Window lifecycle note -->
+  <g transform="translate(50, 450)">
+    <circle cx="8" cy="8" r="5" fill="#818cf8" opacity="0.7"/>
+    <text x="20" y="12" class="t-code">Portal props read once on startup, re-fetched on theme change signal via D-Bus</text>
+  </g>
+</svg>

@@ -140,6 +140,8 @@ graph LR
 
 ### Emoji Selection Flow
 
+> **Visual:** See the [animated pipeline diagram](images/emoji_selection_pipeline.svg) for a visual overview of this flow.
+
 This sequence shows what happens from the moment a user picks an emoji to the moment it appears in their target application.
 
 ```mermaid
@@ -250,6 +252,8 @@ stateDiagram-v2
 ```
 
 ## Native Theming
+
+> **Visual:** See the [animated theme detection diagram](images/theme_detection_flow.svg) for a visual overview of this pipeline.
 
 The picker adapts its appearance to the host desktop environment by reading theme properties via `xdg-desktop-portal` and mapping them to CSS custom properties.
 
