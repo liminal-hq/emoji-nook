@@ -5,6 +5,7 @@
 
 mod commands;
 mod error;
+pub mod global_shortcuts;
 mod linux;
 mod models;
 

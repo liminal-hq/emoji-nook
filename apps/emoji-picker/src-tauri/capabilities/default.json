@@ -3,5 +3,13 @@
 	"identifier": "default",
 	"description": "Capability for the main window",
 	"windows": ["main"],
-	"permissions": ["core:default", "log:default", "opener:default", "xdg-portal:default"]
+	"permissions": [
+		"core:default",
+		"global-shortcut:default",
+		"log:default",
+		"opener:default",
+		"xdg-portal:default",
+		"xdg-portal:allow-bind-global-shortcut",
+		"xdg-portal:allow-unbind-global-shortcut"
+	]
 }
