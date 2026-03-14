@@ -105,7 +105,7 @@ Optional operational labels: `infrastructure`, `internal`, `release`, `blocked`,
 
 Optional scope labels (as applicable): `frontend`, `backend`, `plugin`.
 
-Optional platform and technical labels (as applicable): `tauri`, `rust`, `wayland`, `x11`, `performance`, `security`, `needs-decision`.
+Optional platform and technical labels (as applicable): `rust`, `wayland`, `x11`, `performance`, `security`, `needs-decision`.
 
 Do not add alias labels such as `feat`, `feature`, `fix`, `bugfix`, `docs`, or `test`.
 
