@@ -1,3 +1,5 @@
+# Emoji Nook
+
 <p align="center">
   <img src="docs/images/hero.svg" alt="Emoji Nook — A native Linux emoji picker that blends with your desktop" width="100%">
 </p>
@@ -19,12 +21,12 @@ This repository is a `pnpm` + Cargo workspace monorepo.
 
 ### Key dependencies
 
-| Layer | Library | Purpose |
-|-------|---------|---------|
-| Emoji | [Frimousse](https://github.com/liveblocks/frimousse) v0.3 | Headless, React 19 compatible emoji picker |
-| Portal | [ashpd](https://github.com/bilelmoussaoui/ashpd) | D-Bus interface to `xdg-desktop-portal` |
-| Framework | [Tauri](https://v2.tauri.app/) v2 | Desktop application shell |
-| Logging | tauri-plugin-log | Structured logging with console bridge |
+| Layer     | Library                                                   | Purpose                                    |
+| --------- | --------------------------------------------------------- | ------------------------------------------ |
+| Emoji     | [Frimousse](https://github.com/liveblocks/frimousse) v0.3 | Headless, React 19 compatible emoji picker |
+| Portal    | [ashpd](https://github.com/bilelmoussaoui/ashpd)          | D-Bus interface to `xdg-desktop-portal`    |
+| Framework | [Tauri](https://v2.tauri.app/) v2                         | Desktop application shell                  |
+| Logging   | tauri-plugin-log                                          | Structured logging with console bridge     |
 
 ### Desktop theme support
 
