@@ -3,6 +3,7 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+import type { RefObject } from 'react';
 import { useCallback, useRef, useEffect } from 'react';
 import { EmojiPicker } from 'frimousse';
 import type { SkinTone } from 'frimousse';
@@ -14,6 +15,7 @@ export interface EmojiSelection {
 }
 
 interface EmojiPickerPanelProps {
+	searchRef?: RefObject<HTMLInputElement | null>;
 	skinTone: SkinTone;
 	onSkinToneChange: (skinTone: SkinTone) => void;
 	onEmojiSelect: (selection: EmojiSelection) => void;
@@ -30,16 +32,18 @@ function slugify(label: string): string {
 }
 
 export default function EmojiPickerPanel({
+	searchRef: externalSearchRef,
 	skinTone,
 	onSkinToneChange,
 	onEmojiSelect,
 }: EmojiPickerPanelProps) {
-	const searchRef = useRef<HTMLInputElement>(null);
+	const internalSearchRef = useRef<HTMLInputElement>(null);
+	const searchRef = externalSearchRef ?? internalSearchRef;
 	const viewportRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
 		searchRef.current?.focus();
-	}, []);
+	}, [searchRef]);
 
 	const handleSelect = useCallback(
 		(emoji: EmojiSelection) => {
@@ -56,6 +60,7 @@ export default function EmojiPickerPanel({
 			columns={9}
 			className="picker-root"
 		>
+			<div className="picker-drag-handle" data-tauri-drag-region />
 			<div className="picker-header">
 				<EmojiPicker.Search
 					ref={searchRef}
@@ -124,17 +129,23 @@ export default function EmojiPickerPanel({
 				/>
 			</EmojiPicker.Viewport>
 
-			<div className="picker-footer">
+			<div className="picker-footer" data-tauri-drag-region>
 				<EmojiPicker.ActiveEmoji>
 					{({ emoji }) => (
-						<div className="picker-preview">
+						<div className="picker-preview" data-tauri-drag-region>
 							{emoji ? (
 								<>
-									<span className="preview-emoji">{emoji.emoji}</span>
-									<span className="preview-label">{emoji.label}</span>
+									<span className="preview-emoji" data-tauri-drag-region>
+										{emoji.emoji}
+									</span>
+									<span className="preview-label" data-tauri-drag-region>
+										{emoji.label}
+									</span>
 								</>
 							) : (
-								<span className="preview-label">Pick an emoji…</span>
+								<span className="preview-label" data-tauri-drag-region>
+									Pick an emoji…
+								</span>
 							)}
 						</div>
 					)}
