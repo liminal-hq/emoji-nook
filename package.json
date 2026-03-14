@@ -4,7 +4,8 @@
   "version": "0.1.0",
   "packageManager": "pnpm@9.15.0",
   "workspaces": [
-    "apps/*"
+    "apps/*",
+    "plugins/*/guest-js"
   ],
   "scripts": {
     "dev": "pnpm --filter @emoji-picker/emoji-picker dev",

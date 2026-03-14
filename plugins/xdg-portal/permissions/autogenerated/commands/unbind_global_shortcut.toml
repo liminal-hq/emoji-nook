@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-unbind-global-shortcut"
+description = "Enables the unbind_global_shortcut command without any pre-configured scope."
+commands.allow = ["unbind_global_shortcut"]
+
+[[permission]]
+identifier = "deny-unbind-global-shortcut"
+description = "Denies the unbind_global_shortcut command without any pre-configured scope."
+commands.deny = ["unbind_global_shortcut"]

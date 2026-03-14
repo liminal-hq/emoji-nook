@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-bind-global-shortcut"
+description = "Enables the bind_global_shortcut command without any pre-configured scope."
+commands.allow = ["bind_global_shortcut"]
+
+[[permission]]
+identifier = "deny-bind-global-shortcut"
+description = "Denies the bind_global_shortcut command without any pre-configured scope."
+commands.deny = ["bind_global_shortcut"]

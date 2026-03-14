@@ -1,6 +1,7 @@
 [workspace]
 members = [
-  "apps/emoji-picker/src-tauri"
+  "apps/emoji-picker/src-tauri",
+  "plugins/xdg-portal"
 ]
 resolver = "2"
 
@@ -9,7 +10,13 @@ edition = "2021"
 license = "MIT"
 
 [workspace.dependencies]
+log = "0.4"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tauri = { version = "2", features = ["tray-icon", "image-png"] }
 tauri-build = { version = "2" }
+tauri-plugin-global-shortcut = "2"
+tauri-plugin-log = "2"
+tauri-plugin-store = "2"
+thiserror = "2"
+tracing = "0.1"

@@ -1,0 +1,10 @@
+{
+  "name": "tauri-plugin-xdg-portal",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "../dist-js/index.js",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@tauri-apps/api": "^2.0.0"
+  }
+}

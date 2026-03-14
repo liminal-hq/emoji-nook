@@ -1,0 +1,6 @@
+[[permission]]
+identifier = "default"
+description = "Default permissions for the xdg-portal plugin"
+commands.allow = [
+  "check_availability"
+]

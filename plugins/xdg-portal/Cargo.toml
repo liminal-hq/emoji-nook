@@ -1,0 +1,28 @@
+[package]
+name = "tauri-plugin-xdg-portal"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Tauri plugin for xdg-desktop-portal integrations"
+build = "build.rs"
+links = "tauri-plugin-xdg-portal"
+
+[lib]
+name = "tauri_plugin_xdg_portal"
+crate-type = ["rlib", "cdylib"]
+
+[dependencies]
+ashpd = { version = "0.9", default-features = false, features = ["tokio"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tauri = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+
+[features]
+default = []
+global-shortcuts = []
+remote-desktop = []
+
+[build-dependencies]
+tauri-plugin = { version = "2", features = ["build"] }

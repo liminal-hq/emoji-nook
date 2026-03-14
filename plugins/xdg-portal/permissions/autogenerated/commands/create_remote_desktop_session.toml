@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-create-remote-desktop-session"
+description = "Enables the create_remote_desktop_session command without any pre-configured scope."
+commands.allow = ["create_remote_desktop_session"]
+
+[[permission]]
+identifier = "deny-create-remote-desktop-session"
+description = "Denies the create_remote_desktop_session command without any pre-configured scope."
+commands.deny = ["create_remote_desktop_session"]
