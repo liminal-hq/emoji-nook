@@ -3,49 +3,49 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-import { fireEvent, render, screen } from "@testing-library/react";
-import CategoryBar from "./CategoryBar";
+import { fireEvent, render, screen } from '@testing-library/react';
+import CategoryBar from './CategoryBar';
 
 class MockIntersectionObserver {
-  observe() {}
-  disconnect() {}
+	observe() {}
+	disconnect() {}
 }
 
-describe("CategoryBar", () => {
-  beforeEach(() => {
-    vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
-  });
+describe('CategoryBar', () => {
+	beforeEach(() => {
+		vi.stubGlobal('IntersectionObserver', MockIntersectionObserver);
+	});
 
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
+	afterEach(() => {
+		vi.unstubAllGlobals();
+	});
 
-  it("scrolls the viewport to the matching category header", () => {
-    const viewport = document.createElement("div");
-    const peopleHeader = document.createElement("div");
+	it('scrolls the viewport to the matching category header', () => {
+		const viewport = document.createElement('div');
+		const peopleHeader = document.createElement('div');
 
-    viewport.scrollTop = 12;
-    viewport.scrollTo = vi.fn();
-    viewport.getBoundingClientRect = () =>
-      ({
-        top: 50,
-      }) as DOMRect;
+		viewport.scrollTop = 12;
+		viewport.scrollTo = vi.fn();
+		viewport.getBoundingClientRect = () =>
+			({
+				top: 50,
+			}) as DOMRect;
 
-    peopleHeader.dataset.categoryId = "people-body";
-    peopleHeader.getBoundingClientRect = () =>
-      ({
-        top: 180,
-      }) as DOMRect;
+		peopleHeader.dataset.categoryId = 'people-body';
+		peopleHeader.getBoundingClientRect = () =>
+			({
+				top: 180,
+			}) as DOMRect;
 
-    viewport.appendChild(peopleHeader);
+		viewport.appendChild(peopleHeader);
 
-    render(<CategoryBar viewportRef={{ current: viewport }} />);
+		render(<CategoryBar viewportRef={{ current: viewport }} />);
 
-    fireEvent.click(screen.getByTitle("People & body"));
+		fireEvent.click(screen.getByTitle('People & body'));
 
-    expect(viewport.scrollTo).toHaveBeenCalledWith({
-      top: 142,
-      behavior: "smooth",
-    });
-  });
+		expect(viewport.scrollTo).toHaveBeenCalledWith({
+			top: 142,
+			behavior: 'smooth',
+		});
+	});
 });

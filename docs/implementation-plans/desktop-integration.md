@@ -178,9 +178,9 @@ Add settings and polish.
 - [ ] Create settings store with defaults:
   ```json
   {
-    "shortcut": "Alt+Shift+E",
-    "skinTone": "none",
-    "closeOnSelect": true
+  	"shortcut": "Alt+Shift+E",
+  	"skinTone": "none",
+  	"closeOnSelect": true
   }
   ```
 - [ ] Build settings panel component:

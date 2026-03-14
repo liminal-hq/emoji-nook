@@ -68,30 +68,30 @@ tauri::Builder::default()
 The `guest-js` frontend will have strongly-typed promises to interact with the portals.
 
 ```ts
-import { globalShortcuts, remoteDesktop } from "tauri-plugin-xdg-portal";
+import { globalShortcuts, remoteDesktop } from 'tauri-plugin-xdg-portal';
 
 // 1. Registering a Wayland-safe Global Shortcut
 async function setupShortcut() {
-  try {
-    const session = await globalShortcuts.bind({
-      id: "open-emoji-picker",
-      description: "Trigger the global emoji picker",
-      preferredTrigger: "Alt+Shift+E",
-    });
+	try {
+		const session = await globalShortcuts.bind({
+			id: 'open-emoji-picker',
+			description: 'Trigger the global emoji picker',
+			preferredTrigger: 'Alt+Shift+E',
+		});
 
-    session.onTriggered(() => {
-      console.log("Shortcut activated by Wayland Compositor!");
-    });
-  } catch (e) {
-    console.error("Portal request denied or unavailable", e);
-  }
+		session.onTriggered(() => {
+			console.log('Shortcut activated by Wayland Compositor!');
+		});
+	} catch (e) {
+		console.error('Portal request denied or unavailable', e);
+	}
 }
 
 // 2. Injecting Text via RemoteDesktop Portal
 async function injectEmoji(emoji: string) {
-  const session = await remoteDesktop.createSession();
-  await session.injectText(emoji);
-  await session.close();
+	const session = await remoteDesktop.createSession();
+	await session.injectText(emoji);
+	await session.close();
 }
 ```
 
