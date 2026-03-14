@@ -1,0 +1,334 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  TAURI_CI_IMAGE: ghcr.io/liminal-hq/tauri-ci-desktop:latest
+
+jobs:
+  format:
+    name: Format
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check repository formatting
+        id: format_repo
+        run: pnpm format:check
+
+      - name: Check Rust formatting
+        id: format_rust
+        run: pnpm format:rust:check
+
+      - name: Write summary
+        if: always()
+        run: |
+          {
+            echo "## Emoji Nook Format Summary"
+            echo
+            echo "- Runner: \`ubuntu-24.04\`"
+            echo "- Repository formatting: \`${{ steps.format_repo.outcome }}\`"
+            echo "- Rust formatting: \`${{ steps.format_rust.outcome }}\`"
+            echo "- Run URL: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run frontend lint
+        id: lint_frontend
+        run: pnpm lint
+
+      - name: Write summary
+        if: always()
+        run: |
+          {
+            echo "## Emoji Nook Lint Summary"
+            echo
+            echo "- Runner: \`ubuntu-24.04\`"
+            echo "- Frontend lint: \`${{ steps.lint_frontend.outcome }}\`"
+            echo "- Run URL: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run frontend typecheck
+        id: typecheck_frontend
+        run: pnpm typecheck
+
+      - name: Write summary
+        if: always()
+        run: |
+          {
+            echo "## Emoji Nook Typecheck Summary"
+            echo
+            echo "- Runner: \`ubuntu-24.04\`"
+            echo "- Frontend typecheck: \`${{ steps.typecheck_frontend.outcome }}\`"
+            echo "- Run URL: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  frontend-tests:
+    name: Frontend tests
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run frontend tests with JUnit output
+        id: frontend_tests
+        run: pnpm --filter @emoji-picker/emoji-picker test:ci
+
+      - name: Upload frontend test artefacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-test-results
+          path: test-results/emoji-picker/junit.xml
+          if-no-files-found: error
+
+      - name: Write summary
+        if: always()
+        run: |
+          {
+            echo "## Emoji Nook Frontend Test Summary"
+            echo
+            echo "- Runner: \`ubuntu-24.04\`"
+            echo "- Frontend tests: \`${{ steps.frontend_tests.outcome }}\`"
+            echo "- Test artefact: \`test-results/emoji-picker/junit.xml\`"
+            echo "- Run URL: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  rust-checks:
+    name: Rust checks
+    runs-on: ubuntu-24.04
+    container:
+      image: ${{ env.TAURI_CI_IMAGE }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Cache Rust
+        uses: swatinem/rust-cache@v2
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Rust formatting check
+        id: rust_format
+        run: pnpm format:rust:check
+
+      - name: Run Rust clippy
+        id: rust_clippy
+        run: pnpm lint:rust
+
+      - name: Write summary
+        if: always()
+        run: |
+          {
+            echo "## Emoji Nook Rust Check Summary"
+            echo
+            echo "- Runner: \`ubuntu-24.04\`"
+            echo "- Container: \`${TAURI_CI_IMAGE}\`"
+            echo "- Rust formatting: \`${{ steps.rust_format.outcome }}\`"
+            echo "- Rust clippy: \`${{ steps.rust_clippy.outcome }}\`"
+            echo "- Run URL: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  rust-tests:
+    name: Rust tests
+    runs-on: ubuntu-24.04
+    container:
+      image: ${{ env.TAURI_CI_IMAGE }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust
+        uses: swatinem/rust-cache@v2
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Rust tests
+        id: rust_tests
+        run: pnpm test:rust
+
+      - name: Write summary
+        if: always()
+        run: |
+          {
+            echo "## Emoji Nook Rust Test Summary"
+            echo
+            echo "- Runner: \`ubuntu-24.04\`"
+            echo "- Container: \`${TAURI_CI_IMAGE}\`"
+            echo "- Rust tests: \`${{ steps.rust_tests.outcome }}\`"
+            echo "- Run URL: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  build:
+    name: Build
+    runs-on: ubuntu-24.04
+    needs: [format, lint, typecheck, frontend-tests, rust-checks, rust-tests]
+    container:
+      image: ${{ env.TAURI_CI_IMAGE }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust
+        uses: swatinem/rust-cache@v2
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build frontend bundle
+        id: build_frontend
+        run: pnpm build
+
+      - name: Build Rust workspace
+        id: build_rust
+        run: pnpm build:rust
+
+      - name: Build Tauri application
+        id: build_tauri
+        env:
+          TAURI_BUNDLER_NEW_APPIMAGE_FORMAT: "true"
+          TAURI_BUNDLE_TARGETS: deb,rpm
+        run: pnpm tauri:build
+
+      - name: Write summary
+        if: always()
+        run: |
+          {
+            echo "## Emoji Nook Build Summary"
+            echo
+            echo "- Runner: \`ubuntu-24.04\`"
+            echo "- Container: \`${TAURI_CI_IMAGE}\`"
+            echo "- Frontend build: \`${{ steps.build_frontend.outcome }}\`"
+            echo "- Rust workspace build: \`${{ steps.build_rust.outcome }}\`"
+            echo "- Tauri production build: \`${{ steps.build_tauri.outcome }}\`"
+            echo "- Bundle targets: \`deb\`, \`rpm\`"
+            echo "- Bundle path: \`target/release/bundle\`"
+            echo "- Run URL: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          } >> "${GITHUB_STEP_SUMMARY}"

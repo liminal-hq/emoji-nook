@@ -24,3 +24,13 @@ pub fn run() {
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+
+#[cfg(test)]
+mod tests {
+    use super::insert_emoji;
+
+    #[test]
+    fn insert_emoji_accepts_selection_metadata() {
+        insert_emoji("😀", "grinning face");
+    }
+}

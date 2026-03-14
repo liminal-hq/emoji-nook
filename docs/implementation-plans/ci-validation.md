@@ -268,9 +268,10 @@ A likely end state for root commands:
 - `pnpm test:rust`
 - `pnpm build`
 - `pnpm build:rust`
-- `pnpm ci`
+- `pnpm validate`
+- `pnpm ci:all`
 
-Recommendation: `pnpm ci` should be the closest local mirror of the default CI workflow, even if the GitHub workflow still splits jobs for visibility.
+Recommendation: `pnpm validate` should be the closest local mirror of the default CI workflow, even if the GitHub workflow still splits jobs for visibility.
 
 ## Risks and Mitigations
 
