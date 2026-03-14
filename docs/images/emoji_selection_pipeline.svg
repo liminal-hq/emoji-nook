@@ -1,3 +1,7 @@
+<!-- Animated diagram of the emoji selection and injection pipeline -->
+<!-- -->
+<!-- (c) Copyright 2026 Liminal HQ, Scott Morris -->
+<!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 520" role="img" aria-labelledby="pipe-title pipe-desc">
   <title id="pipe-title">Emoji Selection Pipeline</title>
   <desc id="pipe-desc">Left-to-right pipeline showing a global shortcut activating the picker, emoji selection flowing through IPC to the Rust backend, and injection into the target application via portal or clipboard shuffle.</desc>

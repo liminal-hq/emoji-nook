@@ -1,3 +1,7 @@
+<!-- Animated diagram of the native theme detection pipeline -->
+<!-- -->
+<!-- (c) Copyright 2026 Liminal HQ, Scott Morris -->
+<!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 480" role="img" aria-labelledby="theme-title theme-desc">
   <title id="theme-title">Native Theme Detection Flow</title>
   <desc id="theme-desc">Animated diagram showing how Emoji Nook reads theme properties from xdg-desktop-portal via D-Bus and maps them to CSS custom properties through Adwaita or Breeze token sets.</desc>
