@@ -65,10 +65,12 @@ export default function EmojiPickerPanel({
         />
         <EmojiPicker.SkinTone emoji="✋">
           {({ skinToneVariations }) => (
-            <div className="skin-tone-selector">
+            <div className="skin-tone-selector" role="radiogroup" aria-label="Skin tone">
               {skinToneVariations.map(({ skinTone: st, emoji }) => (
                 <button
                   key={st}
+                  role="radio"
+                  aria-checked={st === skinTone}
                   className={`skin-tone-btn${st === skinTone ? " active" : ""}`}
                   onClick={() => onSkinToneChange(st)}
                   title={st}
@@ -115,6 +117,7 @@ export default function EmojiPickerPanel({
                 {...props}
                 className="picker-emoji"
                 title={emoji.label}
+                aria-label={emoji.label}
               >
                 {emoji.emoji}
               </button>
