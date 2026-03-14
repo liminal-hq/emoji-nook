@@ -24,10 +24,12 @@ Linux has two display server protocols with fundamentally different security mod
 | Capability       | X11                                             | Wayland                                                                |
 | ---------------- | ----------------------------------------------- | ---------------------------------------------------------------------- |
 | Global shortcuts | `tauri-plugin-global-shortcut` (works directly) | `xdg-desktop-portal` GlobalShortcuts (requires user permission prompt) |
-| Input injection  | `enigo` via `xdotool`                           | `xdg-desktop-portal` RemoteDesktop (requires session)                  |
-| Clipboard        | `arboard` via `xclip`/`xsel`                    | `arboard` via `wl-clipboard`                                           |
+| Input injection  | `xdotool` via `std::process::Command`           | `wtype` via `std::process::Command`                                    |
+| Clipboard        | `arboard` (handles both transparently)          | `arboard` (handles both transparently)                                 |
 
 Detection: check `WAYLAND_DISPLAY` environment variable at startup. Route all shortcut and injection calls through the appropriate backend.
+
+> **Deviation from original plan:** `enigo` was dropped in favour of shelling out to `xdotool` (X11) and `wtype` (Wayland) for keystroke simulation. This avoids a heavy dependency and is more reliable across compositors. RemoteDesktop portal injection was deferred — the clipboard shuffle is the primary path for both display servers.
 
 ### Window lifecycle
 
@@ -39,19 +41,26 @@ The picker window has three states:
 
 The window is never destroyed during the app lifecycle; it is shown and hidden to avoid re-creation cost.
 
+### Draggable window
+
+The picker uses `data-tauri-drag-region` for repositioning the frameless window. This attribute only works on the exact element it is applied to — it does not propagate to children. Drag regions are applied to:
+
+- A thin (6px) drag handle strip at the top of the picker
+- The footer preview area and all its child elements
+
 ### Emoji injection strategy
 
-Primary path (Wayland): use `xdg-desktop-portal` RemoteDesktop to inject the emoji character directly as keyboard input.
-
-Fallback path (X11 or RemoteDesktop unavailable): clipboard shuffle.
+Primary path (both X11 and Wayland): clipboard shuffle.
 
 1. Save current clipboard contents
 2. Write selected emoji to clipboard
 3. Hide picker window (OS returns focus to previous app)
-4. Wait ~50ms for focus to settle
-5. Simulate Ctrl+V via `enigo`
-6. Wait ~50ms
+4. Wait ~80ms for focus to settle
+5. Simulate Ctrl+V via `xdotool` (X11) or `wtype` (Wayland)
+6. Wait ~80ms
 7. Restore original clipboard contents
+
+> **Deviation from original plan:** RemoteDesktop portal injection was deferred. The clipboard shuffle works on both display servers and avoids the scary RemoteDesktop permission prompt ("allow this app to control your input") that most users would decline. This can be revisited as an optimisation in a future phase.
 
 ### Settings persistence
 
@@ -70,8 +79,9 @@ Use `tauri-plugin-store` for a local JSON config. Initial settings:
 - Show/hide window lifecycle with focus management
 - Escape to dismiss
 - Click-outside to dismiss
-- Emoji injection into previously focused app (RemoteDesktop + clipboard shuffle fallback)
-- System tray with context menu (Quit, Settings)
+- Emoji injection into previously focused app (clipboard shuffle)
+- Draggable window via `data-tauri-drag-region`
+- System tray with context menu (Show Picker, Quit)
 - Settings UI (shortcut capture, skin tone preference, close-on-select toggle)
 - Settings persistence via tauri-plugin-store
 - Display server detection and dynamic routing
@@ -92,43 +102,46 @@ Transform the test window into a shortcut-activated overlay.
 
 #### Phase 1: Window overlay configuration
 
-- [ ] Update `tauri.conf.json`:
+- [x] Update `tauri.conf.json`:
   - `visible: false` (hidden on startup)
   - `decorations: false` (frameless)
   - `transparent: true`
   - `alwaysOnTop: true`
   - `center: true`
-  - Set width/height to compact picker dimensions (~370×380)
-- [ ] Update CSS to handle transparency (body background transparent, picker shell provides its own background and shadow)
-- [ ] Add CSS rounded corners and drop shadow on the picker shell (visible through transparency)
-- [ ] Verify the picker renders correctly as a frameless overlay
+  - `resizable: false`
+  - `skipTaskbar: true`
+  - Set width/height to compact picker dimensions (370×380)
+- [x] Update CSS to handle transparency (body background transparent, picker shell provides its own background and shadow)
+- [x] Picker shell fills the overlay window with margin for rounded-corner float effect
+- [x] Verify the picker renders correctly as a frameless overlay
 
 #### Phase 2: Show/hide lifecycle
 
-- [ ] Add `show_picker` Tauri command:
-  - Call `window.show()`, `window.set_focus()`, `window.center()`
-  - Emit a `picker-shown` event so the frontend can autofocus search and clear previous state
-- [ ] Add `hide_picker` Tauri command:
+- [x] Add `show_picker` Tauri command:
+  - Call `window.center()`, `window.show()`, `window.set_focus()`
+  - Emit a `picker-shown` event so the frontend can autofocus search
+- [x] Add `hide_picker` Tauri command:
   - Call `window.hide()`
-- [ ] Wire Esc key in frontend to call `hide_picker`
-- [ ] Wire click-outside detection (Tauri `window.on_focus_changed` or blur event) to hide
-- [ ] Frontend: on `picker-shown` event, clear search, reset scroll to top, focus search input
+- [x] Wire Esc key in frontend to call `hide_picker`
+- [x] Wire click-outside detection (`onFocusChanged` blur event) to hide
+- [x] Frontend: on `picker-shown` event, focus search input
+- [x] `insert_emoji` hides the picker after selection
 - [ ] Verify show → interact → hide → show cycle works without state leaks
 
 #### Phase 3: Global shortcut registration
 
-- [ ] Add display server detection in Rust (`WAYLAND_DISPLAY` check)
-- [ ] **Wayland path:** implement real `GlobalShortcuts` portal flow in xdg-portal plugin:
+- [x] Add display server detection in Rust (`WAYLAND_DISPLAY` check)
+- [x] **Wayland path:** implement real `GlobalShortcuts` portal flow in xdg-portal plugin:
   - Create a session via `ashpd::desktop::global_shortcuts::GlobalShortcuts`
   - Bind the configured shortcut
-  - Listen for activation signals
-  - On activation, call `show_picker`
-- [ ] **X11 path:** integrate `tauri-plugin-global-shortcut`:
+  - Listen for activation signals on a background task
+  - On activation, toggle picker visibility
+- [x] **X11 path:** integrate `tauri-plugin-global-shortcut`:
   - Register the configured shortcut on startup
-  - On activation, call `show_picker`
-- [ ] Add `xdg-portal:allow-bind-global-shortcut` and `xdg-portal:allow-unbind-global-shortcut` to the app's default capability
-- [ ] Default shortcut: `Alt+Shift+E`
-- [ ] Verify shortcut toggles picker visibility (press to show, press again or Esc to hide)
+  - On activation, toggle picker visibility
+- [x] Add `xdg-portal:allow-bind-global-shortcut` and `xdg-portal:allow-unbind-global-shortcut` to the app's default capability
+- [x] Default shortcut: `Alt+Shift+E`
+- [x] Shortcut toggles picker visibility (press to show, press again or Esc to hide)
 
 **Gate 1 result: shortcut opens picker, Esc/click-outside closes it, focus returns to previous app.**
 
@@ -138,33 +151,30 @@ Make emoji selection actually type the emoji into the target app.
 
 #### Phase 4: Emoji injection
 
-- [ ] Add `arboard` and `enigo` to `apps/emoji-picker/src-tauri/Cargo.toml`
-- [ ] Implement clipboard shuffle in Rust:
+- [x] Add `arboard` to `apps/emoji-picker/src-tauri/Cargo.toml`
+- [x] Implement clipboard shuffle in `injection.rs`:
   - Save clipboard → write emoji → hide window → delay → Ctrl+V → delay → restore clipboard
-- [ ] **Wayland path:** implement `RemoteDesktop` session for direct input injection:
-  - Create session via `ashpd::desktop::remote_desktop::RemoteDesktop`
-  - Use `notify_keyboard_keycode` or similar to inject the emoji
-  - Fall back to clipboard shuffle if session creation fails
-- [ ] **X11 path:** use `enigo` to type the emoji directly, fall back to clipboard shuffle
-- [ ] Update `insert_emoji` command to:
+- [x] Wayland paste simulation via `wtype`
+- [x] X11 paste simulation via `xdotool`
+- [x] Update `insert_emoji` command to:
   1. Hide the picker window
-  2. Wait for focus to return to previous app
+  2. Spawn a background thread for the clipboard shuffle
   3. Inject the emoji via the appropriate method
-- [ ] Add permissions for `inject_text` and `create_remote_desktop_session` to capabilities
-- [ ] Handle edge cases:
-  - Focus race condition (configurable delay)
+- [x] Handle edge cases:
   - Clipboard restore failure (log warning, don't crash)
-  - RemoteDesktop permission denied (fall back gracefully)
+
+> **Deviation:** `enigo` was not added. `xdotool` (X11) and `wtype` (Wayland) are used directly via `std::process::Command` instead. RemoteDesktop portal injection was deferred.
 
 #### Phase 5: System tray
 
-- [ ] Create system tray icon using `TrayIconBuilder`
-- [ ] Context menu items:
-  - **Show Picker** — calls `show_picker`
-  - **Settings** — opens settings view
+- [x] Create system tray icon using `TrayIconBuilder` with default app icon
+- [x] Context menu items:
+  - **Show Picker** — opens the overlay
   - **Quit** — exits the application
-- [ ] Tray icon indicates app is running and listening
-- [ ] App should not appear in the taskbar (it's a background utility)
+- [x] Tray icon tooltip: "Emoji Nook"
+- [x] App does not appear in the taskbar (`skipTaskbar: true` in config)
+
+> **Deviation:** Settings menu item deferred to Phase 6 when the settings UI is built.
 
 **Gate 2 result: selecting an emoji types it into the previously focused app. Tray icon provides basic controls.**
 
@@ -216,53 +226,52 @@ Add settings and polish.
 
 **Gate 3 result: settings persist across restarts, shortcut is customisable, theme responds to live changes.**
 
-## Dependencies to Add
+## Dependencies Added
 
 | Crate / Package                | Purpose                          | Phase |
 | ------------------------------ | -------------------------------- | ----- |
 | `tauri-plugin-global-shortcut` | X11 global shortcuts             | 3     |
-| `tauri-plugin-store`           | Settings persistence             | 6     |
 | `arboard`                      | Clipboard read/write for shuffle | 4     |
-| `enigo`                        | Keystroke simulation on X11      | 4     |
+| `futures-util`                 | Stream handling for portal async | 3     |
+| `tokio`                        | Async runtime, `select!` macro   | 3     |
+
+Dependencies **not** added (deferred or replaced):
+
+| Crate   | Original Purpose        | Reason                                                 |
+| ------- | ----------------------- | ------------------------------------------------------ |
+| `enigo` | Keystroke simulation    | Replaced by `xdotool`/`wtype` via `Command`            |
 
 System runtime dependencies:
 
-- `wl-clipboard` (Wayland clipboard access)
-- `xdotool` / `libxdo-dev` (X11 input injection via `enigo`)
+- `wtype` (Wayland Ctrl+V simulation)
+- `xdotool` (X11 Ctrl+V simulation)
 
 ## Risks and Mitigations
 
 ### Focus race conditions
 
-Hiding the window and injecting input must be sequenced carefully. If the injection fires before focus returns to the target app, the emoji is lost. Mitigation: configurable delay (default 50ms), with compositor-specific tuning if needed.
+Hiding the window and injecting input must be sequenced carefully. If the injection fires before focus returns to the target app, the emoji is lost. Mitigation: configurable delay (default 80ms), with compositor-specific tuning if needed.
 
 ### Wayland portal permissions
 
-Both `GlobalShortcuts` and `RemoteDesktop` require user permission via the desktop portal. The user may deny. Mitigation: detect denial, show a helpful message explaining why the permission is needed, fall back to clipboard shuffle for injection.
+`GlobalShortcuts` requires user permission via the desktop portal. The user may deny. Mitigation: detect denial and log an error explaining the shortcut won't work. The tray icon provides a fallback for showing the picker.
 
 ### Tiling window managers
 
 On i3, Sway, Hyprland etc., hiding a window may not return focus to the previous app — it may focus the next window in the layout stack. Mitigation: before showing the picker, record the focused window ID (if available via portal or X11 APIs) and attempt to re-focus it after hiding.
 
-### RemoteDesktop session lifetime
-
-The `RemoteDesktop` portal session may be rejected, revoked, or time out. Mitigation: create sessions lazily, handle errors gracefully, and always have the clipboard shuffle as a working fallback.
-
 ### ashpd API stability
 
-`ashpd` v0.9.x has a Rust future-compatibility warning. Monitor for updates. The `GlobalShortcuts` and `RemoteDesktop` portal APIs themselves are stable in `xdg-desktop-portal` 1.16+.
+`ashpd` v0.9.x has a Rust future-compatibility warning. Monitor for updates. The `GlobalShortcuts` portal API is stable in `xdg-desktop-portal` 1.16+.
 
-## File Map (anticipated)
+## File Map
 
-| File                                                 | Purpose                                         |
-| ---------------------------------------------------- | ----------------------------------------------- |
-| `apps/emoji-picker/src-tauri/src/lib.rs`             | App setup, tray, shortcut routing               |
-| `apps/emoji-picker/src-tauri/src/injection.rs`       | Clipboard shuffle and injection logic           |
-| `apps/emoji-picker/src-tauri/src/shortcuts.rs`       | Display server detection, shortcut registration |
-| `apps/emoji-picker/src/components/SettingsPanel.tsx` | Settings UI with shortcut capture               |
-| `apps/emoji-picker/src/hooks/useSettings.ts`         | Settings state and store IPC                    |
-| `plugins/xdg-portal/src/global_shortcuts.rs`         | Real GlobalShortcuts portal implementation      |
-| `plugins/xdg-portal/src/remote_desktop.rs`           | Real RemoteDesktop portal implementation        |
+| File                                             | Purpose                                    |
+| ------------------------------------------------ | ------------------------------------------ |
+| `apps/emoji-picker/src-tauri/src/lib.rs`         | App setup, tray, shortcut routing          |
+| `apps/emoji-picker/src-tauri/src/injection.rs`   | Clipboard shuffle and injection logic      |
+| `plugins/xdg-portal/src/global_shortcuts.rs`     | Real GlobalShortcuts portal implementation |
+| `plugins/xdg-portal/src/remote_desktop.rs`       | (stub) RemoteDesktop portal — future use   |
 
 ## Follow-On (outside this plan)
 
@@ -271,3 +280,4 @@ The `RemoteDesktop` portal session may be rejected, revoked, or time out. Mitiga
 - Custom emoji and frequently used tracking
 - Multi-monitor awareness
 - Auto-update via tauri-plugin-updater
+- RemoteDesktop portal injection as an optimisation over clipboard shuffle
