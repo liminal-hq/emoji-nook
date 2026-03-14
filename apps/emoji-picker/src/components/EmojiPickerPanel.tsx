@@ -85,7 +85,7 @@ export default function EmojiPickerPanel({
 
       <CategoryBar viewportRef={viewportRef} />
 
-      <EmojiPicker.Viewport ref={viewportRef} className="picker-viewport">
+      <EmojiPicker.Viewport ref={viewportRef} className="picker-viewport" tabIndex={0}>
         <EmojiPicker.Loading>
           <span className="picker-loading">Loading emoji…</span>
         </EmojiPicker.Loading>
