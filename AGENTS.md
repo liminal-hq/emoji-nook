@@ -107,7 +107,7 @@ Optional scope labels (as applicable): `frontend`, `backend`, `plugin`.
 
 ## Licence and Copyright
 
-**REQUIREMENT:** All source code files (`.rs`, `.ts`, `.tsx`, `.js`, etc.) must include a licence/copyright header as the first content in the file.
+**REQUIREMENT:** All source files and authored visual/style assets (`.rs`, `.ts`, `.tsx`, `.js`, `.css`, `.scss`, `.svg`, etc.) must include a licence/copyright header as the first content in the file.
 
 Header format:
 
@@ -118,10 +118,17 @@ Header format:
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 ```
 
+Use the comment syntax appropriate for the file type:
+
+- `// ...` for Rust, TypeScript, JavaScript, and similar files
+- `/* ... */` for CSS and other style files
+- `<!-- ... -->` for SVG and other XML-based assets
+
 Rules:
 
 - Place the header before `use`, `mod`, `import`, or other code.
-- Do not add headers to generated files, config files, or documentation files.
+- Place the header before stylesheet rules, `<svg>`, or other file content as applicable.
+- Do not add headers to generated files, config files, or documentation files, unless the file is an authored SVG or other authored asset that is treated as a source artefact in this repository.
 - If you touch an existing source file without a header, add one as part of the change.
 
 ## Git Workflow
