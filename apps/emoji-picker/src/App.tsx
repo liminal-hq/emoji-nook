@@ -5,6 +5,7 @@
 
 import { useState, useCallback } from "react";
 import type { SkinTone } from "frimousse";
+import { invoke } from "@tauri-apps/api/core";
 import PickerShell from "./components/PickerShell";
 import EmojiPickerPanel from "./components/EmojiPickerPanel";
 import type { EmojiSelection } from "./components/EmojiPickerPanel";
@@ -16,6 +17,8 @@ function App() {
 
   const handleSelect = useCallback((selection: EmojiSelection) => {
     setLastSelected(selection);
+    invoke("insert_emoji", { emoji: selection.emoji, label: selection.label })
+      .catch((err) => console.error("insert_emoji IPC failed:", err));
   }, []);
 
   return (
