@@ -19,7 +19,6 @@ concurrency:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-  TAURI_CI_IMAGE: ghcr.io/liminal-hq/tauri-ci-desktop:latest
 
 jobs:
   format:
@@ -176,7 +175,7 @@ jobs:
     name: Rust checks
     runs-on: ubuntu-24.04
     container:
-      image: ${{ env.TAURI_CI_IMAGE }}
+      image: ghcr.io/liminal-hq/tauri-ci-desktop:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
@@ -219,7 +218,7 @@ jobs:
             echo "## Emoji Nook Rust Check Summary"
             echo
             echo "- Runner: \`ubuntu-24.04\`"
-            echo "- Container: \`${TAURI_CI_IMAGE}\`"
+            echo "- Container: \`ghcr.io/liminal-hq/tauri-ci-desktop:latest\`"
             echo "- Rust formatting: \`${{ steps.rust_format.outcome }}\`"
             echo "- Rust clippy: \`${{ steps.rust_clippy.outcome }}\`"
             echo "- Run URL: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
@@ -229,7 +228,7 @@ jobs:
     name: Rust tests
     runs-on: ubuntu-24.04
     container:
-      image: ${{ env.TAURI_CI_IMAGE }}
+      image: ghcr.io/liminal-hq/tauri-ci-desktop:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
@@ -266,7 +265,7 @@ jobs:
             echo "## Emoji Nook Rust Test Summary"
             echo
             echo "- Runner: \`ubuntu-24.04\`"
-            echo "- Container: \`${TAURI_CI_IMAGE}\`"
+            echo "- Container: \`ghcr.io/liminal-hq/tauri-ci-desktop:latest\`"
             echo "- Rust tests: \`${{ steps.rust_tests.outcome }}\`"
             echo "- Run URL: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           } >> "${GITHUB_STEP_SUMMARY}"
@@ -276,7 +275,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: [format, lint, typecheck, frontend-tests, rust-checks, rust-tests]
     container:
-      image: ${{ env.TAURI_CI_IMAGE }}
+      image: ghcr.io/liminal-hq/tauri-ci-desktop:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
@@ -324,7 +323,7 @@ jobs:
             echo "## Emoji Nook Build Summary"
             echo
             echo "- Runner: \`ubuntu-24.04\`"
-            echo "- Container: \`${TAURI_CI_IMAGE}\`"
+            echo "- Container: \`ghcr.io/liminal-hq/tauri-ci-desktop:latest\`"
             echo "- Frontend build: \`${{ steps.build_frontend.outcome }}\`"
             echo "- Rust workspace build: \`${{ steps.build_rust.outcome }}\`"
             echo "- Tauri production build: \`${{ steps.build_tauri.outcome }}\`"
