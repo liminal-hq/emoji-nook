@@ -1,3 +1,12 @@
+## Default Permission
+
+Default permissions for the xdg-portal plugin
+
+#### This default permission set includes the following:
+
+- `allow-check-availability`
+- `allow-get-theme-info`
+
 ## Permission Table
 
 <table>
@@ -114,6 +123,32 @@ Denies the create_remote_desktop_session command without any pre-configured scop
 <tr>
 <td>
 
+`xdg-portal:allow-get-theme-info`
+
+</td>
+<td>
+
+Enables the get_theme_info command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`xdg-portal:deny-get-theme-info`
+
+</td>
+<td>
+
+Denies the get_theme_info command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
 `xdg-portal:allow-inject-text`
 
 </td>
@@ -159,19 +194,6 @@ Enables the unbind_global_shortcut command without any pre-configured scope.
 <td>
 
 Denies the unbind_global_shortcut command without any pre-configured scope.
-
-</td>
-</tr>
-
-<tr>
-<td>
-
-`xdg-portal:default`
-
-</td>
-<td>
-
-Default permissions for the xdg-portal plugin
 
 </td>
 </tr>

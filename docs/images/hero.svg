@@ -1,0 +1,326 @@
+<!-- Hero banner for the Emoji Nook README -->
+<!-- -->
+<!-- (c) Copyright 2026 Liminal HQ, Scott Morris -->
+<!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
+<svg width="1200" height="340" viewBox="0 0 1200 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="hero-title hero-desc">
+  <title id="hero-title">Emoji Nook</title>
+  <desc id="hero-desc">Hero banner for Emoji Nook — a native Linux emoji picker. Features a miniature picker window with floating emoji orbiting around it.</desc>
+
+  <defs>
+    <!-- Deep space background -->
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#08080f"/>
+      <stop offset="35%" stop-color="#0d1220"/>
+      <stop offset="70%" stop-color="#120e24"/>
+      <stop offset="100%" stop-color="#0a0f1a"/>
+    </linearGradient>
+
+    <!-- Title gradient — warm amber through coral -->
+    <linearGradient id="title-grad" x1="0" y1="0" x2="1" y2="0.3">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="45%" stop-color="#f97316"/>
+      <stop offset="80%" stop-color="#ef4444"/>
+      <stop offset="100%" stop-color="#c084fc"/>
+    </linearGradient>
+
+    <!-- Picker window gradient -->
+    <linearGradient id="picker-bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1e1e2e"/>
+      <stop offset="100%" stop-color="#181825"/>
+    </linearGradient>
+
+    <!-- Accent bar gradient -->
+    <linearGradient id="accent-bar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="50%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#ef4444"/>
+    </linearGradient>
+
+    <!-- Orbital path glow -->
+    <linearGradient id="orbit-glow" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#fbbf24" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#fbbf24" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#fbbf24" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Soft glow filter -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="soft-glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Window shadow -->
+    <filter id="win-shadow" x="-10%" y="-5%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="12" flood-color="#00000060"/>
+    </filter>
+
+    <!-- Emoji glow -->
+    <filter id="emoji-glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Orbital paths (ellipses around the picker) -->
+    <path id="orbit-1" d="M730 170 C830 80, 1000 90, 1020 170 C1040 250, 870 280, 730 270 C590 260, 540 230, 530 170 C520 110, 630 260, 730 170" fill="none"/>
+    <path id="orbit-inner" d="M680 170 C740 110, 870 100, 900 160 C930 220, 840 260, 760 250 C680 240, 620 220, 630 170 C640 120, 660 230, 680 170" fill="none"/>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="340" rx="16" fill="url(#bg)"/>
+
+  <!-- Subtle star field -->
+  <g opacity="0.4">
+    <circle cx="120" cy="45" r="1" fill="#fff"/><circle cx="340" cy="80" r="0.8" fill="#fff"/>
+    <circle cx="520" cy="30" r="1.2" fill="#fff"/><circle cx="890" cy="50" r="0.7" fill="#fff"/>
+    <circle cx="1050" cy="70" r="1" fill="#fff"/><circle cx="180" cy="290" r="0.8" fill="#fff"/>
+    <circle cx="430" cy="300" r="1" fill="#fff"/><circle cx="1140" cy="280" r="0.9" fill="#fff"/>
+    <circle cx="70" cy="160" r="0.6" fill="#fff"/><circle cx="290" cy="200" r="0.7" fill="#fff"/>
+    <circle cx="1100" cy="140" r="0.8" fill="#fff"/>
+  </g>
+
+  <!-- Twinkling stars -->
+  <g>
+    <circle cx="200" cy="60" r="1.2" fill="#fbbf24" opacity="0">
+      <animate attributeName="opacity" values="0;0.8;0" dur="4s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="650" cy="40" r="1" fill="#818cf8" opacity="0">
+      <animate attributeName="opacity" values="0;0.6;0" dur="5s" begin="1.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="1080" cy="100" r="1.3" fill="#2dd4bf" opacity="0">
+      <animate attributeName="opacity" values="0;0.7;0" dur="3.5s" begin="0.8s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="450" cy="310" r="1" fill="#f97316" opacity="0">
+      <animate attributeName="opacity" values="0;0.5;0" dur="6s" begin="2s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- Ambient colour washes -->
+  <g opacity="0.06">
+    <circle cx="780" cy="170" r="200" fill="#fbbf24">
+      <animate attributeName="r" values="200;220;200" dur="14s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="150" cy="200" r="180" fill="#818cf8">
+      <animate attributeName="r" values="180;195;180" dur="18s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="1050" cy="250" r="140" fill="#2dd4bf">
+      <animate attributeName="r" values="140;155;140" dur="16s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- ═══ LEFT SIDE: TEXT CONTENT ═══ -->
+
+  <!-- Title -->
+  <text x="70" y="100" font-size="52" font-family="'Space Grotesk', 'Inter', system-ui, sans-serif" font-weight="800" letter-spacing="-0.03em" fill="url(#title-grad)" filter="url(#soft-glow)">Emoji Nook</text>
+
+  <!-- Tagline -->
+  <text x="72" y="135" fill="#b4bfce" font-size="17" font-family="'Inter', system-ui, sans-serif" font-weight="400">A native Linux emoji picker that blends with your desktop</text>
+
+  <!-- Feature pills -->
+  <g transform="translate(72, 160)">
+    <!-- Wayland pill -->
+    <rect width="80" height="26" rx="6" fill="#fbbf2410" stroke="#fbbf2430" stroke-width="1"/>
+    <text x="40" y="17" text-anchor="middle" fill="#fbbf24" font-size="11" font-family="'JetBrains Mono', 'Fira Code', monospace" font-weight="600">Wayland</text>
+
+    <!-- X11 pill -->
+    <g transform="translate(90, 0)">
+      <rect width="44" height="26" rx="6" fill="#818cf810" stroke="#818cf830" stroke-width="1"/>
+      <text x="22" y="17" text-anchor="middle" fill="#818cf8" font-size="11" font-family="'JetBrains Mono', 'Fira Code', monospace" font-weight="600">X11</text>
+    </g>
+
+    <!-- Tauri v2 pill -->
+    <g transform="translate(144, 0)">
+      <rect width="76" height="26" rx="6" fill="#2dd4bf10" stroke="#2dd4bf30" stroke-width="1"/>
+      <text x="38" y="17" text-anchor="middle" fill="#2dd4bf" font-size="11" font-family="'JetBrains Mono', 'Fira Code', monospace" font-weight="600">Tauri v2</text>
+    </g>
+
+    <!-- React 19 pill -->
+    <g transform="translate(230, 0)">
+      <rect width="84" height="26" rx="6" fill="#f9731610" stroke="#f9731630" stroke-width="1"/>
+      <text x="42" y="17" text-anchor="middle" fill="#f97316" font-size="11" font-family="'JetBrains Mono', 'Fira Code', monospace" font-weight="600">React 19</text>
+    </g>
+  </g>
+
+  <!-- Keyboard shortcut badge -->
+  <g transform="translate(72, 210)">
+    <rect width="200" height="30" rx="8" fill="#0f1520" stroke="#ffffff10" stroke-width="1"/>
+    <text x="14" y="20" font-size="12" font-family="'JetBrains Mono', monospace">
+      <tspan fill="#8892a8">press </tspan>
+      <tspan fill="#fbbf24" font-weight="700">Alt+Shift+E</tspan>
+      <tspan fill="#8892a8"> anywhere</tspan>
+    </text>
+  </g>
+
+  <!-- Org line -->
+  <text x="72" y="290" fill="#4e5563" font-size="12" font-family="monospace">
+    <tspan fill="#6b7280">Liminal HQ</tspan>
+    <tspan fill="#2e3540"> · </tspan>
+    <tspan fill="#6b7280">xdg-portal</tspan>
+    <tspan fill="#2e3540"> · </tspan>
+    <tspan fill="#6b7280">adwaita</tspan>
+    <tspan fill="#2e3540"> · </tspan>
+    <tspan fill="#6b7280">breeze</tspan>
+  </text>
+
+  <!-- ═══ RIGHT SIDE: MINIATURE PICKER + ORBITING EMOJI ═══ -->
+
+  <!-- Faint orbital rings -->
+  <ellipse cx="780" cy="175" rx="230" ry="110" fill="none" stroke="#fbbf24" stroke-width="0.5" opacity="0.06" stroke-dasharray="4 8">
+    <animateTransform attributeName="transform" type="rotate" values="0 780 175;360 780 175" dur="60s" repeatCount="indefinite"/>
+  </ellipse>
+  <ellipse cx="780" cy="175" rx="170" ry="80" fill="none" stroke="#818cf8" stroke-width="0.5" opacity="0.05" stroke-dasharray="3 6">
+    <animateTransform attributeName="transform" type="rotate" values="360 780 175;0 780 175" dur="45s" repeatCount="indefinite"/>
+  </ellipse>
+
+  <!-- Mini picker window -->
+  <g transform="translate(700, 100)" filter="url(#win-shadow)">
+    <rect width="160" height="150" rx="10" fill="url(#picker-bg)" stroke="#ffffff12" stroke-width="1"/>
+
+    <!-- Title bar accent -->
+    <rect width="160" height="3" rx="1.5" fill="url(#accent-bar)" y="0"/>
+
+    <!-- Search bar -->
+    <rect x="8" y="12" width="120" height="20" rx="5" fill="#ffffff08" stroke="#ffffff10" stroke-width="0.5"/>
+    <text x="16" y="26" font-size="9" fill="#666" font-family="monospace">Search emoji…</text>
+    <circle cx="140" cy="22" r="6" fill="#ffffff06"/>
+    <text x="140" y="25" font-size="8" text-anchor="middle" fill="#888">🎨</text>
+
+    <!-- Category tabs -->
+    <g transform="translate(8, 38)">
+      <rect width="144" height="14" rx="3" fill="#ffffff04"/>
+      <text x="10" y="11" font-size="8" opacity="0.5">😀</text>
+      <text x="30" y="11" font-size="8" opacity="0.3">👋</text>
+      <text x="50" y="11" font-size="8" opacity="0.3">🐱</text>
+      <text x="70" y="11" font-size="8" opacity="0.3">🍕</text>
+      <text x="90" y="11" font-size="8" opacity="0.3">⚽</text>
+      <text x="110" y="11" font-size="8" opacity="0.3">🏠</text>
+      <text x="130" y="11" font-size="8" opacity="0.3">🔣</text>
+      <!-- Active indicator -->
+      <rect x="4" y="13" width="18" height="1.5" rx="0.75" fill="#fbbf24" opacity="0.8"/>
+    </g>
+
+    <!-- Emoji grid -->
+    <g transform="translate(12, 60)" font-size="16">
+      <text x="0" y="14" opacity="0.9">😀</text>
+      <text x="24" y="14" opacity="0.9">😃</text>
+      <text x="48" y="14" opacity="0.9">😄</text>
+      <text x="72" y="14" opacity="0.9">😁</text>
+      <text x="96" y="14" opacity="0.9">😆</text>
+      <text x="120" y="14" opacity="0.9">🥹</text>
+
+      <text x="0" y="38" opacity="0.9">😅</text>
+      <text x="24" y="38" opacity="0.9">🤣</text>
+      <text x="48" y="38" opacity="0.9">😂</text>
+      <text x="72" y="38" opacity="0.9">🙂</text>
+      <text x="96" y="38">
+        <!-- Highlighted/hovered emoji -->
+        <tspan fill="#fff">🥰</tspan>
+      </text>
+      <text x="120" y="38" opacity="0.9">😍</text>
+      <!-- Hover highlight box -->
+      <rect x="92" y="24" width="22" height="22" rx="4" fill="#fbbf2420" stroke="#fbbf2440" stroke-width="0.5"/>
+
+      <text x="0" y="62" opacity="0.7">🤩</text>
+      <text x="24" y="62" opacity="0.7">😘</text>
+      <text x="48" y="62" opacity="0.7">😗</text>
+      <text x="72" y="62" opacity="0.7">😚</text>
+      <text x="96" y="62" opacity="0.7">😙</text>
+      <text x="120" y="62" opacity="0.7">🥲</text>
+    </g>
+
+    <!-- Footer preview -->
+    <rect x="0" y="137" width="160" height="13" fill="#ffffff04"/>
+    <text x="8" y="148" font-size="8" fill="#888" font-family="monospace">
+      <tspan font-size="10">🥰</tspan>
+      <tspan dx="4" fill="#aaa">smiling face with hearts</tspan>
+    </text>
+  </g>
+
+  <!-- ═══ ORBITING EMOJI ═══ -->
+
+  <!-- Outer orbit emoji — clockwise -->
+  <g filter="url(#emoji-glow)">
+    <text font-size="28" opacity="0.7">
+      🎉
+      <animateMotion dur="18s" repeatCount="indefinite">
+        <mpath href="#orbit-1"/>
+      </animateMotion>
+      <animate attributeName="opacity" values="0.3;0.8;0.3" dur="18s" repeatCount="indefinite"/>
+    </text>
+  </g>
+
+  <!-- Large floating emoji — slow drift -->
+  <text x="560" y="120" font-size="36" opacity="0.12" filter="url(#emoji-glow)">
+    ✨
+    <animate attributeName="y" values="120;108;120" dur="10s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.08;0.18;0.08" dur="10s" repeatCount="indefinite"/>
+  </text>
+
+  <text x="960" y="90" font-size="30" opacity="0.10">
+    😎
+    <animate attributeName="y" values="90;80;90" dur="8s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.06;0.14;0.06" dur="8s" repeatCount="indefinite"/>
+  </text>
+
+  <text x="1020" y="250" font-size="24" opacity="0.08">
+    🦀
+    <animate attributeName="y" values="250;240;250" dur="12s" repeatCount="indefinite"/>
+  </text>
+
+  <text x="600" y="280" font-size="22" opacity="0.08">
+    🐧
+    <animate attributeName="y" values="280;272;280" dur="9s" repeatCount="indefinite"/>
+  </text>
+
+  <text x="950" y="300" font-size="20" opacity="0.06">
+    💜
+    <animate attributeName="y" values="300;293;300" dur="11s" repeatCount="indefinite"/>
+  </text>
+
+  <text x="510" y="210" font-size="18" opacity="0.06">
+    🔥
+    <animate attributeName="y" values="210;204;210" dur="7s" begin="2s" repeatCount="indefinite"/>
+  </text>
+
+  <!-- Small sparkle particles around picker -->
+  <g>
+    <circle cx="680" cy="130" r="2" fill="#fbbf24" opacity="0">
+      <animate attributeName="opacity" values="0;0.6;0" dur="3s" repeatCount="indefinite"/>
+      <animate attributeName="r" values="1;3;1" dur="3s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="880" cy="160" r="1.5" fill="#818cf8" opacity="0">
+      <animate attributeName="opacity" values="0;0.5;0" dur="4s" begin="1s" repeatCount="indefinite"/>
+      <animate attributeName="r" values="1;2.5;1" dur="4s" begin="1s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="750" cy="270" r="1.5" fill="#2dd4bf" opacity="0">
+      <animate attributeName="opacity" values="0;0.4;0" dur="3.5s" begin="2s" repeatCount="indefinite"/>
+      <animate attributeName="r" values="1;2;1" dur="3.5s" begin="2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="900" cy="100" r="1" fill="#f97316" opacity="0">
+      <animate attributeName="opacity" values="0;0.5;0" dur="5s" begin="0.5s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- Connection lines from picker to floating concepts -->
+  <g opacity="0.06" stroke-width="0.5">
+    <line x1="700" y1="170" x2="560" y2="120" stroke="#fbbf24" stroke-dasharray="2 4">
+      <animate attributeName="opacity" values="0.03;0.08;0.03" dur="6s" repeatCount="indefinite"/>
+    </line>
+    <line x1="860" y1="140" x2="960" y2="90" stroke="#818cf8" stroke-dasharray="2 4">
+      <animate attributeName="opacity" values="0.03;0.06;0.03" dur="8s" begin="1s" repeatCount="indefinite"/>
+    </line>
+  </g>
+</svg>

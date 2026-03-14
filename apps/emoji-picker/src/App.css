@@ -1,116 +1,330 @@
-.logo.vite:hover {
-  filter: drop-shadow(0 0 2em #747bff);
-}
+/* Picker styles — targets compact ~370×340px layout inside the 800×600 test window.
+ *
+ * Uses CSS custom properties for future native theme integration.
+ * Styled via [frimousse-*] attributes and local class names.
+ */
 
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafb);
-}
 :root {
-  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 400;
-
-  color: #0f0f0f;
-  background-color: #f6f6f6;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  -webkit-text-size-adjust: 100%;
-}
-
-.container {
-  margin: 0;
-  padding-top: 10vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  text-align: center;
-}
-
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: 0.75s;
-}
-
-.logo.tauri:hover {
-  filter: drop-shadow(0 0 2em #24c8db);
-}
-
-.row {
-  display: flex;
-  justify-content: center;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-
-a:hover {
-  color: #535bf2;
-}
-
-h1 {
-  text-align: center;
-}
-
-input,
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  color: #0f0f0f;
-  background-color: #ffffff;
-  transition: border-color 0.25s;
-  box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
-}
-
-button {
-  cursor: pointer;
-}
-
-button:hover {
-  border-color: #396cd8;
-}
-button:active {
-  border-color: #396cd8;
-  background-color: #e8e8e8;
-}
-
-input,
-button {
-  outline: none;
-}
-
-#greet-input {
-  margin-right: 5px;
+  /* Theme tokens — defaults, will be overridden by native theme detection later */
+  --bg-primary: #fafafa;
+  --bg-surface: #ffffff;
+  --bg-hover: rgba(0, 0, 0, 0.06);
+  --bg-active: rgba(0, 0, 0, 0.10);
+  --text-primary: #1a1a1a;
+  --text-secondary: #666666;
+  --text-tertiary: #999999;
+  --accent: #3584e4;
+  --border: rgba(0, 0, 0, 0.12);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.06);
+  --font-family: "Cantarell", "Noto Sans", "Segoe UI", system-ui, sans-serif;
+  --font-size-sm: 0.8125rem;
+  --font-size-base: 0.875rem;
+  --emoji-size: 1.625rem;
+  --row-height: 36px;
+  --category-header-height: 28px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    color: #f6f6f6;
-    background-color: #2f2f2f;
+    --bg-primary: #2d2d2d;
+    --bg-surface: #383838;
+    --bg-hover: rgba(255, 255, 255, 0.08);
+    --bg-active: rgba(255, 255, 255, 0.14);
+    --text-primary: #f0f0f0;
+    --text-secondary: #aaaaaa;
+    --text-tertiary: #777777;
+    --accent: #62a0ea;
+    --border: rgba(255, 255, 255, 0.10);
+    --shadow: 0 2px 12px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.06);
   }
+}
 
-  a:hover {
-    color: #24c8db;
-  }
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
-  input,
-  button {
-    color: #ffffff;
-    background-color: #0f0f0f98;
+body {
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* App layout — centres the picker in the 800×600 test window */
+.app-root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+/* Shell — compact container at target dimensions */
+.picker-shell {
+  width: 370px;
+  height: 340px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Picker root fills the shell */
+.picker-root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Header — search + skin tone selector */
+.picker-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 8px 4px;
+}
+
+.picker-search {
+  flex: 1;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  outline: none;
+  transition: border-colour 0.15s;
+}
+
+.picker-search:focus {
+  border-color: var(--accent);
+}
+
+.picker-search::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* Skin tone selector */
+.skin-tone-selector {
+  display: flex;
+  gap: 1px;
+  background: var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.skin-tone-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: var(--bg-surface);
+  cursor: pointer;
+  font-size: 0.875rem;
+  display: grid;
+  place-items: center;
+  transition: background 0.1s;
+}
+
+.skin-tone-btn:hover {
+  background: var(--bg-hover);
+}
+
+.skin-tone-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.skin-tone-btn.active {
+  background: var(--bg-active);
+}
+
+/* Category tab bar */
+.category-bar {
+  display: flex;
+  padding: 0 4px;
+  gap: 1px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.category-tab {
+  flex: 1;
+  height: 30px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 1rem;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  transition: background 0.1s;
+  position: relative;
+}
+
+.category-tab:hover {
+  background: var(--bg-hover);
+}
+
+.category-tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.category-tab.active {
+  background: var(--bg-hover);
+}
+
+.category-tab.active::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 20%;
+  right: 20%;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 1px;
+}
+
+/* Viewport — scrollable emoji area */
+.picker-viewport {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 4px;
+  outline: none;
+}
+
+.picker-viewport:focus,
+.picker-viewport:focus-visible {
+  outline: none;
+}
+
+.picker-viewport::-webkit-scrollbar {
+  width: 6px;
+}
+
+.picker-viewport::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.picker-viewport::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+/* Category headers */
+.picker-category-header {
+  height: var(--category-header-height);
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-surface);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+/* Emoji rows */
+.picker-row {
+  display: flex;
+  height: var(--row-height);
+  scroll-margin-block: 4px;
+}
+
+/* Individual emoji buttons */
+.picker-emoji {
+  width: var(--row-height);
+  height: var(--row-height);
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: var(--emoji-size);
+  font-family: var(--frimousse-emoji-font, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif);
+  display: grid;
+  place-items: center;
+  transition: background 0.1s;
+}
+
+.picker-emoji:hover,
+.picker-emoji[data-active] {
+  background: var(--bg-hover);
+}
+
+.picker-emoji:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* Loading and empty states */
+.picker-loading,
+.picker-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 80px;
+  color: var(--text-tertiary);
+  font-size: var(--font-size-sm);
+}
+
+/* Footer — preview area */
+.picker-footer {
+  padding: 4px 8px 8px;
+  border-top: 1px solid var(--border);
+}
+
+.picker-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+}
+
+.preview-emoji {
+  font-size: 1.25rem;
+}
+
+.preview-label {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Selection toast — temporary feedback in the test window */
+.selection-toast {
+  padding: 6px 14px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  animation: toast-in 0.2s ease-out;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
   }
-  button:active {
-    background-color: #0f0f0f69;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
