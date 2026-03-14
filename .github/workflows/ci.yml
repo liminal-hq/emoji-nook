@@ -201,6 +201,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - name: Trust the GitHub workspace
+        run: git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+
       - name: Install pnpm
         uses: pnpm/action-setup@v4
 
@@ -253,6 +256,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+
+      - name: Trust the GitHub workspace
+        run: git config --global --add safe.directory "${GITHUB_WORKSPACE}"
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
