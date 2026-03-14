@@ -105,6 +105,10 @@ Optional operational labels: `infrastructure`, `internal`, `release`, `blocked`,
 
 Optional scope labels (as applicable): `frontend`, `backend`, `plugin`.
 
+Optional platform and technical labels (as applicable): `tauri`, `rust`, `wayland`, `x11`, `performance`, `security`, `needs-decision`.
+
+Do not add alias labels such as `feat`, `feature`, `fix`, `bugfix`, `docs`, or `test`.
+
 ## Licence and Copyright
 
 **REQUIREMENT:** All source files and authored visual/style assets (`.rs`, `.ts`, `.tsx`, `.js`, `.css`, `.scss`, `.svg`, etc.) must include a licence/copyright header as the first content in the file.
