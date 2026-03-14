@@ -1,3 +1,12 @@
+## Default Permission
+
+Default permissions for the xdg-portal plugin
+
+#### This default permission set includes the following:
+
+- `allow-check-availability`
+- `allow-get-theme-info`
+
 ## Permission Table
 
 <table>
@@ -185,19 +194,6 @@ Enables the unbind_global_shortcut command without any pre-configured scope.
 <td>
 
 Denies the unbind_global_shortcut command without any pre-configured scope.
-
-</td>
-</tr>
-
-<tr>
-<td>
-
-`xdg-portal:default`
-
-</td>
-<td>
-
-Default permissions for the xdg-portal plugin
 
 </td>
 </tr>

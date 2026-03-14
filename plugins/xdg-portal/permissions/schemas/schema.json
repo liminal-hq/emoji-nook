@@ -379,10 +379,10 @@
           "markdownDescription": "Denies the unbind_global_shortcut command without any pre-configured scope."
         },
         {
-          "description": "Default permissions for the xdg-portal plugin",
+          "description": "Default permissions for the xdg-portal plugin\n#### This default permission set includes:\n\n- `allow-check-availability`\n- `allow-get-theme-info`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "Default permissions for the xdg-portal plugin"
+          "markdownDescription": "Default permissions for the xdg-portal plugin\n#### This default permission set includes:\n\n- `allow-check-availability`\n- `allow-get-theme-info`"
         }
       ]
     }
