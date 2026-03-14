@@ -59,7 +59,7 @@ export default function EmojiPickerPanel({
       <div className="picker-header">
         <EmojiPicker.Search
           ref={searchRef}
-          placeholder="Search emoji\u2026"
+          placeholder="Search emoji…"
           className="picker-search"
           autoFocus
         />
@@ -85,7 +85,7 @@ export default function EmojiPickerPanel({
 
       <EmojiPicker.Viewport ref={viewportRef} className="picker-viewport">
         <EmojiPicker.Loading>
-          <span className="picker-loading">Loading emoji\u2026</span>
+          <span className="picker-loading">Loading emoji…</span>
         </EmojiPicker.Loading>
         <EmojiPicker.Empty>
           {({ search }) => (
@@ -133,7 +133,7 @@ export default function EmojiPickerPanel({
                   <span className="preview-label">{emoji.label}</span>
                 </>
               ) : (
-                <span className="preview-label">Pick an emoji\u2026</span>
+                <span className="preview-label">Pick an emoji…</span>
               )}
             </div>
           )}

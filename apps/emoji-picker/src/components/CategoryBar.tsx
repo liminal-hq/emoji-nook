@@ -60,8 +60,18 @@ export default function CategoryBar({ viewportRef }: CategoryBarProps) {
       if (!viewport) return;
       const header = viewport.querySelector(
         `[data-category-id="${categoryId}"]`,
-      );
-      header?.scrollIntoView({ behavior: "smooth", block: "start" });
+      ) as HTMLElement | null;
+      if (!header) return;
+
+      // Calculate position relative to the scrollable container.
+      // Use offsetTop of the header relative to the list container,
+      // minus the viewport's own offset, to land at the top of the category.
+      const list = header.offsetParent as HTMLElement | null;
+      if (!list) return;
+      viewport.scrollTo({
+        top: header.offsetTop - list.offsetTop,
+        behavior: "smooth",
+      });
     },
     [viewportRef],
   );
