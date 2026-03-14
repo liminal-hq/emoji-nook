@@ -202,6 +202,7 @@ Create repeatable CI so release builds start from a known-good state.
   - `plugins/xdg-portal/Cargo.toml`
   - `plugins/xdg-portal/guest-js/package.json` when required
 - [ ] If adopted, make the script the recommended maintainer path for starting a release PR
+- [ ] Land the release-prep script and the first complete release workflow in the same implementation pass so maintainers get a full release path, not disconnected pieces
 
 **Gate 2 result: every merge is validated, and version drift is caught before release day.**
 
@@ -272,12 +273,11 @@ Reduce human error and prepare for future update mechanisms.
 ## Recommended Delivery Order
 
 1. Finish package metadata and version policy.
-2. Add a release-prep version bump script modelled on `flow`, adapted for Emoji Nook's multi-manifest workspace.
-3. Add CI validation and version drift checks.
-4. Add tag-triggered GitHub Releases automation using the existing `prepare-release` pattern from other Liminal repositories.
-5. Document the human release checklist and include the release-prep script in that flow.
-6. Use the shared GHCR CI image setup from `liminal-hq/.github`, or a minimal derivative of it, for Linux build jobs.
-7. Revisit updater support after desktop integration reaches production readiness.
+2. Implement the release-prep version bump script and the first tag-driven GitHub Release workflow together.
+3. Add CI validation and version drift checks around that release path.
+4. Document the human release checklist and include the release-prep script in that flow.
+5. Use the shared GHCR CI image setup from `liminal-hq/.github`, or a minimal derivative of it, for Linux build jobs.
+6. Revisit updater support after desktop integration reaches production readiness.
 
 ## Risks and Mitigations
 

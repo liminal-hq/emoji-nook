@@ -1,10 +1,10 @@
-# CI Quality Gates Implementation Plan
+# CI Validation Implementation Plan
 
 This plan covers the work needed to add repeatable quality-control gates to Emoji Nook so changes are validated before merge and before release. It is informed by existing patterns already in use across `liminal-hq` and related repositories.
 
 ## Goal
 
-Establish a practical CI baseline for Emoji Nook that checks formatting, type safety, builds, and tests across the frontend, Tauri backend, and local plugin workspace, while keeping the workflow easy to understand and maintain.
+Establish a practical CI baseline for Emoji Nook that checks formatting, linting, type safety, builds, and tests across the frontend, Tauri backend, and local plugin workspace, while keeping the workflow easy to understand and maintain.
 
 ## Current State Review
 
@@ -30,7 +30,7 @@ Several repositories in and around `liminal-hq` already provide useful precedent
 - Includes workflow summaries and report aggregation
 - Has an open issue to standardise a `cargo test` baseline with `nextest` as an opt-in where it is measurably beneficial
 
-This is the strongest precedent for a broad, split-by-concern quality-gates workflow.
+This is the strongest precedent for a broad, split-by-concern CI validation workflow.
 
 ### `ScottMorris/liminal-notes`
 
@@ -40,7 +40,7 @@ This is the strongest precedent for a broad, split-by-concern quality-gates work
 - Publishes JUnit and coverage artefacts
 - Has an open issue to evaluate `cargo-nextest` with a documented `cargo test` fallback policy
 
-This is the closest precedent for a Tauri app with layered desktop quality gates.
+This is the closest precedent for a Tauri app with layered desktop validation.
 
 ### `liminal-hq/smdu`
 
@@ -69,7 +69,7 @@ This means Emoji Nook should align with the existing shared Docker image strateg
 
 - Local scripts for formatting, linting, typechecking, testing, and builds
 - GitHub Actions workflows for pull requests and `main`
-- Rust and TypeScript quality gates
+- Rust and TypeScript validation checks
 - Frontend component and hook test coverage
 - Workflow summaries and test artefact publication
 - Branch-protection-ready status checks
@@ -81,7 +81,7 @@ This means Emoji Nook should align with the existing shared Docker image strateg
 - Performance benchmarking infrastructure
 - Security scanning beyond basic dependency/build hygiene
 
-## Quality Gate Model
+## Validation Model
 
 Emoji Nook should adopt layered gates, from fastest feedback to most expensive:
 
@@ -91,7 +91,7 @@ Emoji Nook should adopt layered gates, from fastest feedback to most expensive:
 4. Production builds
 5. Release-only packaging checks
 
-Recommendation: make the first CI milestone small but complete. A narrow reliable gate is better than an ambitious flaky one.
+Recommendation: make the first CI milestone small but complete. A narrow reliable validation baseline is better than an ambitious flaky one.
 
 ## Tooling Direction
 
@@ -100,11 +100,12 @@ Recommendation: make the first CI milestone small but complete. A narrow reliabl
 Recommended baseline:
 
 - Prettier for formatting
+- ESLint for linting
 - TypeScript `tsc --noEmit` for typechecking
 - Vitest for frontend tests
 - Testing Library for React component and keyboard-interaction tests
 
-Recommendation: start with Prettier and TypeScript-based checks before adding a heavier lint ruleset. If linting is added immediately, use ESLint because that is the clearest precedent in related repositories.
+Recommendation: add ESLint in the initial tooling pass alongside Prettier so Emoji Nook aligns with cross-org practice from the start.
 
 ### Rust
 
@@ -118,7 +119,7 @@ Recommendation: align with the direction already being discussed in `threshold` 
 
 ## Implementation Phases
 
-### Gate 1: Local quality commands exist (Phases 1–2)
+### Gate 1: Local validation commands exist (Phases 1–2)
 
 Create the commands that CI will eventually run.
 
@@ -138,7 +139,7 @@ Create the commands that CI will eventually run.
   - `typecheck`
   - `test`
   - `test:ci`
-  - `lint` if linting is adopted
+  - `lint`
 - [ ] Keep script names aligned with the patterns seen in `liminal-notes` and `smdu`
 
 #### Phase 2: Base tooling
@@ -146,16 +147,16 @@ Create the commands that CI will eventually run.
 - [ ] Add Prettier configuration for Markdown, JSON, TypeScript, and other authored text files
 - [ ] Add Vitest configuration for `apps/emoji-picker`
 - [ ] Add Testing Library support for React component tests
-- [ ] Decide whether to add ESLint in the first pass or immediately after, noting that early alignment with cross-org tooling is a feature rather than a cost for this greenfield repo
+- [ ] Add ESLint configuration in the first pass so linting ships alongside formatting and typechecking
 - [ ] Add Rust formatting and clippy commands to the documented local workflow
 
-**Gate 1 result: developers can run the full local quality suite with stable, documented commands.**
+**Gate 1 result: developers can run the full local validation suite with stable, documented commands.**
 
 ### Gate 2: Core tests and static checks exist (Phases 3–4)
 
 Add enough tests and static analysis for CI to enforce something meaningful.
 
-#### Phase 3: Frontend quality baseline
+#### Phase 3: Frontend validation baseline
 
 - [ ] Add frontend tests for:
   - Search behaviour
@@ -167,7 +168,7 @@ Add enough tests and static analysis for CI to enforce something meaningful.
 - [ ] Ensure test output can be emitted as JUnit for CI consumption
 - [ ] If linting is enabled, ensure it covers React and TypeScript files without producing noisy low-value failures
 
-#### Phase 4: Rust quality baseline
+#### Phase 4: Rust validation baseline
 
 - [ ] Add `cargo test --workspace --locked` coverage for the app backend and plugin workspace
 - [ ] Add `cargo fmt --check`
@@ -178,7 +179,7 @@ Add enough tests and static analysis for CI to enforce something meaningful.
   - fallback behaviour is documented
 - [ ] Confirm plugin permission generation and build-time metadata do not make CI flaky
 
-**Gate 2 result: the repository has meaningful frontend and Rust quality checks that are suitable for CI enforcement.**
+**Gate 2 result: the repository has meaningful frontend and Rust validation checks that are suitable for CI enforcement.**
 
 ### Gate 3: CI workflow enforces merge gates (Phases 5–6)
 
@@ -254,7 +255,7 @@ Turn CI from informational to merge-governing.
   - no immediate startup crash
 - [ ] Reuse release-oriented packaging knowledge from the release plan without making every PR run full release packaging
 
-**Gate 4 result: Emoji Nook has practical branch-protection-ready quality gates with build validation.**
+**Gate 4 result: Emoji Nook has practical branch-protection-ready validation checks with build validation.**
 
 ## Recommended Command Shape
 
@@ -275,7 +276,7 @@ Recommendation: `pnpm ci` should be the closest local mirror of the default CI w
 
 ### Tooling rollout churn
 
-Adding formatter, linter, typechecker, test runner, and packaging gates all at once is not inherently a problem here; it can be the fastest path to cross-org alignment for a greenfield app. The risk is rollout churn from introducing too many moving parts without a clear order. Mitigate by adopting the full target toolset deliberately, with a documented sequence and stable root scripts from the start.
+Adding formatter, linter, typechecker, test runner, and packaging validation all at once is not inherently a problem here; it can be the fastest path to cross-org alignment for a greenfield app. The risk is rollout churn from introducing too many moving parts without a clear order. Mitigate by adopting the full target toolset deliberately, with a documented sequence and stable root scripts from the start.
 
 ### Flaky desktop-adjacent tests
 
