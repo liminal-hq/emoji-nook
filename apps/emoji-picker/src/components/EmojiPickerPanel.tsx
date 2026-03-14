@@ -65,7 +65,11 @@ export default function EmojiPickerPanel({
         />
         <EmojiPicker.SkinTone emoji="✋">
           {({ skinToneVariations }) => (
-            <div className="skin-tone-selector" role="radiogroup" aria-label="Skin tone">
+            <div
+              className="skin-tone-selector"
+              role="radiogroup"
+              aria-label="Skin tone"
+            >
               {skinToneVariations.map(({ skinTone: st, emoji }) => (
                 <button
                   key={st}
@@ -85,7 +89,11 @@ export default function EmojiPickerPanel({
 
       <CategoryBar viewportRef={viewportRef} />
 
-      <EmojiPicker.Viewport ref={viewportRef} className="picker-viewport" tabIndex={0}>
+      <EmojiPicker.Viewport
+        ref={viewportRef}
+        className="picker-viewport"
+        tabIndex={0}
+      >
         <EmojiPicker.Loading>
           <span className="picker-loading">Loading emoji…</span>
         </EmojiPicker.Loading>

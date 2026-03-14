@@ -18,6 +18,7 @@ test-results/
 rust-test-results/
 junit.xml
 js-test-results.xml
+*.tsbuildinfo
 
 # Tauri artefacts
 plugins/**/android/.tauri/

@@ -87,7 +87,11 @@ export function useTheme() {
           (info.colourScheme === "no-preference" &&
             window.matchMedia("(prefers-color-scheme: dark)").matches);
         const accent = info.accentColour
-          ? rgbToHex(info.accentColour.r, info.accentColour.g, info.accentColour.b)
+          ? rgbToHex(
+              info.accentColour.r,
+              info.accentColour.g,
+              info.accentColour.b,
+            )
           : undefined;
 
         const tokens = getTokens(info.desktopEnvironment, isDark, accent);

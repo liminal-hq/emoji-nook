@@ -17,7 +17,7 @@ This project is structured as a workspace, concurrently developing a custom Taur
   - `enigo`: For simulating keyboard events (injecting the emoji or triggering paste) on non-Wayland environments.
   - `arboard`: For interacting with the system clipboard (if using the "clipboard shuffle" injection method).
 - **Frontend:** React 19 (with TypeScript)
-  - *Emoji Library:* `emoji-mart` (handles rendering, categorisation, and search logic out of the box).
+  - _Emoji Library:_ `emoji-mart` (handles rendering, categorisation, and search logic out of the box).
 - **Linux Specific Build Dependencies:**
   - Base: `libwebkit2gtk-4.1-dev`, `build-essential`, `curl`, `wget`, `file`, `libssl-dev`, `libgtk-3-dev`, `libayatana-appindicator3-dev`, `librsvg2-dev`
   - X11 / `enigo`: `libxdo-dev` (requires `xdotool` at runtime).
@@ -81,11 +81,11 @@ Wayland's core design isolates applications. An application cannot inherently li
 
 - **Global Shortcuts:**
   - `tauri-plugin-global-shortcut` relies on legacy APIs that often fail or are ignored by Wayland compositors (like GNOME's Mutter or KDE's KWin).
-  - *Modern Solution:* Utilise the custom workspace plugin `tauri-plugin-xdg-portal`. It interfaces with `org.freedesktop.portal.GlobalShortcuts` via `ashpd`, allowing the app to request global shortcut registrations securely under Wayland's strict protocol. The OS will handle prompting the user for permission.
+  - _Modern Solution:_ Utilise the custom workspace plugin `tauri-plugin-xdg-portal`. It interfaces with `org.freedesktop.portal.GlobalShortcuts` via `ashpd`, allowing the app to request global shortcut registrations securely under Wayland's strict protocol. The OS will handle prompting the user for permission.
 - **Input Injection (Typing/Pasting):**
   - `enigo` cannot natively inject keystrokes into Wayland without specific backends or root-level daemons (like `ydotool`).
-  - *Modern Solution:* Utilise `tauri-plugin-xdg-portal` to interact with `org.freedesktop.portal.RemoteDesktop`. This allows the app to request a session to inject keyboard events securely into the Wayland compositor, bypassing restricted virtual keyboard protocols.
-  - *Fallback Clipboard Strategy:* Updating the clipboard using Wayland protocols (via `arboard` utilizing `wl-clipboard`), and then prompting the user to manually paste.
+  - _Modern Solution:_ Utilise `tauri-plugin-xdg-portal` to interact with `org.freedesktop.portal.RemoteDesktop`. This allows the app to request a session to inject keyboard events securely into the Wayland compositor, bypassing restricted virtual keyboard protocols.
+  - _Fallback Clipboard Strategy:_ Updating the clipboard using Wayland protocols (via `arboard` utilizing `wl-clipboard`), and then prompting the user to manually paste.
 
 ### 5.2 X11 Considerations (Fallback/Co-existence)
 

@@ -19,8 +19,10 @@ function App() {
 
   const handleSelect = useCallback((selection: EmojiSelection) => {
     setLastSelected(selection);
-    invoke("insert_emoji", { emoji: selection.emoji, label: selection.label })
-      .catch((err) => console.error("insert_emoji IPC failed:", err));
+    invoke("insert_emoji", {
+      emoji: selection.emoji,
+      label: selection.label,
+    }).catch((err) => console.error("insert_emoji IPC failed:", err));
   }, []);
 
   return (
