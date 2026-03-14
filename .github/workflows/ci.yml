@@ -10,8 +10,11 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
+  checks: write
   contents: read
   packages: read
+  pull-requests: write
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -158,6 +161,21 @@ jobs:
           name: frontend-test-results
           path: test-results/emoji-picker/junit.xml
           if-no-files-found: error
+
+      - name: Publish unit test results
+        if: always()
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          check_name: Emoji Nook Frontend Tests
+          files: test-results/emoji-picker/junit.xml
+
+      - name: Publish dorny test report
+        if: always()
+        uses: dorny/test-reporter@v2
+        with:
+          name: Emoji Nook Frontend Tests (dorny)
+          path: test-results/emoji-picker/junit.xml
+          reporter: java-junit
 
       - name: Write summary
         if: always()
