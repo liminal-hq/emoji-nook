@@ -28,6 +28,9 @@ importers:
       react-dom:
         specifier: ^19.1.0
         version: 19.2.4(react@19.2.4)
+      tauri-plugin-xdg-portal:
+        specifier: workspace:*
+        version: link:../../plugins/xdg-portal/guest-js
     devDependencies:
       '@tauri-apps/cli':
         specifier: ^2

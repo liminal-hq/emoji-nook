@@ -343,6 +343,18 @@
           "markdownDescription": "Denies the create_remote_desktop_session command without any pre-configured scope."
         },
         {
+          "description": "Enables the get_theme_info command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-theme-info",
+          "markdownDescription": "Enables the get_theme_info command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_theme_info command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-theme-info",
+          "markdownDescription": "Denies the get_theme_info command without any pre-configured scope."
+        },
+        {
           "description": "Enables the inject_text command without any pre-configured scope.",
           "type": "string",
           "const": "allow-inject-text",

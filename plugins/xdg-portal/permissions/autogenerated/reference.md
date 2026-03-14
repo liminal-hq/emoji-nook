@@ -114,6 +114,32 @@ Denies the create_remote_desktop_session command without any pre-configured scop
 <tr>
 <td>
 
+`xdg-portal:allow-get-theme-info`
+
+</td>
+<td>
+
+Enables the get_theme_info command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`xdg-portal:deny-get-theme-info`
+
+</td>
+<td>
+
+Denies the get_theme_info command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
 `xdg-portal:allow-inject-text`
 
 </td>

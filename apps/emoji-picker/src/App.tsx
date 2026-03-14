@@ -9,9 +9,11 @@ import { invoke } from "@tauri-apps/api/core";
 import PickerShell from "./components/PickerShell";
 import EmojiPickerPanel from "./components/EmojiPickerPanel";
 import type { EmojiSelection } from "./components/EmojiPickerPanel";
+import { useTheme } from "./hooks/useTheme";
 import "./App.css";
 
 function App() {
+  useTheme();
   const [skinTone, setSkinTone] = useState<SkinTone>("none");
   const [lastSelected, setLastSelected] = useState<EmojiSelection | null>(null);
 

@@ -6,6 +6,7 @@
   "permissions": [
     "core:default",
     "log:default",
-    "opener:default"
+    "opener:default",
+    "xdg-portal:default"
   ]
 }

@@ -5,6 +5,7 @@
 
 const COMMANDS: &[&str] = &[
   "check_availability",
+  "get_theme_info",
   "bind_global_shortcut",
   "unbind_global_shortcut",
   "create_remote_desktop_session",

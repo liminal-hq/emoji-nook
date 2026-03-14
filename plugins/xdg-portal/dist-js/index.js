@@ -12,7 +12,8 @@ function cmd(name, args) {
 }
 
 export const portal = {
-  checkAvailability: () => cmd('check_availability')
+  checkAvailability: () => cmd('check_availability'),
+  getThemeInfo: () => cmd('get_theme_info'),
 };
 
 export const globalShortcuts = {

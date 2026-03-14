@@ -19,6 +19,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
     })
     .invoke_handler(tauri::generate_handler![
       commands::check_availability,
+      commands::get_theme_info,
       commands::bind_global_shortcut,
       commands::unbind_global_shortcut,
       commands::create_remote_desktop_session,

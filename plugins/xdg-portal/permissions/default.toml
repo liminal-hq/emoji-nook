@@ -2,5 +2,6 @@
 identifier = "default"
 description = "Default permissions for the xdg-portal plugin"
 commands.allow = [
-  "check_availability"
+  "check_availability",
+  "get_theme_info"
 ]
