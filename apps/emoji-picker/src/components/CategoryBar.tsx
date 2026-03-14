@@ -28,11 +28,13 @@ export default function CategoryBar({ viewportRef }: CategoryBarProps) {
   const observerRef = useRef<IntersectionObserver | null>(null);
 
   // Observe which category header is currently visible at the top of the viewport.
+  // A MutationObserver watches for headers that Frimousse renders asynchronously
+  // after its loading phase, so the IntersectionObserver stays in sync.
   useEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport) return;
 
-    observerRef.current = new IntersectionObserver(
+    const io = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
           if (entry.isIntersecting) {
@@ -47,11 +49,29 @@ export default function CategoryBar({ viewportRef }: CategoryBarProps) {
         threshold: 0,
       },
     );
+    observerRef.current = io;
 
-    const headers = viewport.querySelectorAll("[data-category-id]");
-    headers.forEach((h) => observerRef.current?.observe(h));
+    const observed = new Set<Element>();
 
-    return () => observerRef.current?.disconnect();
+    function observeHeaders() {
+      const headers = viewport!.querySelectorAll("[data-category-id]");
+      headers.forEach((h) => {
+        if (!observed.has(h)) {
+          observed.add(h);
+          io.observe(h);
+        }
+      });
+    }
+
+    observeHeaders();
+
+    const mo = new MutationObserver(() => observeHeaders());
+    mo.observe(viewport, { childList: true, subtree: true });
+
+    return () => {
+      io.disconnect();
+      mo.disconnect();
+    };
   }, [viewportRef]);
 
   const scrollTo = useCallback(

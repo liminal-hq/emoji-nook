@@ -82,7 +82,10 @@ export function useTheme() {
         console.info("theme info:", info);
         setTheme(info);
 
-        const isDark = info.colourScheme === "prefer-dark";
+        const isDark =
+          info.colourScheme === "prefer-dark" ||
+          (info.colourScheme === "no-preference" &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches);
         const accent = info.accentColour
           ? rgbToHex(info.accentColour.r, info.accentColour.g, info.accentColour.b)
           : undefined;
