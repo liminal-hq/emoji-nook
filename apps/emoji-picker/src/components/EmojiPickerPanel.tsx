@@ -6,6 +6,7 @@
 import { useCallback, useRef, useEffect } from "react";
 import { EmojiPicker } from "frimousse";
 import type { SkinTone } from "frimousse";
+import CategoryBar from "./CategoryBar";
 
 export interface EmojiSelection {
   emoji: string;
@@ -18,12 +19,23 @@ interface EmojiPickerPanelProps {
   onEmojiSelect: (selection: EmojiSelection) => void;
 }
 
+/** Convert a category label like "Smileys & emotion" to a slug like "smileys-emotion". */
+function slugify(label: string): string {
+  return label
+    .toLowerCase()
+    .replace(/&/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
 export default function EmojiPickerPanel({
   skinTone,
   onSkinToneChange,
   onEmojiSelect,
 }: EmojiPickerPanelProps) {
   const searchRef = useRef<HTMLInputElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     searchRef.current?.focus();
@@ -69,7 +81,9 @@ export default function EmojiPickerPanel({
         </EmojiPicker.SkinTone>
       </div>
 
-      <EmojiPicker.Viewport className="picker-viewport">
+      <CategoryBar viewportRef={viewportRef} />
+
+      <EmojiPicker.Viewport ref={viewportRef} className="picker-viewport">
         <EmojiPicker.Loading>
           <span className="picker-loading">Loading emoji\u2026</span>
         </EmojiPicker.Loading>
@@ -83,7 +97,11 @@ export default function EmojiPickerPanel({
         <EmojiPicker.List
           components={{
             CategoryHeader: ({ category, ...props }) => (
-              <div {...props} className="picker-category-header">
+              <div
+                {...props}
+                className="picker-category-header"
+                data-category-id={slugify(category.label)}
+              >
                 {category.label}
               </div>
             ),

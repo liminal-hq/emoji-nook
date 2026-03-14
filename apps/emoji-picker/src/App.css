@@ -145,6 +145,48 @@ body {
   background: var(--bg-active);
 }
 
+/* Category tab bar */
+.category-bar {
+  display: flex;
+  padding: 0 4px;
+  gap: 1px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.category-tab {
+  flex: 1;
+  height: 30px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 1rem;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  transition: background 0.1s;
+  position: relative;
+}
+
+.category-tab:hover {
+  background: var(--bg-hover);
+}
+
+.category-tab.active {
+  background: var(--bg-hover);
+}
+
+.category-tab.active::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 20%;
+  right: 20%;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 1px;
+}
+
 /* Viewport — scrollable emoji area */
 .picker-viewport {
   flex: 1;
