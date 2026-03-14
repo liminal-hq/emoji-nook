@@ -1,54 +1,38 @@
-// Renders the initial React view for the emoji picker app
+// Root view that mounts the emoji picker inside the compact shell
 //
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
+import { useState, useCallback } from "react";
+import type { SkinTone } from "frimousse";
+import PickerShell from "./components/PickerShell";
+import EmojiPickerPanel from "./components/EmojiPickerPanel";
+import type { EmojiSelection } from "./components/EmojiPickerPanel";
 import "./App.css";
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+  const [skinTone, setSkinTone] = useState<SkinTone>("none");
+  const [lastSelected, setLastSelected] = useState<EmojiSelection | null>(null);
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
+  const handleSelect = useCallback((selection: EmojiSelection) => {
+    setLastSelected(selection);
+  }, []);
 
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
-
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
+    <main className="app-root">
+      <PickerShell>
+        <EmojiPickerPanel
+          skinTone={skinTone}
+          onSkinToneChange={setSkinTone}
+          onEmojiSelect={handleSelect}
         />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
+      </PickerShell>
+
+      {lastSelected && (
+        <div className="selection-toast">
+          Selected: {lastSelected.emoji} {lastSelected.label}
+        </div>
+      )}
     </main>
   );
 }

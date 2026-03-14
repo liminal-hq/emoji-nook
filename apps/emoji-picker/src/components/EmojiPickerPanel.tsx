@@ -1,0 +1,126 @@
+// Renders the Frimousse emoji picker with search, categories, and keyboard navigation
+//
+// (c) Copyright 2026 Liminal HQ, Scott Morris
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
+import { useCallback, useRef, useEffect } from "react";
+import { EmojiPicker } from "frimousse";
+import type { SkinTone } from "frimousse";
+
+export interface EmojiSelection {
+  emoji: string;
+  label: string;
+}
+
+interface EmojiPickerPanelProps {
+  skinTone: SkinTone;
+  onSkinToneChange: (skinTone: SkinTone) => void;
+  onEmojiSelect: (selection: EmojiSelection) => void;
+}
+
+export default function EmojiPickerPanel({
+  skinTone,
+  onSkinToneChange,
+  onEmojiSelect,
+}: EmojiPickerPanelProps) {
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    searchRef.current?.focus();
+  }, []);
+
+  const handleSelect = useCallback(
+    (emoji: EmojiSelection) => {
+      console.info(`emoji selected: ${emoji.emoji} (${emoji.label})`);
+      onEmojiSelect(emoji);
+    },
+    [onEmojiSelect],
+  );
+
+  return (
+    <EmojiPicker.Root
+      onEmojiSelect={handleSelect}
+      skinTone={skinTone}
+      columns={9}
+      className="picker-root"
+    >
+      <div className="picker-header">
+        <EmojiPicker.Search
+          ref={searchRef}
+          placeholder="Search emoji\u2026"
+          className="picker-search"
+          autoFocus
+        />
+        <EmojiPicker.SkinTone emoji="✋">
+          {({ skinToneVariations }) => (
+            <div className="skin-tone-selector">
+              {skinToneVariations.map(({ skinTone: st, emoji }) => (
+                <button
+                  key={st}
+                  className={`skin-tone-btn${st === skinTone ? " active" : ""}`}
+                  onClick={() => onSkinToneChange(st)}
+                  title={st}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          )}
+        </EmojiPicker.SkinTone>
+      </div>
+
+      <EmojiPicker.Viewport className="picker-viewport">
+        <EmojiPicker.Loading>
+          <span className="picker-loading">Loading emoji\u2026</span>
+        </EmojiPicker.Loading>
+        <EmojiPicker.Empty>
+          {({ search }) => (
+            <span className="picker-empty">
+              No results for &ldquo;{search}&rdquo;
+            </span>
+          )}
+        </EmojiPicker.Empty>
+        <EmojiPicker.List
+          components={{
+            CategoryHeader: ({ category, ...props }) => (
+              <div {...props} className="picker-category-header">
+                {category.label}
+              </div>
+            ),
+            Row: ({ children, ...props }) => (
+              <div {...props} className="picker-row">
+                {children}
+              </div>
+            ),
+            Emoji: ({ emoji, ...props }) => (
+              <button
+                {...props}
+                className="picker-emoji"
+                title={emoji.label}
+              >
+                {emoji.emoji}
+              </button>
+            ),
+          }}
+        />
+      </EmojiPicker.Viewport>
+
+      <div className="picker-footer">
+        <EmojiPicker.ActiveEmoji>
+          {({ emoji }) => (
+            <div className="picker-preview">
+              {emoji ? (
+                <>
+                  <span className="preview-emoji">{emoji.emoji}</span>
+                  <span className="preview-label">{emoji.label}</span>
+                </>
+              ) : (
+                <span className="preview-label">Pick an emoji\u2026</span>
+              )}
+            </div>
+          )}
+        </EmojiPicker.ActiveEmoji>
+      </div>
+    </EmojiPicker.Root>
+  );
+}
