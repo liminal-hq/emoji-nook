@@ -63,15 +63,12 @@ export default function CategoryBar({ viewportRef }: CategoryBarProps) {
       ) as HTMLElement | null;
       if (!header) return;
 
-      // Calculate position relative to the scrollable container.
-      // Use offsetTop of the header relative to the list container,
-      // minus the viewport's own offset, to land at the top of the category.
-      const list = header.offsetParent as HTMLElement | null;
-      if (!list) return;
-      viewport.scrollTo({
-        top: header.offsetTop - list.offsetTop,
-        behavior: "smooth",
-      });
+      // Calculate target scroll position using bounding rects, which works
+      // regardless of DOM nesting or virtualisation.
+      const viewportRect = viewport.getBoundingClientRect();
+      const headerRect = header.getBoundingClientRect();
+      const offset = headerRect.top - viewportRect.top + viewport.scrollTop;
+      viewport.scrollTo({ top: offset, behavior: "smooth" });
     },
     [viewportRef],
   );
