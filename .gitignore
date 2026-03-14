@@ -1,0 +1,49 @@
+# Workspace dependencies
+/node_modules/
+**/node_modules/
+
+# pnpm store
+.pnpm-store/
+
+# Rust build outputs
+/target/
+**/target/
+
+# Frontend build outputs
+dist/
+dist-ssr/
+build/
+coverage/
+test-results/
+rust-test-results/
+junit.xml
+js-test-results.xml
+
+# Tauri artefacts
+plugins/**/android/.tauri/
+.tauri/
+.gradle/
+
+# Release outputs
+/release/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Local/editor files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+*.local

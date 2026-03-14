@@ -1,0 +1,15 @@
+[workspace]
+members = [
+  "apps/emoji-picker/src-tauri"
+]
+resolver = "2"
+
+[workspace.package]
+edition = "2021"
+license = "MIT"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri-build = { version = "2" }

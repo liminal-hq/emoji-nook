@@ -1,0 +1,15 @@
+{
+  "name": "emoji-picker-workspace",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@9.15.0",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "pnpm --filter @emoji-picker/emoji-picker dev",
+    "build": "pnpm --filter @emoji-picker/emoji-picker build",
+    "tauri:dev": "pnpm --filter @emoji-picker/emoji-picker tauri dev",
+    "tauri:build": "pnpm --filter @emoji-picker/emoji-picker tauri build"
+  }
+}
