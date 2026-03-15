@@ -45,9 +45,9 @@ Releases should be cut by a maintainer who has:
 
 1. Open the release URL from the workflow summary.
 2. Confirm the release contains:
-   - AppImage
-   - `.deb`
-   - `.rpm`
+   - AppImage bundles for the Linux architectures we currently publish
+   - `.deb` bundles for the Linux architectures we currently publish
+   - `.rpm` bundles for the Linux architectures we currently publish
    - `SHA256SUMS`
 3. Review the generated release notes and add any missing operator guidance:
    - installation notes that matter for this release

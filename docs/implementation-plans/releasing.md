@@ -17,7 +17,7 @@ The repository already has a good base for release work, but several pieces are 
 - Linux icons are present for bundle generation
 - Release/versioning policy is now documented in `docs/releasing.md`
 - GitHub-generated release notes are now the defined baseline policy, while signing and updater strategy remain pending
-- A checked-in GitHub release workflow now exists in `.github/workflows/release.yml`
+- A checked-in GitHub release workflow now exists in `.github/workflows/release.yml`, with Linux `x64` and `arm64` build coverage
 - A release-prep helper script and CI version drift check now exist
 - A maintainer release checklist now exists under `docs/release-checklist.md`
 - Linux package dependency metadata is still intentionally minimal pending the first end-to-end release validation
@@ -230,6 +230,7 @@ Automate Linux builds and GitHub Releases.
   - Creates or reuses the GitHub Release
   - Exposes `tag_name` and `release_id` outputs for later jobs
 - [x] Build on GitHub-hosted Ubuntu runners using the shared GHCR Docker image pattern already established in `liminal-hq/.github` where possible
+- [x] Build Linux release artefacts in an architecture matrix covering `x64` and `arm64`
 - [x] Decide whether Emoji Nook can consume the shared desktop CI image directly or needs a small derived image for any extra Linux packaging dependencies
 - [x] Run `pnpm install --frozen-lockfile`
 - [x] Run the Tauri production build for the app

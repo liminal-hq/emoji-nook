@@ -187,7 +187,19 @@ jobs:
   build-linux:
     name: Build Linux release bundles
     needs: prepare-release
-    runs-on: ubuntu-24.04
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            platform_label: linux
+            arch_label: x64
+            artefact_name: linux-release-assets-x64
+          - runner: ubuntu-24.04-arm
+            platform_label: linux
+            arch_label: arm64
+            artefact_name: linux-release-assets-arm64
     container:
       image: ghcr.io/liminal-hq/tauri-ci-desktop:latest
       credentials:
@@ -265,7 +277,7 @@ jobs:
         id: upload_assets
         uses: actions/upload-artifact@v7
         with:
-          name: linux-release-assets
+          name: ${{ matrix.artefact_name }}
           path: release-assets/linux/**
           if-no-files-found: error
 
@@ -281,8 +293,10 @@ jobs:
           {
             echo "## Emoji Nook Linux Release Summary"
             echo
-            echo "- Runner: \`ubuntu-24.04\`"
+            echo "- Runner: \`${{ matrix.runner }}\`"
             echo "- Container: \`ghcr.io/liminal-hq/tauri-ci-desktop:latest\`"
+            echo "- Platform: \`${{ matrix.platform_label }}\`"
+            echo "- Architecture: \`${{ matrix.arch_label }}\`"
             echo "- Release tag: \`${{ needs.prepare-release.outputs.tag_name }}\`"
             echo "- Build and bundle: \`${{ steps.build_tauri.outcome }}\`"
             echo "- Collect assets: \`${{ steps.collect_assets.outcome }}\`"
@@ -309,8 +323,9 @@ jobs:
       - name: Download Linux release assets
         uses: actions/download-artifact@v5
         with:
-          name: linux-release-assets
+          pattern: linux-release-assets-*
           path: release-assets/linux
+          merge-multiple: true
 
       - name: Upload assets to GitHub Release
         id: upload_release_assets
