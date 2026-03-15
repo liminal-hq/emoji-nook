@@ -34,6 +34,8 @@ jobs:
     outputs:
       release_version: ${{ steps.meta.outputs.release_version }}
       tag_name: ${{ steps.meta.outputs.tag_name }}
+      checkout_ref: ${{ steps.meta.outputs.checkout_ref }}
+      release_target: ${{ steps.meta.outputs.release_target }}
       release_name: ${{ steps.meta.outputs.release_name }}
       prerelease: ${{ steps.meta.outputs.prerelease }}
       release_id: ${{ steps.release.outputs.release_id }}
@@ -57,24 +59,41 @@ jobs:
           set -euo pipefail
 
           git fetch origin main
+          git fetch --tags origin
 
-          if ! git merge-base --is-ancestor "${GITHUB_SHA}" "origin/main"; then
-            echo "Release commit is not on origin/main: ${GITHUB_SHA}" >&2
+          CHECKOUT_REF="${GITHUB_SHA}"
+          RELEASE_TARGET="${GITHUB_SHA}"
+
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && -n "${MANUAL_RELEASE_TAG}" ]]; then
+            TAG_NAME="${MANUAL_RELEASE_TAG}"
+            if [[ ! "${TAG_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+              echo "Invalid release tag: ${TAG_NAME}" >&2
+              echo "Expected a tag matching vX.Y.Z or vX.Y.Z-beta.N" >&2
+              exit 1
+            fi
+
+            CHECKOUT_REF="${TAG_NAME}"
+            RELEASE_TARGET="$(git rev-list -n 1 "${TAG_NAME}")"
+          elif [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            TAG_NAME="${GITHUB_REF_NAME}"
+            if [[ ! "${TAG_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+              echo "Invalid release tag: ${TAG_NAME}" >&2
+              echo "Expected a tag matching vX.Y.Z or vX.Y.Z-beta.N" >&2
+              exit 1
+            fi
+          fi
+
+          if ! git merge-base --is-ancestor "${RELEASE_TARGET}" "origin/main"; then
+            echo "Release commit is not on origin/main: ${RELEASE_TARGET}" >&2
             exit 1
           fi
+
+          git checkout --quiet "${CHECKOUT_REF}"
 
           RELEASE_VERSION="$(./scripts/check-release-versions.sh --current-version)"
 
-          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
-            TAG_NAME="${MANUAL_RELEASE_TAG:-v${RELEASE_VERSION}}"
-          else
-            TAG_NAME="${GITHUB_REF_NAME}"
-          fi
-
-          if [[ ! "${TAG_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
-            echo "Invalid release tag: ${TAG_NAME}" >&2
-            echo "Expected a tag matching vX.Y.Z or vX.Y.Z-beta.N" >&2
-            exit 1
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && -z "${MANUAL_RELEASE_TAG}" ]]; then
+            TAG_NAME="v${RELEASE_VERSION}"
           fi
 
           if [[ "${TAG_NAME#v}" != "${RELEASE_VERSION}" ]]; then
@@ -89,6 +108,8 @@ jobs:
 
           echo "release_version=${RELEASE_VERSION}" >> "${GITHUB_OUTPUT}"
           echo "tag_name=${TAG_NAME}" >> "${GITHUB_OUTPUT}"
+          echo "checkout_ref=${CHECKOUT_REF}" >> "${GITHUB_OUTPUT}"
+          echo "release_target=${RELEASE_TARGET}" >> "${GITHUB_OUTPUT}"
           echo "release_name=Emoji Nook ${TAG_NAME}" >> "${GITHUB_OUTPUT}"
           echo "prerelease=${PRERELEASE}" >> "${GITHUB_OUTPUT}"
 
@@ -97,6 +118,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG_NAME: ${{ steps.meta.outputs.tag_name }}
+          RELEASE_TARGET: ${{ steps.meta.outputs.release_target }}
           RELEASE_NAME: ${{ steps.meta.outputs.release_name }}
           RELEASE_DRAFT: ${{ github.event_name == 'workflow_dispatch' && inputs.release_draft || false }}
           RELEASE_PRERELEASE: ${{ steps.meta.outputs.prerelease }}
@@ -115,7 +137,7 @@ jobs:
                 --method POST \
                 "repos/${GITHUB_REPOSITORY}/releases" \
                 -f tag_name="${TAG_NAME}" \
-                -f target_commitish="${GITHUB_SHA}" \
+                -f target_commitish="${RELEASE_TARGET}" \
                 -f name="${RELEASE_NAME}" \
                 -f body='See assets below to download and install.' \
                 -F generate_release_notes=true \
@@ -152,6 +174,8 @@ jobs:
             echo
             echo "- Resolved version: \`${{ steps.meta.outputs.release_version || 'unavailable' }}\`"
             echo "- Release tag: \`${{ steps.meta.outputs.tag_name || 'unavailable' }}\`"
+            echo "- Checkout ref: \`${{ steps.meta.outputs.checkout_ref || 'unavailable' }}\`"
+            echo "- Release target: \`${{ steps.meta.outputs.release_target || 'unavailable' }}\`"
             echo "- Release name: \`${{ steps.meta.outputs.release_name || 'unavailable' }}\`"
             echo "- Release action: \`${{ steps.release.outputs.release_action || 'unavailable' }}\`"
             echo "- Draft: \`${{ github.event_name == 'workflow_dispatch' && inputs.release_draft || false }}\`"
@@ -172,6 +196,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.prepare-release.outputs.checkout_ref }}
 
       - name: Trust the GitHub workspace
         run: git config --global --add safe.directory "${GITHUB_WORKSPACE}"
