@@ -28,8 +28,9 @@ fn insert_emoji(app: AppHandle, emoji: String, label: &str) {
 
     // Inject on a background thread to avoid blocking the IPC handler
     // during the sleep-based clipboard shuffle
+    let wayland = is_wayland();
     std::thread::spawn(move || {
-        injection::clipboard_shuffle(&emoji);
+        injection::clipboard_shuffle(&emoji, wayland);
     });
 }
 

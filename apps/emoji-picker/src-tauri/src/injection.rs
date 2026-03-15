@@ -16,7 +16,7 @@ use std::process::Command;
 /// 4. Simulate Ctrl+V
 /// 5. Wait for paste to complete
 /// 6. Restore original clipboard contents
-pub fn clipboard_shuffle(emoji: &str) {
+pub fn clipboard_shuffle(emoji: &str, wayland: bool) {
     let mut clipboard = match Clipboard::new() {
         Ok(c) => c,
         Err(e) => {
@@ -38,12 +38,20 @@ pub fn clipboard_shuffle(emoji: &str) {
     // 3. Wait for focus to settle on target app
     std::thread::sleep(std::time::Duration::from_millis(80));
 
-    // 4. Simulate Ctrl+V — try `xdotool` first (works on X11 and XWayland),
-    //    fall back to `wtype` for native Wayland apps
-    let paste_result = simulate_paste_xdotool().or_else(|e| {
-        info!("xdotool failed ({e}), trying wtype");
-        simulate_paste_wtype()
-    });
+    // 4. Simulate Ctrl+V
+    //    - Wayland: use `wtype` (native), fall back to `xdotool` (XWayland)
+    //    - X11: use `xdotool`, fall back to `wtype` (shouldn't be needed)
+    let paste_result = if wayland {
+        simulate_paste_wtype().or_else(|e| {
+            info!("`wtype` failed ({e}), falling back to `xdotool`");
+            simulate_paste_xdotool()
+        })
+    } else {
+        simulate_paste_xdotool().or_else(|e| {
+            info!("`xdotool` failed ({e}), falling back to `wtype`");
+            simulate_paste_wtype()
+        })
+    };
     if let Err(e) = paste_result {
         warn!("failed to simulate paste: {e}");
     }
@@ -59,7 +67,7 @@ pub fn clipboard_shuffle(emoji: &str) {
     }
 }
 
-/// Simulates Ctrl+V using `xdotool` (works on X11 and XWayland).
+/// Simulates Ctrl+V using `xdotool` (X11 / XWayland).
 fn simulate_paste_xdotool() -> Result<(), String> {
     let status = Command::new("xdotool")
         .args(["key", "--clearmodifiers", "ctrl+v"])
