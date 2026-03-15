@@ -28,8 +28,14 @@ pub fn clipboard_shuffle(emoji: &str) {
         }
     };
 
-    // 1. Save current clipboard
-    let saved = clipboard.get_text().ok();
+    // 1. Save current clipboard text. If the clipboard holds non-text
+    //    content (images, files), `get_text()` returns Err — we record
+    //    that so we can skip the clear step and leave the original
+    //    content intact rather than destroying it.
+    let (saved, had_non_text) = match clipboard.get_text() {
+        Ok(text) => (Some(text), false),
+        Err(_) => (None, true),
+    };
 
     // 2. Write emoji to clipboard — no `wait_until` here because we keep
     //    the `Clipboard` alive through the paste, so arboard's serve thread
@@ -85,8 +91,14 @@ pub fn clipboard_shuffle(emoji: &str) {
         if let Err(e) = restore_result {
             warn!("failed to restore clipboard: {e}");
         }
+    } else if had_non_text {
+        // The clipboard held non-text content (image, files, etc.)
+        // that we can't snapshot with the text API. Leave it alone —
+        // the clipboard manager will have already picked up whatever
+        // was there before our emoji write.
+        info!("clipboard had non-text content before injection; skipping restore");
     } else {
-        // Nothing was saved — clear the clipboard so the emoji doesn't
+        // Clipboard was genuinely empty — clear so the emoji doesn't
         // stay around for an accidental Ctrl+V later
         restore.clear().unwrap_or_else(|e| {
             warn!("failed to clear clipboard: {e}");

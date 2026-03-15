@@ -29,11 +29,14 @@ function App() {
 				label: selection.label,
 			}).catch((err) => console.error('insert_emoji IPC failed:', err));
 
-			// If close-on-select is disabled, keep the picker open
+			// If close-on-select is disabled, re-show the picker after the
+			// injection has had time to paste into the target app. The Rust
+			// side hides the window and sleeps ~300ms before simulating
+			// Ctrl+V, so we wait long enough for that to land.
 			if (!settings.closeOnSelect) {
-				// Picker stays visible — insert_emoji still injects via clipboard
-				// but we call show_picker to retain focus
-				invoke('show_picker').catch(() => {});
+				setTimeout(() => {
+					invoke('show_picker').catch(() => {});
+				}, 600);
 			}
 		},
 		[settings.closeOnSelect],

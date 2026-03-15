@@ -10,9 +10,26 @@ use std::ffi::OsStr;
 use tauri::menu::{MenuBuilder, MenuItemBuilder};
 use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Emitter, Manager};
+use tauri_plugin_store::StoreExt;
 
 fn has_wayland_display(value: Option<&OsStr>) -> bool {
     value.is_some()
+}
+
+const DEFAULT_SHORTCUT: &str = "Alt+Shift+E";
+
+/// Reads the saved shortcut from the settings store, falling back to the default.
+fn load_saved_shortcut(app: &AppHandle) -> String {
+    match app.store("settings.json") {
+        Ok(store) => store
+            .get("shortcut")
+            .and_then(|v| v.as_str().map(String::from))
+            .unwrap_or_else(|| DEFAULT_SHORTCUT.to_string()),
+        Err(e) => {
+            info!("could not open settings store, using default shortcut: {e}");
+            DEFAULT_SHORTCUT.to_string()
+        }
+    }
 }
 
 /// Returns true when running under a Wayland compositor.
@@ -99,19 +116,20 @@ fn update_shortcut(app: AppHandle, shortcut: String) {
 
 /// Register the global shortcut via the Wayland GlobalShortcuts portal.
 /// The shortcut session lives as long as the returned handle.
-fn register_wayland_shortcut(app: AppHandle) {
+fn register_wayland_shortcut(app: AppHandle, shortcut: &str) {
     info!("registering global shortcut via Wayland portal");
     if let Ok(addr) = std::env::var("DBUS_SESSION_BUS_ADDRESS") {
         info!("DBUS_SESSION_BUS_ADDRESS={addr}");
     } else {
         log::warn!("DBUS_SESSION_BUS_ADDRESS is not set — portal shortcuts may fail");
     }
+    let trigger = shortcut.to_string();
     let handle = app.clone();
     tauri::async_runtime::spawn(async move {
         match tauri_plugin_xdg_portal::global_shortcuts::listen_for_shortcut(
             "emoji-nook-toggle",
             "Toggle Emoji Nook",
-            Some("Alt+Shift+E"),
+            Some(&trigger),
             move || {
                 if let Some(window) = handle.get_webview_window("main") {
                     if window.is_visible().unwrap_or(false) {
@@ -142,14 +160,14 @@ fn register_wayland_shortcut(app: AppHandle) {
 }
 
 /// Register the global shortcut via tauri-plugin-global-shortcut (X11 path).
-fn register_x11_shortcut(app: &AppHandle) {
+fn register_x11_shortcut(app: &AppHandle, shortcut: &str) {
     use tauri_plugin_global_shortcut::GlobalShortcutExt;
 
     info!("registering global shortcut via X11 (tauri-plugin-global-shortcut)");
     let handle = app.clone();
     let result = app
         .global_shortcut()
-        .on_shortcut("alt+shift+e", move |_app, _shortcut, event| {
+        .on_shortcut(shortcut, move |_app, _shortcut, event| {
             if event.state == tauri_plugin_global_shortcut::ShortcutState::Pressed {
                 if let Some(window) = handle.get_webview_window("main") {
                     if window.is_visible().unwrap_or(false) {
@@ -165,7 +183,7 @@ fn register_x11_shortcut(app: &AppHandle) {
         });
 
     match result {
-        Ok(()) => info!("X11 global shortcut registered"),
+        Ok(()) => info!("X11 global shortcut registered: {shortcut}"),
         Err(e) => {
             log::error!("failed to register X11 global shortcut: {e}");
             log::error!("the picker will not respond to keyboard shortcuts");
@@ -225,10 +243,13 @@ pub fn run() {
 
             setup_tray(&handle)?;
 
+            let shortcut = load_saved_shortcut(&handle);
+            info!("using shortcut from settings: {shortcut}");
+
             if is_wayland() {
-                register_wayland_shortcut(handle);
+                register_wayland_shortcut(handle, &shortcut);
             } else {
-                register_x11_shortcut(&handle);
+                register_x11_shortcut(&handle, &shortcut);
             }
             Ok(())
         })
