@@ -89,7 +89,7 @@ pnpm tauri:build
 
 ## Releasing
 
-Release policy and maintainer workflow live in [docs/releasing.md](docs/releasing.md). The release workflow is checked in, and version preparation has dedicated helper commands:
+Release policy and maintainer workflow live in [docs/releasing.md](docs/releasing.md). The release workflow is checked in for Linux `x64` and `arm64` builds, and version preparation has dedicated helper commands:
 
 ```bash
 pnpm release:version:check

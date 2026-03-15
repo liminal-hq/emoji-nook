@@ -4,7 +4,7 @@ This document records the current release policy for Emoji Nook so documentation
 
 ## Current status
 
-CI validation is in place, a release version-drift check now runs in CI, and `.github/workflows/release.yml` defines the Linux GitHub Release flow for AppImage, `.deb`, `.rpm`, and `SHA256SUMS`.
+CI validation is in place, a release version-drift check now runs in CI, and `.github/workflows/release.yml` defines the Linux GitHub Release flow for `x64` and `arm64` AppImage, `.deb`, `.rpm`, and `SHA256SUMS` assets.
 
 Treat this document and [docs/release-checklist.md](docs/release-checklist.md) as the source of truth for release decisions and operator steps.
 
@@ -58,7 +58,7 @@ The repository does not maintain a separate `CHANGELOG.md` at this stage.
 
 ## Planned release artefacts
 
-The first public release target is Linux only, with these artefacts attached to GitHub Releases:
+The first public release target is Linux only, with these artefacts attached to GitHub Releases for both `x64` and `arm64` where bundling succeeds:
 
 - AppImage
 - `.deb`
