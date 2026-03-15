@@ -3,8 +3,9 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { portal } from 'tauri-plugin-xdg-portal';
+import { listen } from '@tauri-apps/api/event';
 import type { ThemeInfo, DesktopEnvironment } from 'tauri-plugin-xdg-portal';
 
 /** Convert 0.0–1.0 sRGB to hex colour string. */
@@ -75,11 +76,10 @@ function applyTokens(tokens: Record<string, string>) {
 export function useTheme() {
 	const [theme, setTheme] = useState<ThemeInfo | null>(null);
 
-	useEffect(() => {
+	const fetchAndApply = useCallback(() => {
 		portal
 			.getThemeInfo()
 			.then((info) => {
-				console.info('theme info:', info);
 				setTheme(info);
 
 				const isDark =
@@ -97,6 +97,22 @@ export function useTheme() {
 				console.warn('failed to fetch theme info, using CSS defaults:', err);
 			});
 	}, []);
+
+	// Fetch on mount
+	useEffect(() => {
+		fetchAndApply();
+	}, [fetchAndApply]);
+
+	// Re-fetch when the picker is shown — catches theme changes
+	// between hide/show cycles without needing a live portal listener
+	useEffect(() => {
+		const unlisten = listen('picker-shown', () => {
+			fetchAndApply();
+		});
+		return () => {
+			unlisten.then((fn) => fn());
+		};
+	}, [fetchAndApply]);
 
 	return theme;
 }
