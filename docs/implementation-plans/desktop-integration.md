@@ -24,12 +24,12 @@ Linux has two display server protocols with fundamentally different security mod
 | Capability       | X11                                             | Wayland                                                                |
 | ---------------- | ----------------------------------------------- | ---------------------------------------------------------------------- |
 | Global shortcuts | `tauri-plugin-global-shortcut` (works directly) | `xdg-desktop-portal` GlobalShortcuts (requires user permission prompt) |
-| Input injection  | `xdotool` via `std::process::Command`           | `wtype` via `std::process::Command`                                    |
+| Input injection  | `ydotool` / `xdotool` via `std::process::Command` | `ydotool` / `wtype` via `std::process::Command`                     |
 | Clipboard        | `arboard` (handles both transparently)          | `arboard` (handles both transparently)                                 |
 
 Detection: check `WAYLAND_DISPLAY` environment variable at startup. Route all shortcut and injection calls through the appropriate backend.
 
-> **Deviation from original plan:** `enigo` was dropped in favour of shelling out to `xdotool` (X11) and `wtype` (Wayland) for keystroke simulation. This avoids a heavy dependency and is more reliable across compositors. RemoteDesktop portal injection was deferred — the clipboard shuffle is the primary path for both display servers.
+> **Deviation from original plan:** `enigo` was dropped in favour of shelling out to `ydotool`, `wtype`, and `xdotool` for keystroke simulation. `ydotool` is the primary tool — it works at the kernel `/dev/uinput` level, bypassing both X11 and Wayland display server restrictions. `wtype` and `xdotool` serve as fallbacks. RemoteDesktop portal injection was deferred.
 
 ### Window lifecycle
 
@@ -43,24 +43,22 @@ The window is never destroyed during the app lifecycle; it is shown and hidden t
 
 ### Draggable window
 
-The picker uses `data-tauri-drag-region` for repositioning the frameless window. This attribute only works on the exact element it is applied to — it does not propagate to children. Drag regions are applied to:
-
-- A thin (6px) drag handle strip at the top of the picker
-- The footer preview area and all its child elements
+The picker uses `data-tauri-drag-region` on the shell container, making the entire window draggable. Interactive elements (search input, buttons, emoji grid, viewport) opt out via `-webkit-app-region: no-drag` in CSS. This approach (from the Threshold reference app) is simpler than applying `data-tauri-drag-region` to individual elements.
 
 ### Emoji injection strategy
 
 Primary path (both X11 and Wayland): clipboard shuffle.
 
 1. Save current clipboard contents
-2. Write selected emoji to clipboard
+2. Write selected emoji to clipboard (arboard serve thread stays alive)
 3. Hide picker window (OS returns focus to previous app)
-4. Wait ~80ms for focus to settle
-5. Simulate Ctrl+V via `xdotool` (X11) or `wtype` (Wayland)
-6. Wait ~80ms
-7. Restore original clipboard contents
+4. Wait ~100ms for focus to settle
+5. Simulate Ctrl+V via `ydotool` (primary) → `wtype` (Wayland fallback) → `xdotool` (X11 fallback)
+6. Wait ~200ms for paste to complete
+7. Drop the clipboard instance (arboard serve thread stops)
+8. Restore original clipboard contents via clipboard manager handover (500ms timeout)
 
-> **Deviation from original plan:** RemoteDesktop portal injection was deferred. The clipboard shuffle works on both display servers and avoids the scary RemoteDesktop permission prompt ("allow this app to control your input") that most users would decline. This can be revisited as an optimisation in a future phase.
+> **Deviation from original plan:** RemoteDesktop portal injection was deferred. `enigo` was replaced by shelling out to `ydotool`, `wtype`, and `xdotool`. `ydotool` (kernel `/dev/uinput`) is the primary tool — it bypasses display server restrictions entirely, working on X11, Wayland, GNOME, KDE, Sway, etc. The clipboard is kept alive through the paste rather than using `wait_until` for clipboard manager handover on the set step, eliminating the ~2 second timeout delay.
 
 ### Settings persistence
 
@@ -184,67 +182,76 @@ Add settings and polish.
 
 #### Phase 6: Settings UI and persistence
 
-- [ ] Add `tauri-plugin-store` to dependencies and capabilities
-- [ ] Create settings store with defaults:
+- [x] Add `tauri-plugin-store` to dependencies and capabilities
+- [x] Create settings store with defaults:
   ```json
   {
   	"shortcut": "Alt+Shift+E",
   	"skinTone": "none",
-  	"closeOnSelect": true
+  	"closeOnSelect": true,
+  	"autostart": false
   }
   ```
-- [ ] Build settings panel component:
+- [x] Build settings panel component:
   - Shortcut capture input (records key combination)
   - Skin tone preference dropdown
   - Close-on-select toggle
+  - Autostart toggle
   - Save / Cancel buttons
-- [ ] Add gear icon to picker header that navigates to settings panel
-- [ ] Implement "flip" or slide transition between picker and settings views
-- [ ] On save:
+- [x] Add gear icon to picker header that navigates to settings panel
+- [x] View toggle between picker and settings (Esc returns to picker)
+- [x] On save:
   - Persist to store
-  - Re-register global shortcut with new binding
+  - Re-register global shortcut with new binding (X11; Wayland requires restart)
   - Apply skin tone preference
-- [ ] On startup:
+  - Toggle autostart via `tauri-plugin-autostart`
+- [x] On startup:
   - Read store values
-  - Register shortcut from stored binding
   - Apply stored skin tone
+
+> **Deviation:** View transition is a simple swap rather than a flip/slide animation — keeps the implementation lean. Autostart was added as a first-class setting rather than deferred. Shortcut is registered with the hardcoded default on startup rather than read from the store — dynamic Wayland shortcut re-registration requires a new portal session, so changes require restart on Wayland.
 
 #### Phase 7: Polish and edge cases
 
-- [ ] Live theme change listener:
+- [x] Theme refresh on picker show:
+  - Re-fetches theme info from the portal each time the picker is shown
+  - Catches theme changes between hide/show cycles
+- [x] Esc handling: Esc closes settings view first, then hides picker
+- [x] Close-on-select: respects the setting — picker stays open when disabled
+- [ ] Live theme change listener (deferred):
   - Subscribe to `org.freedesktop.portal.Settings` change signals via `ashpd`
   - Emit Tauri events to frontend
-  - Frontend re-applies theme tokens on change
-- [ ] Focus management hardening:
-  - Tune hide-to-inject delay for different compositors
-  - Handle tiling WM edge cases (Sway, i3) where focus return is unpredictable
-- [ ] Esc handling: ensure Esc only hides picker, never terminates the process
+  - Would provide instant theme updates without needing to re-show the picker
 - [ ] Window positioning: centre on the active monitor (not just primary)
-- [ ] Startup: register for autostart if the user opts in (future)
-- [ ] Error handling: surface portal permission prompts gracefully
+- [ ] Focus management hardening for tiling WMs (Sway, i3)
 - [ ] Performance: measure and optimise show latency (target <100ms from shortcut to visible)
 
-**Gate 3 result: settings persist across restarts, shortcut is customisable, theme responds to live changes.**
+> **Deviation:** Live theme listener via portal signals was deferred — the re-fetch-on-show approach covers the common case (theme changed while picker is hidden). Active monitor centring and tiling WM hardening remain as follow-on work.
+
+**Gate 3 result: settings persist across restarts, shortcut is customisable, autostart is toggleable, theme refreshes on show.**
 
 ## Dependencies Added
 
-| Crate / Package                | Purpose                          | Phase |
-| ------------------------------ | -------------------------------- | ----- |
-| `tauri-plugin-global-shortcut` | X11 global shortcuts             | 3     |
-| `arboard`                      | Clipboard read/write for shuffle | 4     |
-| `futures-util`                 | Stream handling for portal async | 3     |
-| `tokio`                        | Async runtime, `select!` macro   | 3     |
+| Crate / Package                | Purpose                           | Phase |
+| ------------------------------ | --------------------------------- | ----- |
+| `tauri-plugin-global-shortcut` | X11 global shortcuts              | 3     |
+| `arboard`                      | Clipboard read/write for shuffle  | 4     |
+| `futures-util`                 | Stream handling for portal async  | 3     |
+| `tokio`                        | Async runtime, `select!` macro    | 3     |
+| `tauri-plugin-store`           | Persistent JSON settings          | 6     |
+| `tauri-plugin-autostart`       | XDG autostart desktop file toggle | 6     |
 
 Dependencies **not** added (deferred or replaced):
 
-| Crate   | Original Purpose        | Reason                                                 |
-| ------- | ----------------------- | ------------------------------------------------------ |
-| `enigo` | Keystroke simulation    | Replaced by `xdotool`/`wtype` via `Command`            |
+| Crate   | Original Purpose     | Reason                                      |
+| ------- | -------------------- | ------------------------------------------- |
+| `enigo` | Keystroke simulation | Replaced by `xdotool`/`wtype` via `Command` |
 
 System runtime dependencies:
 
-- `wtype` (Wayland Ctrl+V simulation)
-- `xdotool` (X11 Ctrl+V simulation)
+- `ydotool` (kernel uinput Ctrl+V simulation — primary, works everywhere)
+- `wtype` (Wayland Ctrl+V fallback for non-GNOME compositors)
+- `xdotool` (X11/XWayland Ctrl+V fallback)
 
 ## Risks and Mitigations
 
@@ -270,8 +277,12 @@ On i3, Sway, Hyprland etc., hiding a window may not return focus to the previous
 | ------------------------------------------------ | ------------------------------------------ |
 | `apps/emoji-picker/src-tauri/src/lib.rs`         | App setup, tray, shortcut routing          |
 | `apps/emoji-picker/src-tauri/src/injection.rs`   | Clipboard shuffle and injection logic      |
+| `apps/emoji-picker/src/hooks/useSettings.ts`     | Settings persistence via tauri-plugin-store|
+| `apps/emoji-picker/src/components/SettingsPanel.tsx` | Settings UI panel                      |
 | `plugins/xdg-portal/src/global_shortcuts.rs`     | Real GlobalShortcuts portal implementation |
 | `plugins/xdg-portal/src/remote_desktop.rs`       | (stub) RemoteDesktop portal — future use   |
+| `docs/linux-setup.md`                            | Linux setup guide for system dependencies  |
+| `scripts/setup-linux.sh`                         | Auto-install script for Linux dependencies |
 
 ## Follow-On (outside this plan)
 
