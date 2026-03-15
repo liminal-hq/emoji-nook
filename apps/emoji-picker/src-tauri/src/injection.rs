@@ -31,22 +31,14 @@ pub fn clipboard_shuffle(emoji: &str) {
     // 1. Save current clipboard
     let saved = clipboard.get_text().ok();
 
-    // 2. Write emoji to clipboard, handing contents to the clipboard manager
-    //    so they survive after this `Clipboard` instance is dropped
-    #[cfg(target_os = "linux")]
-    let set_result = clipboard
-        .set()
-        .wait_until(Instant::now() + Duration::from_secs(2))
-        .text(emoji);
-    #[cfg(not(target_os = "linux"))]
-    let set_result = clipboard.set_text(emoji);
-
-    if let Err(e) = set_result {
+    // 2. Write emoji to clipboard — no `wait_until` here because we keep
+    //    the `Clipboard` alive through the paste, so arboard's serve thread
+    //    continues answering paste requests from the target app directly.
+    if let Err(e) = clipboard.set_text(emoji) {
         warn!("failed to write emoji to clipboard: {e}");
         return;
     }
     info!("clipboard set to: {emoji}");
-    drop(clipboard);
 
     // 3. Wait for focus to settle on target app
     std::thread::sleep(Duration::from_millis(100));
@@ -67,10 +59,12 @@ pub fn clipboard_shuffle(emoji: &str) {
         warn!("failed to simulate paste: {e}");
     }
 
-    // 5. Wait for paste to complete before restoring
+    // 5. Wait for paste to complete, then drop the clipboard so arboard's
+    //    serve thread stops (the target app has already read the content)
     std::thread::sleep(Duration::from_millis(200));
+    drop(clipboard);
 
-    // 6. Restore original clipboard
+    // 6. Restore original clipboard via clipboard manager handover
     if let Some(text) = saved {
         let mut restore = match Clipboard::new() {
             Ok(c) => c,
@@ -82,7 +76,7 @@ pub fn clipboard_shuffle(emoji: &str) {
         #[cfg(target_os = "linux")]
         let restore_result = restore
             .set()
-            .wait_until(Instant::now() + Duration::from_secs(2))
+            .wait_until(Instant::now() + Duration::from_millis(500))
             .text(&text);
         #[cfg(not(target_os = "linux"))]
         let restore_result = restore.set_text(&text);
