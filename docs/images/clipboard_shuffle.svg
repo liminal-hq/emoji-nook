@@ -1,0 +1,330 @@
+<!-- Animated diagram of the clipboard shuffle injection pipeline -->
+<!-- -->
+<!-- (c) Copyright 2026 Liminal HQ, Scott Morris -->
+<!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 480" role="img" aria-labelledby="cs-title cs-desc">
+  <title id="cs-title">Clipboard Shuffle Injection Pipeline</title>
+  <desc id="cs-desc">Left-to-right pipeline showing the six stages of clipboard shuffle injection: save current clipboard, write emoji, wait for focus, simulate paste via ydotool/wtype/xdotool, drop arboard serve thread, and restore original clipboard contents.</desc>
+
+  <defs>
+    <!-- Background gradient -->
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0.6" y2="1">
+      <stop offset="0%" stop-color="#0a0a12"/>
+      <stop offset="50%" stop-color="#0f1628"/>
+      <stop offset="100%" stop-color="#1a0e2e"/>
+      <animateTransform attributeName="gradientTransform" type="translate" values="0 0;0.02 0.01;0 0" dur="20s" repeatCount="indefinite"/>
+    </linearGradient>
+
+    <!-- Grid dots -->
+    <pattern id="dots" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+      <circle cx="10" cy="10" r="0.8" fill="#ffffff0a"/>
+    </pattern>
+
+    <!-- Stage colour gradients -->
+    <linearGradient id="z-save" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#818cf8"/>
+      <stop offset="100%" stop-color="#6366f1"/>
+    </linearGradient>
+    <linearGradient id="z-write" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+    <linearGradient id="z-focus" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#c2410c"/>
+    </linearGradient>
+    <linearGradient id="z-paste" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2dd4bf"/>
+      <stop offset="100%" stop-color="#0d9488"/>
+    </linearGradient>
+    <linearGradient id="z-drop" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ef4444"/>
+      <stop offset="100%" stop-color="#b91c1c"/>
+    </linearGradient>
+    <linearGradient id="z-restore" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#c084fc"/>
+      <stop offset="100%" stop-color="#9333ea"/>
+    </linearGradient>
+
+    <!-- Pipeline gradient -->
+    <linearGradient id="pipeGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#818cf8"/>
+      <stop offset="20%" stop-color="#fbbf24"/>
+      <stop offset="40%" stop-color="#f97316"/>
+      <stop offset="60%" stop-color="#2dd4bf"/>
+      <stop offset="80%" stop-color="#ef4444"/>
+      <stop offset="100%" stop-color="#c084fc"/>
+    </linearGradient>
+
+    <!-- Arrows -->
+    <marker id="arrowPipe" viewBox="0 0 12 8" refX="10" refY="4" markerWidth="12" markerHeight="8" orient="auto">
+      <path d="M0 0 L12 4 L0 8 L2 4 Z" fill="#fbbf24"/>
+    </marker>
+    <marker id="arrowTeal" viewBox="0 0 12 8" refX="10" refY="4" markerWidth="12" markerHeight="8" orient="auto">
+      <path d="M0 0 L12 4 L0 8 L2 4 Z" fill="#2dd4bf"/>
+    </marker>
+
+    <!-- Filters -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="cardShadow">
+      <feDropShadow dx="2" dy="3" stdDeviation="4" flood-color="#00000040"/>
+    </filter>
+    <filter id="softGlow">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+
+    <style>
+      .heading { font: 700 28px "Space Grotesk", "Inter", system-ui, sans-serif; fill: #fbbf24; letter-spacing: -0.02em; }
+      .sub { font: 500 13px "Inter", system-ui, sans-serif; fill: #8892a8; }
+      .stageTitle { font: 700 14px "Space Grotesk", "Inter", system-ui, sans-serif; fill: #fff; letter-spacing: 0.02em; }
+      .stageNum { font: 800 48px "Space Grotesk", system-ui, sans-serif; fill: #ffffff08; }
+      .fn { font: 600 11.5px "JetBrains Mono", "Fira Code", monospace; fill: #1a1a2e; }
+      .fnAccent { font: 700 11.5px "JetBrains Mono", "Fira Code", monospace; }
+      .detail { font: 500 11px "JetBrains Mono", "Fira Code", monospace; fill: #b4bfce; }
+      .label { font: 600 11px "JetBrains Mono", monospace; fill: #fbbf24; letter-spacing: 0.05em; }
+    </style>
+  </defs>
+
+  <!-- Background layers -->
+  <rect width="1400" height="480" rx="14" fill="url(#bgGrad)"/>
+  <rect width="1400" height="480" rx="14" fill="url(#dots)"/>
+
+  <!-- Ambient orbs -->
+  <g opacity="0.06">
+    <circle cx="120" cy="380" r="140" fill="#818cf8">
+      <animate attributeName="r" values="140;155;140" dur="16s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="700" cy="80" r="180" fill="#fbbf24">
+      <animate attributeName="r" values="180;195;180" dur="20s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="1250" cy="320" r="150" fill="#c084fc">
+      <animate attributeName="r" values="150;165;150" dur="18s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- Twinkling sparkle particles -->
+  <g>
+    <circle cx="190" cy="90" r="1.5" fill="#818cf8">
+      <animate attributeName="opacity" values="0;0.8;0" dur="3s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="420" cy="75" r="1.2" fill="#fbbf24">
+      <animate attributeName="opacity" values="0;0.7;0" dur="2.5s" begin="0.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="610" cy="95" r="1.8" fill="#f97316">
+      <animate attributeName="opacity" values="0;0.9;0" dur="3.5s" begin="1s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="830" cy="82" r="1.3" fill="#2dd4bf">
+      <animate attributeName="opacity" values="0;0.6;0" dur="2.8s" begin="0.3s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="1040" cy="92" r="1.6" fill="#ef4444">
+      <animate attributeName="opacity" values="0;0.75;0" dur="3.2s" begin="0.8s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="1270" cy="78" r="1.4" fill="#c084fc">
+      <animate attributeName="opacity" values="0;0.85;0" dur="2.7s" begin="1.2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="300" cy="285" r="1.1" fill="#fbbf24">
+      <animate attributeName="opacity" values="0;0.6;0" dur="4s" begin="0.2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="750" cy="275" r="1.3" fill="#2dd4bf">
+      <animate attributeName="opacity" values="0;0.7;0" dur="3.8s" begin="1.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="1150" cy="290" r="1.0" fill="#c084fc">
+      <animate attributeName="opacity" values="0;0.65;0" dur="3.3s" begin="0.7s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- Title -->
+  <text x="50" y="40" class="heading">CLIPBOARD SHUFFLE PIPELINE</text>
+  <text x="50" y="58" class="sub">Save → write emoji → focus → paste → drop serve → restore original</text>
+
+  <!-- ═══ MAIN PIPELINE TRACK ═══ -->
+  <path d="M80 220 L1340 220" stroke="url(#pipeGrad)" stroke-width="6" fill="none" opacity="0.25" stroke-linecap="round"/>
+
+  <!-- Animated emoji flowing along pipeline -->
+  <text font-size="20" text-anchor="middle" filter="url(#softGlow)">
+    😀
+    <animateMotion dur="6s" repeatCount="indefinite" path="M80 220 L1340 220"/>
+    <animate attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite"/>
+  </text>
+
+  <!-- Data particles on pipeline -->
+  <circle r="3" fill="#818cf8" opacity="0.7">
+    <animateMotion dur="4s" repeatCount="indefinite" path="M80 220 L1340 220"/>
+    <animate attributeName="opacity" values="0.3;0.9;0.3" dur="4s" repeatCount="indefinite"/>
+  </circle>
+  <circle r="2.5" fill="#fbbf24" opacity="0.6">
+    <animateMotion dur="4s" begin="1.3s" repeatCount="indefinite" path="M80 220 L1340 220"/>
+    <animate attributeName="opacity" values="0.2;0.8;0.2" dur="4s" begin="1.3s" repeatCount="indefinite"/>
+  </circle>
+  <circle r="2" fill="#c084fc" opacity="0.5">
+    <animateMotion dur="4s" begin="2.6s" repeatCount="indefinite" path="M80 220 L1340 220"/>
+    <animate attributeName="opacity" values="0.2;0.7;0.2" dur="4s" begin="2.6s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- Pulsing connection arrows between stages -->
+  <g filter="url(#glow)">
+    <path d="M255 220 L280 220" fill="none" stroke="#818cf8" stroke-width="3.5" marker-end="url(#arrowPipe)">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite"/>
+    </path>
+    <path d="M465 220 L490 220" fill="none" stroke="#fbbf24" stroke-width="3.5" marker-end="url(#arrowPipe)">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" begin="0.33s" repeatCount="indefinite"/>
+    </path>
+    <path d="M670 220 L695 220" fill="none" stroke="#f97316" stroke-width="3.5" marker-end="url(#arrowPipe)">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" begin="0.66s" repeatCount="indefinite"/>
+    </path>
+    <path d="M885 220 L910 220" fill="none" stroke="#2dd4bf" stroke-width="3.5" marker-end="url(#arrowPipe)">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" begin="1s" repeatCount="indefinite"/>
+    </path>
+    <path d="M1095 220 L1120 220" fill="none" stroke="#ef4444" stroke-width="3.5" marker-end="url(#arrowPipe)">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" begin="1.33s" repeatCount="indefinite"/>
+    </path>
+  </g>
+
+  <!-- ═══ STAGE 1: SAVE ═══ -->
+  <g transform="translate(70, 100)">
+    <text x="85" y="10" class="stageNum" text-anchor="middle">01</text>
+    <rect width="170" height="120" rx="10" fill="#0f1520" stroke="#818cf830" stroke-width="1.5" filter="url(#cardShadow)"/>
+    <rect width="170" height="4" rx="2" fill="url(#z-save)"/>
+    <text x="14" y="26" class="stageTitle">SAVE</text>
+    <text x="14" y="48" class="detail">clipboard.get_text()</text>
+    <line x1="14" y1="58" x2="156" y2="58" stroke="#ffffff10" stroke-width="1"/>
+    <text x="14" y="76" class="detail">Saves current contents</text>
+    <text x="14" y="92" class="detail">via arboard crate</text>
+    <text x="14" y="112" class="detail" style="fill:#818cf8;">→ Option&lt;String&gt;</text>
+  </g>
+
+  <!-- ═══ STAGE 2: WRITE ═══ -->
+  <g transform="translate(280, 100)">
+    <text x="90" y="10" class="stageNum" text-anchor="middle">02</text>
+    <rect width="180" height="120" rx="10" fill="#0f1520" stroke="#fbbf2430" stroke-width="1.5" filter="url(#cardShadow)"/>
+    <rect width="180" height="4" rx="2" fill="url(#z-write)"/>
+    <text x="14" y="26" class="stageTitle">WRITE</text>
+    <text x="14" y="48" class="detail">clipboard.set_text(emoji)</text>
+    <line x1="14" y1="58" x2="166" y2="58" stroke="#ffffff10" stroke-width="1"/>
+    <text x="14" y="76" class="detail">arboard serve thread</text>
+    <text x="14" y="92" class="detail">keeps content alive</text>
+    <text x="14" y="112" class="detail" style="fill:#fbbf24;">→ 😀 on clipboard</text>
+  </g>
+
+  <!-- ═══ STAGE 3: FOCUS ═══ -->
+  <g transform="translate(490, 100)">
+    <text x="85" y="10" class="stageNum" text-anchor="middle">03</text>
+    <rect width="170" height="120" rx="10" fill="#0f1520" stroke="#f9731630" stroke-width="1.5" filter="url(#cardShadow)"/>
+    <rect width="170" height="4" rx="2" fill="url(#z-focus)"/>
+    <text x="14" y="26" class="stageTitle">FOCUS</text>
+    <text x="14" y="48" class="detail">sleep(100ms)</text>
+    <line x1="14" y1="58" x2="156" y2="58" stroke="#ffffff10" stroke-width="1"/>
+    <text x="14" y="76" class="detail">Delay for OS focus</text>
+    <text x="14" y="92" class="detail">to settle on target</text>
+    <text x="14" y="112" class="detail" style="fill:#f97316;">→ target app focused</text>
+  </g>
+
+  <!-- ═══ STAGE 4: PASTE ═══ -->
+  <g transform="translate(700, 100)">
+    <text x="90" y="10" class="stageNum" text-anchor="middle">04</text>
+    <rect width="180" height="120" rx="10" fill="#0f1520" stroke="#2dd4bf30" stroke-width="1.5" filter="url(#cardShadow)"/>
+    <rect width="180" height="4" rx="2" fill="url(#z-paste)"/>
+    <text x="14" y="26" class="stageTitle">PASTE</text>
+    <text x="14" y="48" class="detail">simulate Ctrl+V</text>
+    <line x1="14" y1="58" x2="166" y2="58" stroke="#ffffff10" stroke-width="1"/>
+    <text x="14" y="76" class="detail">ydotool (primary)</text>
+    <text x="14" y="92" class="detail">wtype / xdotool</text>
+    <text x="14" y="112" class="detail" style="fill:#2dd4bf;">→ emoji pasted</text>
+  </g>
+
+  <!-- ═══ STAGE 5: DROP ═══ -->
+  <g transform="translate(915, 100)">
+    <text x="85" y="10" class="stageNum" text-anchor="middle">05</text>
+    <rect width="170" height="120" rx="10" fill="#0f1520" stroke="#ef444430" stroke-width="1.5" filter="url(#cardShadow)"/>
+    <rect width="170" height="4" rx="2" fill="url(#z-drop)"/>
+    <text x="14" y="26" class="stageTitle">DROP</text>
+    <text x="14" y="48" class="detail">sleep(200ms)</text>
+    <line x1="14" y1="58" x2="156" y2="58" stroke="#ffffff10" stroke-width="1"/>
+    <text x="14" y="76" class="detail">drop(clipboard)</text>
+    <text x="14" y="92" class="detail">stops serve thread</text>
+    <text x="14" y="112" class="detail" style="fill:#ef4444;">→ arboard released</text>
+  </g>
+
+  <!-- ═══ STAGE 6: RESTORE ═══ -->
+  <g transform="translate(1130, 100)">
+    <text x="110" y="10" class="stageNum" text-anchor="middle">06</text>
+    <rect width="220" height="120" rx="10" fill="#0f1520" stroke="#c084fc30" stroke-width="1.5" filter="url(#cardShadow)"/>
+    <rect width="220" height="4" rx="2" fill="url(#z-restore)"/>
+    <text x="14" y="26" class="stageTitle">RESTORE</text>
+    <text x="14" y="48" class="detail">clipboard.set_text(saved)</text>
+    <line x1="14" y1="58" x2="206" y2="58" stroke="#ffffff10" stroke-width="1"/>
+    <text x="14" y="76" class="detail">500ms wait_until timeout</text>
+    <text x="14" y="92" class="detail">or clipboard.clear()</text>
+    <text x="14" y="112" class="detail" style="fill:#c084fc;">→ original restored</text>
+  </g>
+
+  <!-- ═══ ARBOARD SERVE THREAD (animated dashed line below pipeline) ═══ -->
+  <!-- Spans stages 2-5 -->
+  <path d="M290 250 L1080 250" fill="none" stroke="#fbbf24" stroke-width="2" stroke-dasharray="8 6" opacity="0.4">
+    <animate attributeName="stroke-dashoffset" values="0;-28" dur="2s" repeatCount="indefinite"/>
+  </path>
+  <rect x="560" y="256" width="200" height="20" rx="4" fill="#fbbf2410" stroke="#fbbf2420" stroke-width="1"/>
+  <text x="660" y="270" text-anchor="middle" class="label" style="font-size:9px; fill:#fbbf24;">ARBOARD SERVE THREAD ACTIVE</text>
+  <!-- Thread start/end indicators -->
+  <circle cx="290" cy="250" r="4" fill="#fbbf24" opacity="0.6">
+    <animate attributeName="opacity" values="0.3;0.8;0.3" dur="2s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="1080" cy="250" r="4" fill="#ef4444" opacity="0.6">
+    <animate attributeName="opacity" values="0.3;0.8;0.3" dur="2s" begin="1s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- ═══ FALLBACK CHAIN CALLOUT BOX ═══ -->
+  <g transform="translate(460, 330)">
+    <rect width="480" height="70" rx="10" fill="#0f1520" stroke="#2dd4bf30" stroke-width="1.5" filter="url(#cardShadow)"/>
+    <rect width="480" height="3" rx="2" fill="url(#z-paste)"/>
+    <text x="18" y="22" class="stageTitle" style="font-size:12px;">PASTE FALLBACK CHAIN</text>
+    <line x1="18" y1="30" x2="462" y2="30" stroke="#ffffff10" stroke-width="1"/>
+
+    <!-- ydotool -->
+    <rect x="18" y="40" width="100" height="22" rx="5" fill="#2dd4bf20" stroke="#2dd4bf50" stroke-width="1"/>
+    <text x="68" y="55" text-anchor="middle" class="detail" style="fill:#2dd4bf;">ydotool</text>
+
+    <!-- Arrow 1 -->
+    <line x1="124" y1="51" x2="160" y2="51" stroke="#2dd4bf" stroke-width="1.5" marker-end="url(#arrowTeal)">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="1.5s" repeatCount="indefinite"/>
+    </line>
+
+    <!-- wtype -->
+    <rect x="168" y="40" width="100" height="22" rx="5" fill="#2dd4bf15" stroke="#2dd4bf40" stroke-width="1"/>
+    <text x="218" y="55" text-anchor="middle" class="detail" style="fill:#2dd4bfcc;">wtype</text>
+
+    <!-- Arrow 2 -->
+    <line x1="274" y1="51" x2="310" y2="51" stroke="#2dd4bf" stroke-width="1.5" marker-end="url(#arrowTeal)">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="1.5s" begin="0.5s" repeatCount="indefinite"/>
+    </line>
+
+    <!-- xdotool -->
+    <rect x="318" y="40" width="100" height="22" rx="5" fill="#2dd4bf10" stroke="#2dd4bf30" stroke-width="1"/>
+    <text x="368" y="55" text-anchor="middle" class="detail" style="fill:#2dd4bf99;">xdotool</text>
+
+    <!-- Labels -->
+    <text x="68" y="38" text-anchor="middle" class="detail" style="font-size:8px; fill:#2dd4bf80;">PRIMARY</text>
+    <text x="218" y="38" text-anchor="middle" class="detail" style="font-size:8px; fill:#2dd4bf60;">FALLBACK</text>
+    <text x="368" y="38" text-anchor="middle" class="detail" style="font-size:8px; fill:#2dd4bf40;">FALLBACK</text>
+
+    <!-- Animated particle flowing through fallback chain -->
+    <circle r="2.5" fill="#2dd4bf" opacity="0.8">
+      <animateMotion dur="3s" repeatCount="indefinite" path="M68 51 L218 51 L368 51"/>
+      <animate attributeName="opacity" values="0.3;0.9;0.3" dur="3s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- Legend indicators -->
+  <g transform="translate(50, 430)">
+    <circle cx="8" cy="8" r="6" fill="#fbbf24" opacity="0.7"/>
+    <text x="22" y="12" class="detail">arboard serve thread keeps clipboard content available for paste</text>
+  </g>
+  <g transform="translate(50, 450)">
+    <circle cx="8" cy="8" r="6" fill="#c084fc" opacity="0.7"/>
+    <text x="22" y="12" class="detail">Original clipboard restored after injection (clear if nothing was saved)</text>
+  </g>
+</svg>

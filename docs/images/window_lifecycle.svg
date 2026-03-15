@@ -1,0 +1,416 @@
+<!-- Animated state-machine diagram of the picker window lifecycle -->
+<!-- -->
+<!-- (c) Copyright 2026 Liminal HQ, Scott Morris -->
+<!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 560" role="img" aria-labelledby="wl-title wl-desc">
+  <title id="wl-title">Picker Window Lifecycle</title>
+  <desc id="wl-desc">State-machine diagram showing the three states of the Emoji Nook picker window — HIDDEN, VISIBLE, and SETTINGS — with animated transitions and lifecycle annotations.</desc>
+
+  <defs>
+    <!-- Background gradient -->
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0.6" y2="1">
+      <stop offset="0%" stop-color="#0a0a12"/>
+      <stop offset="50%" stop-color="#0f1628"/>
+      <stop offset="100%" stop-color="#1a0e2e"/>
+      <animateTransform attributeName="gradientTransform" type="translate" values="0 0;0.02 0.01;0 0" dur="20s" repeatCount="indefinite"/>
+    </linearGradient>
+
+    <!-- Dot grid -->
+    <pattern id="dots" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+      <circle cx="10" cy="10" r="0.8" fill="#ffffff0a"/>
+    </pattern>
+
+    <!-- Node backgrounds -->
+    <linearGradient id="node-bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1e1e2e"/>
+      <stop offset="100%" stop-color="#16162a"/>
+    </linearGradient>
+
+    <!-- Picker window gradient (for mini-picker mockup) -->
+    <linearGradient id="picker-bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1e1e2e"/>
+      <stop offset="100%" stop-color="#181825"/>
+    </linearGradient>
+
+    <!-- Arrow markers -->
+    <marker id="arr-violet" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="10" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 3.5 L0 7 L2 3.5 Z" fill="#818cf8"/>
+    </marker>
+    <marker id="arr-gold" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="10" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 3.5 L0 7 L2 3.5 Z" fill="#fbbf24"/>
+    </marker>
+    <marker id="arr-teal" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="10" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 3.5 L0 7 L2 3.5 Z" fill="#2dd4bf"/>
+    </marker>
+    <marker id="arr-red" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="10" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 3.5 L0 7 L2 3.5 Z" fill="#f43f5e"/>
+    </marker>
+
+    <!-- Glow filters -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow-lg" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="cardShadow">
+      <feDropShadow dx="2" dy="3" stdDeviation="6" flood-color="#00000050"/>
+    </filter>
+
+    <!-- Transition paths -->
+    <!-- HIDDEN → VISIBLE (top arc) -->
+    <path id="path-h2v" d="M270 230 C350 130, 520 100, 600 230" fill="none"/>
+    <!-- VISIBLE → HIDDEN (bottom arc) -->
+    <path id="path-v2h" d="M600 280 C520 400, 350 400, 270 280" fill="none"/>
+    <!-- VISIBLE → SETTINGS -->
+    <path id="path-v2s" d="M830 240 C900 200, 940 200, 1000 240" fill="none"/>
+    <!-- SETTINGS → VISIBLE -->
+    <path id="path-s2v" d="M1000 290 C940 340, 900 340, 830 290" fill="none"/>
+
+    <style>
+      .heading { font: 700 26px "Space Grotesk", "Inter", system-ui, sans-serif; letter-spacing: -0.02em; }
+      .stateLabel { font: 800 18px "JetBrains Mono", "Fira Code", monospace; letter-spacing: 0.08em; }
+      .noteText { font: 500 10px "JetBrains Mono", "Fira Code", monospace; fill: #b4bfce; }
+      .transLabel { font: 600 9.5px "JetBrains Mono", "Fira Code", monospace; }
+      .annotate { font: 500 11px "JetBrains Mono", "Fira Code", monospace; }
+      .sub { font: 500 12px "Inter", system-ui, sans-serif; fill: #8892a8; }
+    </style>
+  </defs>
+
+  <!-- ═══ BACKGROUND ═══ -->
+  <rect width="1200" height="560" fill="url(#bgGrad)"/>
+  <rect width="1200" height="560" fill="url(#dots)"/>
+
+  <!-- Ambient glowing orbs -->
+  <g opacity="0.06">
+    <circle cx="200" cy="260" r="180" fill="#818cf8">
+      <animate attributeName="r" values="180;200;180" dur="16s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="700" cy="260" r="200" fill="#fbbf24">
+      <animate attributeName="r" values="200;220;200" dur="14s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="1060" cy="260" r="140" fill="#2dd4bf">
+      <animate attributeName="r" values="140;158;140" dur="18s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- Subtle star field -->
+  <g opacity="0.35">
+    <circle cx="90" cy="40" r="1" fill="#fff"/><circle cx="310" cy="70" r="0.8" fill="#fff"/>
+    <circle cx="550" cy="35" r="1.2" fill="#fff"/><circle cx="830" cy="55" r="0.7" fill="#fff"/>
+    <circle cx="1050" cy="42" r="1" fill="#fff"/><circle cx="160" cy="480" r="0.8" fill="#fff"/>
+    <circle cx="490" cy="510" r="1" fill="#fff"/><circle cx="1130" cy="490" r="0.9" fill="#fff"/>
+    <circle cx="380" cy="120" r="0.6" fill="#fff"/><circle cx="950" cy="470" r="0.7" fill="#fff"/>
+  </g>
+
+  <!-- Twinkling stars -->
+  <circle cx="170" cy="55" r="1.2" fill="#fbbf24" opacity="0">
+    <animate attributeName="opacity" values="0;0.7;0" dur="4s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="680" cy="45" r="1" fill="#818cf8" opacity="0">
+    <animate attributeName="opacity" values="0;0.6;0" dur="5s" begin="1.5s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="1100" cy="80" r="1.3" fill="#2dd4bf" opacity="0">
+    <animate attributeName="opacity" values="0;0.7;0" dur="3.5s" begin="0.8s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- ═══ TITLE ═══ -->
+  <text x="600" y="42" text-anchor="middle" class="heading" fill="#fbbf24" filter="url(#glow)">Window Lifecycle</text>
+  <text x="600" y="62" text-anchor="middle" class="sub">State machine for the picker window — created once, never destroyed</text>
+
+  <!-- ═══ STATE NODES ═══ -->
+
+  <!-- ── HIDDEN STATE ── -->
+  <g transform="translate(100, 180)" filter="url(#cardShadow)">
+    <!-- Orbital ring showing background process alive -->
+    <ellipse cx="100" cy="65" rx="108" ry="78" fill="none" stroke="#818cf8" stroke-width="0.8" opacity="0.15" stroke-dasharray="4 6">
+      <animateTransform attributeName="transform" type="rotate" values="0 100 65;360 100 65" dur="30s" repeatCount="indefinite"/>
+    </ellipse>
+    <ellipse cx="100" cy="65" rx="115" ry="84" fill="none" stroke="#818cf8" stroke-width="0.4" opacity="0.08" stroke-dasharray="2 8">
+      <animateTransform attributeName="transform" type="rotate" values="360 100 65;0 100 65" dur="45s" repeatCount="indefinite"/>
+    </ellipse>
+
+    <!-- Pulse ring -->
+    <rect x="-4" y="-4" width="208" height="138" rx="16" fill="none" stroke="#818cf8" stroke-width="1" opacity="0">
+      <animate attributeName="opacity" values="0;0.25;0" dur="4s" repeatCount="indefinite"/>
+    </rect>
+
+    <!-- Card body -->
+    <rect width="200" height="130" rx="12" fill="url(#node-bg)" stroke="#818cf830" stroke-width="1.5"/>
+    <!-- Top accent bar -->
+    <rect width="200" height="3" rx="1.5" fill="#818cf8"/>
+
+    <!-- State name -->
+    <text x="100" y="36" text-anchor="middle" class="stateLabel" fill="#818cf8">HIDDEN</text>
+
+    <!-- Note lines -->
+    <text x="100" y="56" text-anchor="middle" class="noteText">Default state on startup</text>
+    <text x="100" y="70" text-anchor="middle" class="noteText">skipTaskbar: true</text>
+
+    <!-- Pill: "Created once, never destroyed" -->
+    <rect x="18" y="84" width="164" height="22" rx="6" fill="#818cf810" stroke="#818cf820" stroke-width="0.5"/>
+    <text x="100" y="99" text-anchor="middle" font-size="9" font-family="'JetBrains Mono', monospace" fill="#818cf8" font-weight="600">Created once, never destroyed</text>
+
+    <!-- Small sleeping icon -->
+    <g transform="translate(80, 112)" opacity="0.3">
+      <text font-size="10" fill="#818cf8">💤</text>
+      <animate attributeName="opacity" values="0.2;0.5;0.2" dur="5s" repeatCount="indefinite"/>
+    </g>
+  </g>
+
+  <!-- ── VISIBLE STATE ── -->
+  <g transform="translate(500, 150)" filter="url(#cardShadow)">
+    <!-- Pulsing glow aura -->
+    <rect x="-8" y="-8" width="246" height="196" rx="18" fill="#fbbf24" opacity="0.03">
+      <animate attributeName="opacity" values="0.02;0.06;0.02" dur="3s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="-4" y="-4" width="238" height="188" rx="16" fill="none" stroke="#fbbf24" stroke-width="1.5" opacity="0">
+      <animate attributeName="opacity" values="0;0.35;0" dur="3s" repeatCount="indefinite"/>
+    </rect>
+
+    <!-- Card body -->
+    <rect width="230" height="180" rx="12" fill="url(#node-bg)" stroke="#fbbf2440" stroke-width="1.5"/>
+    <!-- Top accent bar -->
+    <rect width="230" height="3" rx="1.5" fill="#fbbf24"/>
+
+    <!-- State name -->
+    <text x="115" y="28" text-anchor="middle" class="stateLabel" fill="#fbbf24">VISIBLE</text>
+
+    <!-- Notes -->
+    <text x="115" y="44" text-anchor="middle" class="noteText">centred, frameless, always-on-top</text>
+
+    <!-- Mini picker mockup -->
+    <g transform="translate(35, 54)">
+      <rect width="160" height="108" rx="6" fill="#12121e" stroke="#ffffff10" stroke-width="0.5"/>
+      <!-- Accent top -->
+      <rect width="160" height="2" rx="1" fill="#fbbf24" opacity="0.7"/>
+      <!-- Search bar -->
+      <rect x="6" y="8" width="120" height="14" rx="4" fill="#ffffff08" stroke="#ffffff10" stroke-width="0.5"/>
+      <text x="12" y="18" font-size="7" fill="#555" font-family="monospace">Search emoji…</text>
+      <!-- Blinking cursor -->
+      <rect x="60" y="10" width="1" height="10" fill="#fbbf24" opacity="0">
+        <animate attributeName="opacity" values="0;0.8;0" dur="1.2s" repeatCount="indefinite"/>
+      </rect>
+      <!-- Settings gear icon -->
+      <circle cx="142" cy="15" r="6" fill="#ffffff06"/>
+      <text x="142" y="18" font-size="7" text-anchor="middle" fill="#888">⚙</text>
+
+      <!-- Category tabs -->
+      <g transform="translate(6, 26)">
+        <rect width="148" height="10" rx="2" fill="#ffffff04"/>
+        <text x="8" y="8" font-size="6" opacity="0.5">😀</text>
+        <text x="22" y="8" font-size="6" opacity="0.3">👋</text>
+        <text x="36" y="8" font-size="6" opacity="0.3">🐱</text>
+        <text x="50" y="8" font-size="6" opacity="0.3">🍕</text>
+        <text x="64" y="8" font-size="6" opacity="0.3">⚽</text>
+        <rect x="3" y="9" width="14" height="1" rx="0.5" fill="#fbbf24" opacity="0.7"/>
+      </g>
+
+      <!-- Emoji grid -->
+      <g transform="translate(10, 42)" font-size="11">
+        <text x="0" y="10">😀</text><text x="18" y="10">😃</text><text x="36" y="10">😄</text>
+        <text x="54" y="10">😁</text><text x="72" y="10">😆</text><text x="90" y="10">🥹</text>
+        <text x="108" y="10">😅</text><text x="126" y="10">🤣</text>
+
+        <text x="0" y="26">😂</text><text x="18" y="26">🙂</text><text x="36" y="26">🥰</text>
+        <text x="54" y="26">😍</text><text x="72" y="26">🤩</text><text x="90" y="26">😘</text>
+        <text x="108" y="26">😗</text><text x="126" y="26">😚</text>
+
+        <text x="0" y="42">😙</text><text x="18" y="42">🥲</text><text x="36" y="42">😋</text>
+        <text x="54" y="42">😛</text><text x="72" y="42">😜</text><text x="90" y="42">🤪</text>
+        <text x="108" y="42">😝</text><text x="126" y="42">🤑</text>
+      </g>
+
+      <!-- Hover highlight (animated) -->
+      <rect x="44" y="56" width="16" height="16" rx="3" fill="#fbbf2420" stroke="#fbbf2440" stroke-width="0.5" opacity="0">
+        <animate attributeName="opacity" values="0;0.8;0.8;0" dur="6s" repeatCount="indefinite"/>
+      </rect>
+
+      <!-- Footer -->
+      <rect x="0" y="98" width="160" height="10" fill="#ffffff04"/>
+      <text x="6" y="106" font-size="6" fill="#888" font-family="monospace">
+        <tspan font-size="7">🥰</tspan>
+        <tspan dx="2" fill="#aaa">smiling face with hearts</tspan>
+      </text>
+    </g>
+  </g>
+
+  <!-- ── SETTINGS STATE ── -->
+  <g transform="translate(910, 190)" filter="url(#cardShadow)">
+    <!-- Card body -->
+    <rect width="180" height="130" rx="12" fill="url(#node-bg)" stroke="#2dd4bf30" stroke-width="1.5"/>
+    <!-- Top accent bar -->
+    <rect width="180" height="3" rx="1.5" fill="#2dd4bf"/>
+
+    <!-- State name -->
+    <text x="90" y="34" text-anchor="middle" class="stateLabel" fill="#2dd4bf">SETTINGS</text>
+
+    <!-- Notes -->
+    <text x="90" y="52" text-anchor="middle" class="noteText">Settings panel replaces picker</text>
+    <text x="90" y="66" text-anchor="middle" class="noteText">blur-to-hide suppressed</text>
+
+    <!-- Animated gear icon -->
+    <g transform="translate(72, 78)">
+      <text font-size="28" fill="#2dd4bf" opacity="0.4">⚙</text>
+      <animateTransform attributeName="transform" type="rotate" values="0 86 92;360 86 92" dur="20s" repeatCount="indefinite"/>
+    </g>
+
+    <!-- Small settings mockup elements -->
+    <g transform="translate(24, 82)" opacity="0.4">
+      <!-- Toggle rows -->
+      <rect width="132" height="8" rx="2" fill="#ffffff06"/>
+      <text x="4" y="7" font-size="5" fill="#b4bfce" font-family="monospace">Theme</text>
+      <rect x="100" y="1" width="16" height="6" rx="3" fill="#2dd4bf40" stroke="#2dd4bf60" stroke-width="0.3"/>
+      <circle cx="112" cy="4" r="2.2" fill="#2dd4bf"/>
+
+      <rect y="14" width="132" height="8" rx="2" fill="#ffffff06"/>
+      <text x="4" y="21" font-size="5" fill="#b4bfce" font-family="monospace">Shortcut</text>
+      <rect x="70" y="15" width="50" height="6" rx="2" fill="#ffffff08"/>
+      <text x="78" y="20" font-size="4.5" fill="#fbbf24" font-family="monospace">Alt+Shift+E</text>
+
+      <rect y="28" width="132" height="8" rx="2" fill="#ffffff06"/>
+      <text x="4" y="35" font-size="5" fill="#b4bfce" font-family="monospace">Skin tone</text>
+      <g transform="translate(80, 29)">
+        <circle cx="4" cy="3.5" r="3" fill="#fbbf24" opacity="0.6"/>
+        <circle cx="14" cy="3.5" r="3" fill="#d2691e" opacity="0.4"/>
+        <circle cx="24" cy="3.5" r="3" fill="#8b4513" opacity="0.4"/>
+      </g>
+    </g>
+  </g>
+
+  <!-- ═══ TRANSITION ARROWS ═══ -->
+
+  <!-- HIDDEN → VISIBLE (top arc) -->
+  <path d="M300 210 C380 110, 480 100, 600 210" fill="none" stroke="#818cf8" stroke-width="1.5" stroke-dasharray="6 3" marker-end="url(#arr-violet)" opacity="0.5">
+    <animate attributeName="stroke-dashoffset" values="0;-18" dur="2s" repeatCount="indefinite"/>
+  </path>
+  <!-- Label -->
+  <g transform="translate(410, 118)">
+    <text text-anchor="middle" class="transLabel" fill="#818cf8" opacity="0.8">
+      <tspan x="0" dy="0">Global shortcut (Alt+Shift+E)</tspan>
+      <animate attributeName="opacity" values="0.6;1;0.6" dur="5s" repeatCount="indefinite"/>
+    </text>
+    <text x="0" y="14" text-anchor="middle" class="transLabel" fill="#818cf8" opacity="0.5">
+      <tspan>Tray → Show Picker</tspan>
+      <animate attributeName="opacity" values="0.4;0.8;0.4" dur="5s" begin="0.5s" repeatCount="indefinite"/>
+    </text>
+  </g>
+  <!-- Particle on HIDDEN→VISIBLE -->
+  <circle r="2.5" fill="#818cf8" filter="url(#glow)" opacity="0.8">
+    <animateMotion dur="3s" repeatCount="indefinite" path="M300 210 C380 110, 480 100, 600 210"/>
+    <animate attributeName="opacity" values="0;0.9;0" dur="3s" repeatCount="indefinite"/>
+  </circle>
+  <circle r="1.5" fill="#a5b4fc" filter="url(#glow)" opacity="0.5">
+    <animateMotion dur="3s" begin="1.5s" repeatCount="indefinite" path="M300 210 C380 110, 480 100, 600 210"/>
+    <animate attributeName="opacity" values="0;0.7;0" dur="3s" begin="1.5s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- VISIBLE → HIDDEN (bottom arc, multiple labels) -->
+  <path d="M600 340 C520 430, 380 430, 300 340" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="6 3" marker-end="url(#arr-gold)" opacity="0.5">
+    <animate attributeName="stroke-dashoffset" values="0;-18" dur="2s" repeatCount="indefinite"/>
+  </path>
+  <!-- Labels -->
+  <g transform="translate(450, 435)">
+    <text text-anchor="middle" class="transLabel" fill="#fbbf24" opacity="0.7">
+      <tspan x="0" dy="0">Emoji selected</tspan>
+      <animate attributeName="opacity" values="0.5;0.9;0.5" dur="4s" repeatCount="indefinite"/>
+    </text>
+    <text x="0" y="13" text-anchor="middle" class="transLabel" fill="#fbbf24" opacity="0.5">
+      <tspan>Esc pressed · Click outside (blur)</tspan>
+      <animate attributeName="opacity" values="0.4;0.8;0.4" dur="4s" begin="0.3s" repeatCount="indefinite"/>
+    </text>
+    <text x="0" y="26" text-anchor="middle" class="transLabel" fill="#fbbf24" opacity="0.4">
+      <tspan>Shortcut toggle</tspan>
+      <animate attributeName="opacity" values="0.3;0.7;0.3" dur="4s" begin="0.6s" repeatCount="indefinite"/>
+    </text>
+  </g>
+  <!-- Particle on VISIBLE→HIDDEN -->
+  <circle r="2.5" fill="#fbbf24" filter="url(#glow)" opacity="0.8">
+    <animateMotion dur="3.5s" repeatCount="indefinite" path="M600 340 C520 430, 380 430, 300 340"/>
+    <animate attributeName="opacity" values="0;0.9;0" dur="3.5s" repeatCount="indefinite"/>
+  </circle>
+  <circle r="1.5" fill="#fcd34d" filter="url(#glow)" opacity="0.5">
+    <animateMotion dur="3.5s" begin="1.8s" repeatCount="indefinite" path="M600 340 C520 430, 380 430, 300 340"/>
+    <animate attributeName="opacity" values="0;0.6;0" dur="3.5s" begin="1.8s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- VISIBLE → SETTINGS -->
+  <path d="M730 260 C800 210, 860 210, 910 255" fill="none" stroke="#2dd4bf" stroke-width="1.5" stroke-dasharray="6 3" marker-end="url(#arr-teal)" opacity="0.5">
+    <animate attributeName="stroke-dashoffset" values="0;-18" dur="2s" repeatCount="indefinite"/>
+  </path>
+  <g transform="translate(820, 205)">
+    <text text-anchor="middle" class="transLabel" fill="#2dd4bf" opacity="0.7">
+      <tspan>Gear icon clicked</tspan>
+      <animate attributeName="opacity" values="0.5;0.9;0.5" dur="4.5s" repeatCount="indefinite"/>
+    </text>
+  </g>
+  <!-- Particle -->
+  <circle r="2" fill="#2dd4bf" filter="url(#glow)" opacity="0.7">
+    <animateMotion dur="2.5s" repeatCount="indefinite" path="M730 260 C800 210, 860 210, 910 255"/>
+    <animate attributeName="opacity" values="0;0.8;0" dur="2.5s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- SETTINGS → VISIBLE -->
+  <path d="M910 320 C870 360, 800 360, 730 310" fill="none" stroke="#2dd4bf" stroke-width="1.5" stroke-dasharray="6 3" marker-end="url(#arr-gold)" opacity="0.4">
+    <animate attributeName="stroke-dashoffset" values="0;-18" dur="2s" repeatCount="indefinite"/>
+  </path>
+  <g transform="translate(820, 370)">
+    <text text-anchor="middle" class="transLabel" fill="#2dd4bf" opacity="0.6">
+      <tspan>Save / Cancel / Esc</tspan>
+      <animate attributeName="opacity" values="0.4;0.8;0.4" dur="5s" repeatCount="indefinite"/>
+    </text>
+  </g>
+  <!-- Particle -->
+  <circle r="2" fill="#fbbf24" filter="url(#glow)" opacity="0.6">
+    <animateMotion dur="2.8s" repeatCount="indefinite" path="M910 320 C870 360, 800 360, 730 310"/>
+    <animate attributeName="opacity" values="0;0.7;0" dur="2.8s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- HIDDEN → [exit] -->
+  <g transform="translate(100, 340)">
+    <!-- Exit node -->
+    <g transform="translate(60, 30)">
+      <rect width="80" height="30" rx="8" fill="#1a0a0a" stroke="#f43f5e40" stroke-width="1"/>
+      <text x="40" y="19" text-anchor="middle" font-size="10" font-family="'JetBrains Mono', monospace" fill="#f43f5e" font-weight="700">EXIT</text>
+      <!-- X icon pulse -->
+      <text x="68" y="19" font-size="8" fill="#f43f5e" opacity="0.5">✕
+        <animate attributeName="opacity" values="0.3;0.7;0.3" dur="3s" repeatCount="indefinite"/>
+      </text>
+    </g>
+    <!-- Arrow down from HIDDEN to exit -->
+    <path d="M100 0 L100 30" fill="none" stroke="#f43f5e" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#arr-red)" opacity="0.45">
+      <animate attributeName="stroke-dashoffset" values="0;-14" dur="2s" repeatCount="indefinite"/>
+    </path>
+    <!-- Label -->
+    <text x="120" y="18" class="transLabel" fill="#f43f5e" opacity="0.6">
+      Tray → Quit
+      <animate attributeName="opacity" values="0.4;0.8;0.4" dur="4s" repeatCount="indefinite"/>
+    </text>
+    <!-- Particle -->
+    <circle r="1.8" fill="#f43f5e" filter="url(#glow)" opacity="0.6">
+      <animateMotion dur="2s" repeatCount="indefinite" path="M100 0 L100 30"/>
+      <animate attributeName="opacity" values="0;0.7;0" dur="2s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- ═══ BOTTOM ANNOTATION ═══ -->
+  <g transform="translate(600, 510)">
+    <rect x="-260" y="-14" width="520" height="30" rx="8" fill="#0f1520" stroke="#ffffff0a" stroke-width="1"/>
+    <text text-anchor="middle" y="4" class="annotate">
+      <tspan fill="#fbbf24" font-weight="700">picker-shown</tspan>
+      <tspan fill="#8892a8"> event → reset search, focus input</tspan>
+    </text>
+    <!-- Animated dots -->
+    <circle cx="270" cy="0" r="2" fill="#fbbf24" opacity="0">
+      <animate attributeName="opacity" values="0;0.8;0" dur="2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="280" cy="0" r="2" fill="#fbbf24" opacity="0">
+      <animate attributeName="opacity" values="0;0.8;0" dur="2s" begin="0.4s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="290" cy="0" r="2" fill="#fbbf24" opacity="0">
+      <animate attributeName="opacity" values="0;0.8;0" dur="2s" begin="0.8s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+</svg>

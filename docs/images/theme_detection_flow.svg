@@ -312,13 +312,13 @@
       <text x="0" y="14" class="t-code">1. invoke("get_theme_info")</text>
       <text x="0" y="34" class="t-code">2. Select Adwaita | Breeze tokens</text>
       <text x="0" y="54" class="t-code">3. style.setProperty(--var, val)</text>
-      <text x="0" y="74" class="t-code">4. Re-run on portal signal</text>
+      <text x="0" y="74" class="t-code">4. Re-fetch on each picker show</text>
     </g>
   </g>
 
   <!-- Window lifecycle note -->
   <g transform="translate(50, 450)">
     <circle cx="8" cy="8" r="5" fill="#818cf8" opacity="0.7"/>
-    <text x="20" y="12" class="t-code">Portal props read once on startup, re-fetched on theme change signal via D-Bus</text>
+    <text x="20" y="12" class="t-code">Portal props re-fetched each time the picker is shown (catches theme changes between hides)</text>
   </g>
 </svg>

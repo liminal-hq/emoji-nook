@@ -4,7 +4,11 @@ This document describes the high-level architecture of Emoji Nook: how the piece
 
 ## System Overview
 
-Emoji Nook is a system-wide emoji picker that runs as a background process on Linux. It surfaces a compact overlay window on a global shortcut, lets the user search and select an emoji, then injects it into the previously focused application.
+Emoji Nook is a system-wide emoji picker that runs as a background process on Linux. It surfaces a compact overlay window on a global shortcut, lets the user search and select an emoji, then injects it into the previously focused application via a clipboard shuffle technique.
+
+<p align="center">
+  <img src="images/display_server_routing.svg" alt="Display server detection and routing — Wayland vs X11 paths" width="100%">
+</p>
 
 ```mermaid
 graph TB
@@ -19,19 +23,20 @@ graph TB
             Search[Search]
             Theme[Theme Hook]
             Settings[Settings Panel]
+            SettingsHook[useSettings Hook]
         end
 
         subgraph Backend["Backend (Rust / Tauri v2)"]
             WM[Window Manager]
             SC[Shortcut Controller]
-            INJ[Emoji Injector]
+            INJ[Clipboard Shuffle]
             Tray[System Tray]
-            Store[Settings Store]
+            Store[tauri-plugin-store]
+            Auto[tauri-plugin-autostart]
         end
 
         subgraph Plugin["xdg-portal Plugin"]
             GS[Global Shortcuts]
-            RD[Remote Desktop]
             TH[Theme Info]
         end
     end
@@ -39,59 +44,75 @@ graph TB
     subgraph System["Linux Desktop"]
         Portal[xdg-desktop-portal]
         Compositor[Wayland / X11]
-        CB[Clipboard]
+        CB[Clipboard — arboard]
+        Tools[ydotool / wtype / xdotool]
     end
 
     KB --> SC
     SC --> WM
     WM --> Picker
     Picker --> INJ
-    INJ --> APP
+    INJ --> CB
+    CB --> Tools
+    Tools --> APP
     Theme --> TH
     TH --> Portal
     GS --> Portal
-    RD --> Portal
-    INJ --> CB
-    INJ --> RD
     SC --> GS
     Portal --> Compositor
     Tray --> WM
-    Store --> SC
-    Settings --> Store
+    Store --> SettingsHook
+    SettingsHook --> Settings
+    SettingsHook --> SC
+    Auto --> Store
 ```
 
 ## Component Architecture
 
 ### Frontend (React 19 + TypeScript)
 
-The frontend is a single-page app rendered inside a Tauri webview. It's structured as a set of composable components around the Frimousse headless emoji picker.
+The frontend is a single-page app rendered inside a Tauri webview. It's structured as a set of composable components around the Frimousse headless emoji picker, with a settings panel that replaces the picker view when open.
 
 ```mermaid
 graph TD
     App["App.tsx"]
     App --> Shell["PickerShell"]
     App --> useTheme["useTheme()"]
+    App --> useSettings["useSettings()"]
 
-    Shell --> Panel["EmojiPickerPanel"]
+    App -->|view=picker| Panel["EmojiPickerPanel"]
+    App -->|view=settings| SettingsPanel["SettingsPanel"]
 
     Panel --> SearchBar["EmojiPicker.Search"]
     Panel --> SkinTone["EmojiPicker.SkinTone"]
     Panel --> CatBar["CategoryBar"]
     Panel --> Viewport["EmojiPicker.Viewport"]
     Panel --> Footer["EmojiPicker.ActiveEmoji"]
+    Panel --> Gear["Settings Gear"]
 
     Viewport --> List["EmojiPicker.List"]
     List --> CatHeader["CategoryHeader"]
     List --> Row["Row"]
     Row --> Emoji["Emoji Button"]
 
+    SettingsPanel --> ShortcutCapture["Shortcut Capture"]
+    SettingsPanel --> SkinTonePref["Skin Tone Select"]
+    SettingsPanel --> CloseToggle["Close on Select"]
+    SettingsPanel --> AutostartToggle["Autostart Toggle"]
+
     useTheme --> Portal["xdg-portal plugin"]
     Portal --> Tokens["CSS Custom Properties"]
     Tokens --> Shell
 
+    useSettings --> StorePlugin["tauri-plugin-store"]
+    useSettings --> Panel
+    useSettings --> SettingsPanel
+
     style App fill:#3584e4,color:#fff
     style useTheme fill:#62a0ea,color:#fff
+    style useSettings fill:#818cf8,color:#fff
     style Portal fill:#e66100,color:#fff
+    style SettingsPanel fill:#2dd4bf,color:#fff
 ```
 
 ### Backend (Rust / Tauri v2)
@@ -102,6 +123,7 @@ The Rust backend manages the application lifecycle, system tray, shortcut regist
 graph LR
     subgraph AppCrate["emoji-picker crate"]
         Lib["lib.rs — App setup"]
+        Injection["injection.rs"]
         Lib --> Plugins
         Lib --> Commands
 
@@ -109,25 +131,33 @@ graph LR
             Log["tauri-plugin-log"]
             Opener["tauri-plugin-opener"]
             XDG["tauri-plugin-xdg-portal"]
+            GlobalSC["tauri-plugin-global-shortcut"]
+            StorePlugin["tauri-plugin-store"]
+            Autostart["tauri-plugin-autostart"]
         end
 
         subgraph Commands
             InsertEmoji["insert_emoji"]
+            ShowPicker["show_picker"]
+            HidePicker["hide_picker"]
+            UpdateShortcut["update_shortcut"]
         end
+
+        InsertEmoji --> Injection
     end
 
     subgraph PluginCrate["tauri-plugin-xdg-portal"]
         PluginLib["lib.rs — Plugin registration"]
         PluginLib --> Cmds["commands.rs"]
         PluginLib --> Linux["linux.rs"]
+        PluginLib --> Shortcuts["global_shortcuts.rs"]
         Cmds --> Models["models.rs"]
         Linux --> ASHPD["ashpd (D-Bus)"]
+        Shortcuts --> ASHPD
 
         subgraph PortalCommands["IPC Commands"]
             CheckAvail["check_availability"]
             GetTheme["get_theme_info"]
-            BindShortcut["bind_global_shortcut"]
-            InjectText["inject_text"]
         end
 
         Cmds --> PortalCommands
@@ -138,7 +168,7 @@ graph LR
 
 ## Data Flow
 
-### Emoji Selection Flow
+### Emoji Selection Pipeline
 
 > **Visual:** See the [animated pipeline diagram](images/emoji_selection_pipeline.svg) for a visual overview of this flow.
 
@@ -150,39 +180,84 @@ sequenceDiagram
     participant Picker as Emoji Picker
     participant App as App.tsx
     participant Tauri as Tauri Backend
-    participant Injector as Emoji Injector
+    participant Injector as injection.rs
+    participant CB as Clipboard (arboard)
+    participant Tool as ydotool / wtype / xdotool
     participant Target as Target App
 
     User->>Picker: Click / Enter on emoji
     Picker->>App: onEmojiSelect({ emoji, label })
     App->>Tauri: invoke("insert_emoji", { emoji, label })
 
-    Note over Tauri: Future: hide window,<br/>inject into target app
+    Tauri->>Tauri: window.hide()
+    Tauri->>Injector: std::thread::spawn → clipboard_shuffle(emoji)
 
-    Tauri->>Injector: inject(emoji)
+    Injector->>CB: get_text() — save current contents
+    Injector->>CB: set_text(emoji) — arboard serve thread active
+    Note over Injector: sleep(100ms) — focus settles
+    Injector->>Tool: Ctrl+V (ydotool → wtype → xdotool)
+    Tool->>Target: Paste event
+    Note over Injector: sleep(200ms) — paste completes
+    Injector->>CB: drop() — serve thread stops
+    Injector->>CB: new Clipboard → restore or clear
+```
 
-    alt Wayland + RemoteDesktop available
-        Injector->>Target: Portal keyboard injection
-    else X11 or fallback
-        Injector->>Injector: Save clipboard
-        Injector->>Injector: Write emoji to clipboard
-        Injector->>Target: Simulate Ctrl+V
-        Injector->>Injector: Restore clipboard
+### Clipboard Shuffle Detail
+
+> **Visual:** See the [animated clipboard shuffle diagram](images/clipboard_shuffle.svg) for a detailed visual of this flow.
+
+The clipboard shuffle is the primary injection mechanism. It works on both Wayland and X11 by leveraging kernel-level input simulation.
+
+```mermaid
+graph LR
+    subgraph Shuffle["Clipboard Shuffle (injection.rs)"]
+        S1["1. Save clipboard"]
+        S2["2. Write emoji"]
+        S3["3. Wait 100ms"]
+        S4["4. Ctrl+V"]
+        S5["5. Wait 200ms"]
+        S6["6. Restore / Clear"]
     end
+
+    S1 --> S2 --> S3 --> S4 --> S5 --> S6
+
+    subgraph Serve["arboard serve thread"]
+        Active["Active: stages 2–5"]
+        Dropped["Dropped after stage 5"]
+    end
+
+    S2 -.-> Active
+    S5 -.-> Dropped
+
+    subgraph PasteTool["Paste Simulation"]
+        Y["ydotool (kernel uinput)"]
+        W["wtype (Wayland native)"]
+        X["xdotool (X11/XWayland)"]
+        Y -->|fail| W -->|fail| X
+    end
+
+    S4 --> Y
+
+    style Y fill:#2dd4bf,color:#000
+    style Active fill:#fbbf24,color:#000
 ```
 
 ### Theme Detection Flow
 
-On startup, the frontend fetches the desktop theme from the xdg-portal plugin and injects CSS custom properties to match the native look.
+> **Visual:** See the [animated theme detection diagram](images/theme_detection_flow.svg) for a visual overview of this pipeline.
+
+The picker adapts its appearance to the host desktop environment by reading theme properties via `xdg-desktop-portal` and mapping them to CSS custom properties. Theme info is re-fetched each time the picker is shown, catching changes that occurred while it was hidden.
 
 ```mermaid
 sequenceDiagram
     participant React as useTheme Hook
+    participant Event as Tauri Events
     participant IPC as Tauri IPC
     participant Plugin as xdg-portal Plugin
     participant DBus as xdg-desktop-portal
     participant DOM as Document Root
 
+    Event->>React: "picker-shown" event
     React->>IPC: invoke("get_theme_info")
     IPC->>Plugin: get_theme_info()
     Plugin->>DBus: Settings.color_scheme()
@@ -196,31 +271,76 @@ sequenceDiagram
     React->>DOM: style.setProperty(--bg-primary, ...)
     React->>DOM: style.setProperty(--accent, ...)
     React->>DOM: style.setProperty(--font-family, ...)
+    React->>DOM: style.colorScheme = dark/light
+```
+
+### Settings Persistence Flow
+
+> **Visual:** See the [animated settings diagram](images/settings_persistence.svg) for a visual overview of this flow.
+
+Settings are persisted via `tauri-plugin-store` as a local JSON file and applied on startup and on save.
+
+```mermaid
+graph TD
+    subgraph UI["Settings Panel"]
+        Shortcut["Shortcut: Alt+Shift+E"]
+        SkinTone["Skin tone: none"]
+        Close["Close on select: true"]
+        Autostart["Autostart: false"]
+    end
+
+    subgraph Hook["useSettings() Hook"]
+        Load["loadSettings()"]
+        Save["saveSettings()"]
+        State["useState(settings)"]
+    end
+
+    subgraph Store["tauri-plugin-store"]
+        JSON["settings.json"]
+    end
+
+    subgraph Effects["Side Effects on Save"]
+        UpdateSC["update_shortcut IPC"]
+        AutoToggle["tauri-plugin-autostart"]
+        SkinApply["Apply to Frimousse"]
+        ColorScheme["color-scheme CSS"]
+    end
+
+    UI -->|onSave| Save
+    Save --> JSON
+    JSON -->|startup| Load
+    Load --> State
+    State --> UI
+    Save --> Effects
+
+    UpdateSC -->|X11| ReRegister["unregister_all + on_shortcut"]
+    UpdateSC -->|Wayland| Restart["Requires restart"]
+
+    style Store fill:#fbbf24,color:#000
+    style Effects fill:#2dd4bf,color:#000
 ```
 
 ## Display Server Adaptation
 
-Emoji Nook detects the display server at startup and routes operations through the appropriate backend. This is critical because Wayland's security model prevents the direct input injection and shortcut listening that X11 allows.
+> **Visual:** See the [animated display server routing diagram](images/display_server_routing.svg) for a detailed visual of the Wayland vs X11 paths.
+
+Emoji Nook detects the display server at startup by checking the `WAYLAND_DISPLAY` environment variable and routes operations through the appropriate backend.
 
 ```mermaid
 flowchart TD
-    Start([App Launch]) --> Detect{WAYLAND_DISPLAY<br/>set?}
+    Start([App Launch]) --> Detect{WAYLAND_DISPLAY set?}
 
     Detect -->|Yes| Wayland[Wayland Path]
     Detect -->|No| X11[X11 Path]
 
-    subgraph Wayland Path
-        W_SC[Global Shortcuts<br/>via xdg-portal]
-        W_INJ[Emoji Injection<br/>via RemoteDesktop portal]
-        W_FB[Fallback: Clipboard Shuffle<br/>via wl-clipboard]
-        W_INJ -.->|on failure| W_FB
+    subgraph Wayland[Wayland Path]
+        W_SC["Global Shortcuts<br/>ashpd GlobalShortcuts portal<br/>bind_shortcuts() with retry"]
+        W_INJ["Emoji Injection<br/>Clipboard shuffle via arboard<br/>ydotool → wtype fallback"]
     end
 
-    subgraph X11 Path
-        X_SC[Global Shortcuts<br/>via tauri-plugin-global-shortcut]
-        X_INJ[Emoji Injection<br/>via enigo / xdotool]
-        X_FB[Fallback: Clipboard Shuffle<br/>via xclip]
-        X_INJ -.->|on failure| X_FB
+    subgraph X11[X11 Path]
+        X_SC["Global Shortcuts<br/>tauri-plugin-global-shortcut<br/>on_shortcut() + unregister_all()"]
+        X_INJ["Emoji Injection<br/>Clipboard shuffle via arboard<br/>ydotool → xdotool fallback"]
     end
 
     Wayland --> W_SC
@@ -231,25 +351,47 @@ flowchart TD
 
 ## Window Lifecycle
 
+> **Visual:** See the [animated window lifecycle diagram](images/window_lifecycle.svg) for an interactive state machine view.
+
 The picker window has a simple three-state lifecycle. It is created once at startup and never destroyed — only shown and hidden to avoid re-creation cost.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Hidden: App starts
+    [*] --> Hidden: App starts hidden
 
     Hidden --> Visible: Global shortcut pressed
-    Hidden --> Visible: Tray → Show Picker
+    Hidden --> Visible: Tray menu show picker
 
-    Visible --> Hidden: Emoji selected
+    Visible --> Hidden: Emoji selected (if closeOnSelect)
     Visible --> Hidden: Esc pressed
-    Visible --> Hidden: Click outside
+    Visible --> Hidden: Click outside (blur)
     Visible --> Hidden: Shortcut pressed again
 
     Visible --> Settings: Gear icon clicked
-    Settings --> Visible: Save / Cancel
+    Settings --> Visible: Save cancel or Esc
 
-    Hidden --> [*]: Tray → Quit
+    note right of Settings
+        Blur-to-hide suppressed
+        Native dropdowns trigger blur
+    end note
+
+    Hidden --> [*]: Tray quit
 ```
+
+### Window Configuration
+
+The picker window is configured as a frameless overlay:
+
+| Property | Value | Purpose |
+| --- | --- | --- |
+| `visible` | `false` | Hidden on startup |
+| `decorations` | `false` | Frameless |
+| `transparent` | `true` | Rounded corners float over desktop |
+| `alwaysOnTop` | `true` | Stays above other windows |
+| `center` | `true` | Centred on screen |
+| `resizable` | `false` | Fixed compact size |
+| `skipTaskbar` | `true` | Background process, tray-only |
+| Size | 370 x 380 | Compact picker dimensions |
 
 ## Native Theming
 
@@ -266,7 +408,7 @@ graph LR
     end
 
     subgraph Detection
-        DE[Desktop Environment<br/>from XDG_CURRENT_DESKTOP]
+        DE["Desktop Environment<br/>from XDG_CURRENT_DESKTOP"]
     end
 
     subgraph TokenSets["Token Sets"]
@@ -280,6 +422,7 @@ graph LR
         Accent["--accent"]
         Shape["--radius-sm<br/>--radius-md<br/>--shadow"]
         Font["--font-family"]
+        ColorScheme["color-scheme (dark/light)"]
     end
 
     CS --> TokenSets
@@ -294,6 +437,17 @@ graph LR
     style Breeze fill:#2980b9,color:#fff
 ```
 
+Theme info is re-fetched each time the picker is shown (via `picker-shown` event), catching changes that occurred between hides. The `color-scheme` CSS property is set on the document root so native form controls (selects, checkboxes) match the detected theme.
+
+## System Tray
+
+The app provides a system tray icon with a context menu:
+
+- **Show Picker** — opens the overlay (centres, shows, focuses)
+- **Quit** — exits the application
+
+The tray uses the default app icon and the tooltip "Emoji Nook". The tray provides a fallback for showing the picker when global shortcuts are unavailable (e.g. portal permission denied on Wayland).
+
 ## Directory Structure
 
 ```
@@ -301,19 +455,70 @@ emoji-nook/
 ├── apps/
 │   └── emoji-picker/
 │       ├── src/                    # React frontend
-│       │   ├── components/         # Picker UI components
-│       │   ├── hooks/              # useTheme, useSettings
-│       │   └── utils/              # Logger bridge
+│       │   ├── components/         # UI components
+│       │   │   ├── EmojiPickerPanel.tsx   # Main picker (Frimousse)
+│       │   │   ├── PickerShell.tsx        # Compact container
+│       │   │   ├── CategoryBar.tsx        # Category tab bar
+│       │   │   └── SettingsPanel.tsx       # Settings UI
+│       │   ├── hooks/              # React hooks
+│       │   │   ├── useTheme.ts            # Portal theme detection
+│       │   │   └── useSettings.ts         # Settings persistence
+│       │   ├── utils/              # Logger bridge
+│       │   ├── App.tsx             # Root view, view routing, lifecycle
+│       │   └── App.css             # All styles + CSS custom properties
 │       └── src-tauri/              # Rust backend
-│           ├── src/                # App commands and setup
-│           └── capabilities/       # Tauri v2 permission grants
+│           ├── src/
+│           │   ├── lib.rs                 # Setup, tray, shortcuts, commands
+│           │   └── injection.rs           # Clipboard shuffle
+│           └── capabilities/              # Tauri v2 permission grants
 ├── plugins/
 │   └── xdg-portal/
-│       ├── src/                    # Rust plugin (commands, models, linux)
+│       ├── src/                    # Rust plugin
+│       │   ├── lib.rs                     # Plugin registration
+│       │   ├── commands.rs                # IPC commands
+│       │   ├── models.rs                  # ThemeInfo, Availability types
+│       │   ├── linux.rs                   # ashpd D-Bus integration
+│       │   ├── global_shortcuts.rs        # Portal shortcut session
+│       │   └── remote_desktop.rs          # (stub) Future use
 │       ├── guest-js/               # TypeScript API bindings
 │       ├── dist-js/                # Pre-built JS bindings
 │       └── permissions/            # Plugin permission definitions
-└── docs/
-    ├── architecture.md             # ← You are here
-    └── implementation-plans/       # Phased implementation plans
+├── docs/
+│   ├── architecture.md             # ← You are here
+│   ├── linux-setup.md              # System dependency setup guide
+│   ├── images/                     # Animated SVG diagrams
+│   └── implementation-plans/       # Phased implementation plans
+└── scripts/
+    └── setup-linux.sh              # Auto-install script
 ```
+
+## Key Dependencies
+
+| Layer | Library | Purpose |
+| --- | --- | --- |
+| Emoji | [Frimousse](https://github.com/liveblocks/frimousse) v0.3 | Headless React 19 emoji picker |
+| Portal | [ashpd](https://github.com/bilelmoussaoui/ashpd) | D-Bus interface to `xdg-desktop-portal` |
+| Framework | [Tauri](https://v2.tauri.app/) v2 | Desktop application shell |
+| Clipboard | [arboard](https://crates.io/crates/arboard) | Cross-platform clipboard access |
+| Settings | tauri-plugin-store | Persistent JSON key-value store |
+| Autostart | tauri-plugin-autostart | XDG autostart desktop file management |
+| Shortcuts (X11) | tauri-plugin-global-shortcut | X11 global shortcut registration |
+| Logging | tauri-plugin-log | Structured logging with console bridge |
+
+### Runtime Dependencies
+
+Emoji injection requires a keystroke simulation tool:
+
+| Tool | Scope | Mechanism |
+| --- | --- | --- |
+| `ydotool` | Primary — works everywhere | Kernel `/dev/uinput` |
+| `wtype` | Wayland fallback (Sway, Hyprland) | Native Wayland protocol |
+| `xdotool` | X11/XWayland fallback | X11 protocol |
+
+## Known Limitations
+
+- **Window dragging** does not work on WebKitGTK — see [#5](https://github.com/liminal-hq/emoji-nook/issues/5)
+- **Wayland shortcut changes** require app restart (portal session cannot be re-bound dynamically)
+- **Wayland shortcut from non-IDE terminals** may fail due to D-Bus session context differences
+- **Live theme changes** are not detected in real-time — theme is re-fetched on each picker show
+- **RemoteDesktop portal injection** is deferred — clipboard shuffle is used for all injection

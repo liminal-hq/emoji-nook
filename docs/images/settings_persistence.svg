@@ -1,0 +1,393 @@
+<!-- Animated diagram of the settings persistence and configuration flow -->
+<!-- -->
+<!-- (c) Copyright 2026 Liminal HQ, Scott Morris -->
+<!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520" role="img" aria-labelledby="sp-title sp-desc">
+  <title id="sp-title">Settings Persistence and Configuration Flow</title>
+  <desc id="sp-desc">Animated diagram showing the bidirectional flow between the React SettingsPanel UI, the useSettings hook, tauri-plugin-store JSON persistence, side effects triggered on save, and the startup initialisation path.</desc>
+
+  <defs>
+    <linearGradient id="sp-bg" x1="0" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#0a0a12"/>
+      <stop offset="50%" stop-color="#0f1628"/>
+      <stop offset="100%" stop-color="#1a0e2e"/>
+    </linearGradient>
+
+    <pattern id="sp-dots" x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="12" cy="12" r="0.6" fill="#ffffff08"/>
+    </pattern>
+
+    <!-- Zone colour gradients -->
+    <linearGradient id="sp-orange" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#c2410c"/>
+    </linearGradient>
+    <linearGradient id="sp-violet" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#818cf8"/>
+      <stop offset="100%" stop-color="#6366f1"/>
+    </linearGradient>
+    <linearGradient id="sp-gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+    <linearGradient id="sp-teal" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2dd4bf"/>
+      <stop offset="100%" stop-color="#0d9488"/>
+    </linearGradient>
+    <linearGradient id="sp-purple" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#c084fc"/>
+      <stop offset="100%" stop-color="#9333ea"/>
+    </linearGradient>
+
+    <!-- Arrow markers -->
+    <marker id="sp-arr-gold" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="10" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 3.5 L0 7 L1.5 3.5 Z" fill="#fbbf24"/>
+    </marker>
+    <marker id="sp-arr-violet" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="10" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 3.5 L0 7 L1.5 3.5 Z" fill="#818cf8"/>
+    </marker>
+    <marker id="sp-arr-teal" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="10" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 3.5 L0 7 L1.5 3.5 Z" fill="#2dd4bf"/>
+    </marker>
+    <marker id="sp-arr-purple" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="10" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 3.5 L0 7 L1.5 3.5 Z" fill="#c084fc"/>
+    </marker>
+
+    <filter id="sp-glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="sp-shadow">
+      <feDropShadow dx="2" dy="3" stdDeviation="4" flood-color="#00000040"/>
+    </filter>
+
+    <style>
+      .sp-heading { font: 700 26px "Space Grotesk", "Inter", system-ui, sans-serif; fill: #818cf8; letter-spacing: -0.02em; }
+      .sp-sub { font: 500 13px "Inter", system-ui, sans-serif; fill: #8892a8; }
+      .sp-title { font: 700 13px "Space Grotesk", "Inter", system-ui, sans-serif; fill: #fff; letter-spacing: 0.02em; }
+      .sp-code { font: 600 11px "JetBrains Mono", "Fira Code", monospace; fill: #b4bfce; }
+      .sp-val { font: 600 11px "JetBrains Mono", "Fira Code", monospace; }
+      .sp-label { font: 600 10px "JetBrains Mono", monospace; letter-spacing: 0.06em; }
+      .sp-num { font: 800 44px "Space Grotesk", system-ui, sans-serif; fill: #ffffff08; }
+      .sp-warn { font: 600 11px "JetBrains Mono", "Fira Code", monospace; fill: #fbbf24; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="520" rx="14" fill="url(#sp-bg)"/>
+  <rect width="1200" height="520" rx="14" fill="url(#sp-dots)"/>
+
+  <!-- Ambient orbs -->
+  <g opacity="0.05">
+    <circle cx="150" cy="300" r="170" fill="#f97316">
+      <animate attributeName="r" values="170;185;170" dur="18s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="600" cy="150" r="200" fill="#818cf8">
+      <animate attributeName="r" values="200;218;200" dur="22s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="1000" cy="250" r="160" fill="#2dd4bf">
+      <animate attributeName="r" values="160;175;160" dur="16s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="400" cy="420" r="140" fill="#c084fc">
+      <animate attributeName="r" values="140;155;140" dur="20s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- Title -->
+  <text x="50" y="42" class="sp-heading">SETTINGS PERSISTENCE</text>
+  <text x="50" y="62" class="sp-sub">SettingsPanel → useSettings() → tauri-plugin-store → side effects</text>
+
+  <!-- ═══ STAGE 1: SETTINGS UI ═══ -->
+  <g transform="translate(30, 88)">
+    <text x="95" y="8" class="sp-num" text-anchor="middle">01</text>
+    <rect width="190" height="220" rx="10" fill="#0f1520" stroke="#f9731630" stroke-width="1.5" filter="url(#sp-shadow)"/>
+    <rect width="190" height="4" rx="2" fill="url(#sp-orange)"/>
+    <text x="14" y="28" class="sp-title">SETTINGS UI</text>
+    <text x="14" y="46" class="sp-code" style="fill:#f97316;">SettingsPanel</text>
+    <line x1="14" y1="56" x2="176" y2="56" stroke="#ffffff10" stroke-width="1"/>
+
+    <!-- Shortcut -->
+    <text x="14" y="76" class="sp-code">Shortcut</text>
+    <rect x="90" y="63" width="90" height="18" rx="4" fill="#f9731615" stroke="#f9731640" stroke-width="1"/>
+    <text x="96" y="76" class="sp-val" fill="#f97316" style="font-size:10px;">Alt+Shift+E</text>
+
+    <!-- Skin tone -->
+    <text x="14" y="102" class="sp-code">Skin tone</text>
+    <rect x="90" y="89" width="90" height="18" rx="4" fill="#f9731615" stroke="#f9731640" stroke-width="1"/>
+    <text x="96" y="102" class="sp-val" fill="#f97316" style="font-size:10px;">none</text>
+    <path d="M170 95 L175 99 L170 103" fill="none" stroke="#f97316" stroke-width="1.2"/>
+
+    <!-- Close on select checkbox -->
+    <text x="14" y="128" class="sp-code">Close on select</text>
+    <rect x="120" y="116" width="14" height="14" rx="3" fill="#f9731620" stroke="#f97316" stroke-width="1.2"/>
+    <path d="M123 123 L126 126.5 L131 120" fill="none" stroke="#f97316" stroke-width="1.5">
+      <animate attributeName="opacity" values="1;0.5;1" dur="4s" repeatCount="indefinite"/>
+    </path>
+
+    <!-- Autostart checkbox -->
+    <text x="14" y="154" class="sp-code">Autostart</text>
+    <rect x="120" y="142" width="14" height="14" rx="3" fill="#ffffff08" stroke="#b4bfce50" stroke-width="1.2"/>
+
+    <line x1="14" y1="168" x2="176" y2="168" stroke="#ffffff10" stroke-width="1"/>
+    <text x="14" y="186" class="sp-code" style="fill:#f97316;">React component</text>
+    <text x="14" y="204" class="sp-code">Controlled inputs</text>
+  </g>
+
+  <!-- ═══ STAGE 2: useSettings() HOOK ═══ -->
+  <g transform="translate(280, 88)">
+    <text x="90" y="8" class="sp-num" text-anchor="middle">02</text>
+    <rect width="180" height="220" rx="10" fill="#0f1520" stroke="#818cf830" stroke-width="1.5" filter="url(#sp-shadow)"/>
+    <rect width="180" height="4" rx="2" fill="url(#sp-violet)"/>
+    <text x="14" y="28" class="sp-title">useSettings() HOOK</text>
+    <text x="14" y="46" class="sp-code" style="fill:#818cf8;">React state manager</text>
+    <line x1="14" y1="56" x2="166" y2="56" stroke="#ffffff10" stroke-width="1"/>
+
+    <text x="14" y="76" class="sp-code">useState()</text>
+    <circle cx="166" cy="72" r="4" fill="#818cf8" opacity="0.5">
+      <animate attributeName="opacity" values="0.3;0.8;0.3" dur="2s" repeatCount="indefinite"/>
+    </circle>
+
+    <text x="14" y="98" class="sp-code">useCallback()</text>
+
+    <line x1="14" y1="112" x2="166" y2="112" stroke="#ffffff10" stroke-width="1"/>
+    <text x="14" y="132" class="sp-val" fill="#818cf8">loadSettings()</text>
+    <text x="14" y="148" class="sp-code">  store.get() → state</text>
+
+    <line x1="14" y1="160" x2="166" y2="160" stroke="#ffffff10" stroke-width="1"/>
+    <text x="14" y="180" class="sp-val" fill="#818cf8">saveSettings()</text>
+    <text x="14" y="196" class="sp-code">  state → store.set()</text>
+    <text x="14" y="212" class="sp-code">  → trigger effects</text>
+  </g>
+
+  <!-- ═══ STAGE 3: tauri-plugin-store ═══ -->
+  <g transform="translate(520, 88)">
+    <text x="90" y="8" class="sp-num" text-anchor="middle">03</text>
+    <rect width="180" height="220" rx="10" fill="#0f1520" stroke="#fbbf2430" stroke-width="1.5" filter="url(#sp-shadow)"/>
+    <rect width="180" height="4" rx="2" fill="url(#sp-gold)"/>
+    <text x="14" y="28" class="sp-title">tauri-plugin-store</text>
+    <text x="14" y="46" class="sp-code" style="fill:#fbbf24;">settings.json</text>
+    <line x1="14" y1="56" x2="166" y2="56" stroke="#ffffff10" stroke-width="1"/>
+
+    <!-- Pulsing JSON structure -->
+    <g>
+      <text x="14" y="76" class="sp-val" fill="#fbbf24">{</text>
+      <text x="22" y="94" class="sp-code">"shortcut":</text>
+      <text x="104" y="94" class="sp-val" fill="#fbbf24">"..."</text>
+      <text x="22" y="112" class="sp-code">"skinTone":</text>
+      <text x="104" y="112" class="sp-val" fill="#fbbf24">null</text>
+      <text x="22" y="130" class="sp-code">"closeOnSelect":</text>
+      <text x="130" y="130" class="sp-val" fill="#fbbf24">true</text>
+      <text x="22" y="148" class="sp-code">"autostart":</text>
+      <text x="104" y="148" class="sp-val" fill="#fbbf24">false</text>
+      <text x="14" y="166" class="sp-val" fill="#fbbf24">}</text>
+      <animate attributeName="opacity" values="0.7;1;0.7" dur="3s" repeatCount="indefinite"/>
+    </g>
+
+    <line x1="14" y1="178" x2="166" y2="178" stroke="#ffffff10" stroke-width="1"/>
+    <text x="14" y="196" class="sp-code">autoSave:</text>
+    <text x="90" y="196" class="sp-val" fill="#fbbf24">true</text>
+    <text x="14" y="212" class="sp-code">~/.config/emoji-nook/</text>
+  </g>
+
+  <!-- ═══ STAGE 4: SIDE EFFECTS ═══ -->
+  <g transform="translate(760, 88)">
+    <text x="90" y="8" class="sp-num" text-anchor="middle">04</text>
+    <rect width="190" height="220" rx="10" fill="#0f1520" stroke="#2dd4bf30" stroke-width="1.5" filter="url(#sp-shadow)"/>
+    <rect width="190" height="4" rx="2" fill="url(#sp-teal)"/>
+    <text x="14" y="28" class="sp-title">SIDE EFFECTS</text>
+    <text x="14" y="46" class="sp-code" style="fill:#2dd4bf;">On save triggers</text>
+    <line x1="14" y1="56" x2="176" y2="56" stroke="#ffffff10" stroke-width="1"/>
+
+    <text x="14" y="76" class="sp-val" fill="#2dd4bf">update_shortcut</text>
+    <text x="14" y="92" class="sp-code">IPC → re-register X11</text>
+
+    <line x1="14" y1="104" x2="176" y2="104" stroke="#ffffff10" stroke-width="1"/>
+    <text x="14" y="122" class="sp-val" fill="#2dd4bf">autostart plugin</text>
+    <text x="14" y="138" class="sp-code">XDG .desktop file</text>
+
+    <line x1="14" y1="150" x2="176" y2="150" stroke="#ffffff10" stroke-width="1"/>
+    <text x="14" y="168" class="sp-val" fill="#2dd4bf">skin tone</text>
+    <text x="14" y="184" class="sp-code">Frimousse picker prop</text>
+
+    <line x1="14" y1="196" x2="176" y2="196" stroke="#ffffff10" stroke-width="1"/>
+    <text x="14" y="214" class="sp-val" fill="#2dd4bf">color-scheme</text>
+    <text x="14" y="214" class="sp-code" dx="95">CSS</text>
+  </g>
+
+  <!-- ═══ STAGE 5: STARTUP ═══ -->
+  <g transform="translate(1010, 88)">
+    <text x="75" y="8" class="sp-num" text-anchor="middle">05</text>
+    <rect width="150" height="150" rx="10" fill="#0f1520" stroke="#c084fc30" stroke-width="1.5" filter="url(#sp-shadow)"/>
+    <rect width="150" height="4" rx="2" fill="url(#sp-purple)"/>
+    <text x="14" y="28" class="sp-title">STARTUP</text>
+    <text x="14" y="46" class="sp-code" style="fill:#c084fc;">App launch</text>
+    <line x1="14" y1="56" x2="136" y2="56" stroke="#ffffff10" stroke-width="1"/>
+
+    <text x="14" y="76" class="sp-code">Read store</text>
+    <text x="14" y="96" class="sp-code">Apply defaults</text>
+    <text x="14" y="116" class="sp-code">Init hook state</text>
+    <text x="14" y="136" class="sp-code">Register shortcut</text>
+
+    <!-- Animated power-on indicator -->
+    <circle cx="136" cy="40" r="4" fill="#c084fc">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- ═══ CONNECTION PATHS ═══ -->
+
+  <!-- SAVE PATH: UI → Hook → Store (gold) -->
+  <g filter="url(#sp-glow)">
+    <path d="M220 180 L280 180" fill="none" stroke="#fbbf24" stroke-width="2.5" marker-end="url(#sp-arr-gold)">
+      <animate attributeName="opacity" values="0.3;0.9;0.3" dur="2.5s" repeatCount="indefinite"/>
+    </path>
+  </g>
+  <g filter="url(#sp-glow)">
+    <path d="M460 180 L520 180" fill="none" stroke="#fbbf24" stroke-width="2.5" marker-end="url(#sp-arr-gold)">
+      <animate attributeName="opacity" values="0.3;0.9;0.3" dur="2.5s" begin="0.4s" repeatCount="indefinite"/>
+    </path>
+  </g>
+  <!-- Save path label -->
+  <text x="390" y="170" class="sp-label" fill="#fbbf24" text-anchor="middle">SAVE</text>
+
+  <!-- LOAD PATH: Store → Hook → UI (violet, slightly offset vertically) -->
+  <g filter="url(#sp-glow)">
+    <path d="M520 220 L460 220" fill="none" stroke="#818cf8" stroke-width="2.5" marker-end="url(#sp-arr-violet)">
+      <animate attributeName="opacity" values="0.3;0.9;0.3" dur="2.5s" begin="1s" repeatCount="indefinite"/>
+    </path>
+  </g>
+  <g filter="url(#sp-glow)">
+    <path d="M280 220 L220 220" fill="none" stroke="#818cf8" stroke-width="2.5" marker-end="url(#sp-arr-violet)">
+      <animate attributeName="opacity" values="0.3;0.9;0.3" dur="2.5s" begin="1.4s" repeatCount="indefinite"/>
+    </path>
+  </g>
+  <!-- Load path label -->
+  <text x="390" y="234" class="sp-label" fill="#818cf8" text-anchor="middle">LOAD</text>
+
+  <!-- EFFECT PATH: Hook → Side Effects (teal) -->
+  <g filter="url(#sp-glow)">
+    <path d="M460 260 C520 290, 700 290, 760 260" fill="none" stroke="#2dd4bf" stroke-width="2.5" marker-end="url(#sp-arr-teal)">
+      <animate attributeName="opacity" values="0.3;0.9;0.3" dur="3s" begin="0.6s" repeatCount="indefinite"/>
+    </path>
+  </g>
+  <text x="610" y="300" class="sp-label" fill="#2dd4bf" text-anchor="middle">ON SAVE</text>
+
+  <!-- STARTUP PATH: Startup → Store → Hook (purple) -->
+  <g filter="url(#sp-glow)">
+    <path d="M1010 200 C960 260, 750 310, 700 280" fill="none" stroke="#c084fc" stroke-width="2" stroke-dasharray="6 3" marker-end="url(#sp-arr-purple)">
+      <animate attributeName="opacity" values="0.3;0.8;0.3" dur="4s" repeatCount="indefinite"/>
+    </path>
+  </g>
+  <g filter="url(#sp-glow)">
+    <path d="M520 260 C480 280, 420 290, 370 270" fill="none" stroke="#c084fc" stroke-width="2" stroke-dasharray="6 3" marker-end="url(#sp-arr-purple)">
+      <animate attributeName="opacity" values="0.3;0.8;0.3" dur="4s" begin="0.8s" repeatCount="indefinite"/>
+    </path>
+  </g>
+  <text x="860" y="282" class="sp-label" fill="#c084fc" text-anchor="middle">INIT</text>
+
+  <!-- ═══ ANIMATED DATA PARTICLES ═══ -->
+
+  <!-- Gold particles: UI → Hook → Store (save) -->
+  <circle r="3.5" fill="#fbbf24" opacity="0.8">
+    <animateMotion dur="2s" repeatCount="indefinite" path="M220 180 L280 180"/>
+    <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite"/>
+  </circle>
+  <circle r="3.5" fill="#fbbf24" opacity="0.8">
+    <animateMotion dur="2s" repeatCount="indefinite" path="M460 180 L520 180" begin="0.4s"/>
+    <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" begin="0.4s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- Violet particles: Store → Hook → UI (load) -->
+  <circle r="3" fill="#818cf8" opacity="0.8">
+    <animateMotion dur="2.5s" repeatCount="indefinite" path="M520 220 L460 220" begin="1s"/>
+    <animate attributeName="opacity" values="0.2;0.9;0.2" dur="2.5s" begin="1s" repeatCount="indefinite"/>
+  </circle>
+  <circle r="3" fill="#818cf8" opacity="0.8">
+    <animateMotion dur="2.5s" repeatCount="indefinite" path="M280 220 L220 220" begin="1.4s"/>
+    <animate attributeName="opacity" values="0.2;0.9;0.2" dur="2.5s" begin="1.4s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- Teal particles: Hook → Side Effects -->
+  <circle r="3" fill="#2dd4bf" opacity="0.7">
+    <animateMotion dur="3s" repeatCount="indefinite" path="M460 260 C520 290, 700 290, 760 260" begin="0.6s"/>
+    <animate attributeName="opacity" values="0.2;0.9;0.2" dur="3s" begin="0.6s" repeatCount="indefinite"/>
+  </circle>
+  <circle r="2.5" fill="#2dd4bf" opacity="0.6">
+    <animateMotion dur="3s" repeatCount="indefinite" path="M460 260 C520 290, 700 290, 760 260" begin="2.1s"/>
+    <animate attributeName="opacity" values="0.2;0.7;0.2" dur="3s" begin="2.1s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- Purple particles: Startup → Store → Hook (init) -->
+  <circle r="3" fill="#c084fc" opacity="0.7">
+    <animateMotion dur="4s" repeatCount="indefinite" path="M1010 200 C960 260, 750 310, 700 280"/>
+    <animate attributeName="opacity" values="0.2;0.8;0.2" dur="4s" repeatCount="indefinite"/>
+  </circle>
+  <circle r="3" fill="#c084fc" opacity="0.7">
+    <animateMotion dur="4s" repeatCount="indefinite" path="M520 260 C480 280, 420 290, 370 270" begin="0.8s"/>
+    <animate attributeName="opacity" values="0.2;0.8;0.2" dur="4s" begin="0.8s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- ═══ FLOW LEGEND ═══ -->
+  <g transform="translate(30, 360)">
+    <text x="0" y="0" class="sp-heading" style="font-size:16px;">Data Flows</text>
+
+    <g transform="translate(0, 18)">
+      <rect width="240" height="36" rx="6" fill="#0f1520" stroke="#ffffff10" stroke-width="1"/>
+      <rect width="4" height="36" rx="2" fill="#fbbf24"/>
+      <line x1="16" y1="18" x2="50" y2="18" stroke="#fbbf24" stroke-width="2"/>
+      <circle cx="40" r="3" cy="18" fill="#fbbf24"/>
+      <text x="58" y="22" class="sp-label" fill="#fbbf24">SAVE</text>
+      <text x="100" y="22" class="sp-code">UI → Hook → Store</text>
+    </g>
+
+    <g transform="translate(0, 62)">
+      <rect width="240" height="36" rx="6" fill="#0f1520" stroke="#ffffff10" stroke-width="1"/>
+      <rect width="4" height="36" rx="2" fill="#818cf8"/>
+      <line x1="50" y1="18" x2="16" y2="18" stroke="#818cf8" stroke-width="2"/>
+      <circle cx="22" r="3" cy="18" fill="#818cf8"/>
+      <text x="58" y="22" class="sp-label" fill="#818cf8">LOAD</text>
+      <text x="100" y="22" class="sp-code">Store → Hook → UI</text>
+    </g>
+
+    <g transform="translate(260, 18)">
+      <rect width="240" height="36" rx="6" fill="#0f1520" stroke="#ffffff10" stroke-width="1"/>
+      <rect width="4" height="36" rx="2" fill="#2dd4bf"/>
+      <line x1="16" y1="18" x2="50" y2="18" stroke="#2dd4bf" stroke-width="2"/>
+      <circle cx="40" r="3" cy="18" fill="#2dd4bf"/>
+      <text x="58" y="22" class="sp-label" fill="#2dd4bf">EFFECT</text>
+      <text x="108" y="22" class="sp-code">Hook → Side Effects</text>
+    </g>
+
+    <g transform="translate(260, 62)">
+      <rect width="240" height="36" rx="6" fill="#0f1520" stroke="#ffffff10" stroke-width="1"/>
+      <rect width="4" height="36" rx="2" fill="#c084fc"/>
+      <line x1="16" y1="18" x2="50" y2="18" stroke="#c084fc" stroke-width="2" stroke-dasharray="6 3"/>
+      <circle cx="40" r="3" cy="18" fill="#c084fc"/>
+      <text x="58" y="22" class="sp-label" fill="#c084fc">INIT</text>
+      <text x="100" y="22" class="sp-code">Startup → Store → Hook</text>
+    </g>
+  </g>
+
+  <!-- ═══ BOTTOM CALLOUT: WAYLAND WARNING ═══ -->
+  <g transform="translate(560, 370)">
+    <rect width="600" height="52" rx="8" fill="#0f1520" stroke="#fbbf2440" stroke-width="1.5" filter="url(#sp-shadow)"/>
+    <rect width="4" height="52" rx="2" fill="#fbbf24"/>
+
+    <!-- Warning icon triangle -->
+    <g transform="translate(20, 14)">
+      <path d="M12 0 L24 22 L0 22 Z" fill="none" stroke="#fbbf24" stroke-width="1.8" stroke-linejoin="round">
+        <animate attributeName="opacity" values="0.6;1;0.6" dur="2s" repeatCount="indefinite"/>
+      </path>
+      <text x="12" y="18" text-anchor="middle" fill="#fbbf24" style="font: 700 13px 'Space Grotesk', sans-serif;">!</text>
+    </g>
+
+    <text x="54" y="24" class="sp-warn">Wayland shortcut changes require app restart</text>
+    <text x="54" y="42" class="sp-code">X11: hot-reload via update_shortcut IPC  |  Wayland: no global shortcut re-register API</text>
+  </g>
+
+  <!-- Lifecycle annotation -->
+  <g transform="translate(30, 500)">
+    <circle cx="8" cy="4" r="5" fill="#818cf8" opacity="0.7"/>
+    <text x="20" y="8" class="sp-code">Settings persisted to ~/.config/emoji-nook/settings.json via tauri-plugin-store with autoSave enabled</text>
+  </g>
+</svg>

@@ -158,8 +158,8 @@
     <text x="16" y="50" class="fn">invoke("insert_emoji")</text>
     <line x1="16" y1="62" x2="184" y2="62" stroke="#ffffff10" stroke-width="1"/>
     <text x="16" y="80" class="detail">Frontend → Rust backend</text>
-    <text x="16" y="96" class="detail">Hide window</text>
-    <text x="16" y="118" class="detail" style="fill:#818cf8;">→ inject(emoji)</text>
+    <text x="16" y="96" class="detail">Hide window, spawn thread</text>
+    <text x="16" y="118" class="detail" style="fill:#818cf8;">→ clipboard_shuffle(emoji)</text>
   </g>
 
   <!-- ═══ STAGE 4: INJECTION ═══ -->
@@ -168,11 +168,11 @@
     <rect width="200" height="130" rx="10" fill="#0f1520" stroke="#2dd4bf30" stroke-width="1.5" filter="url(#cardShadow)"/>
     <rect width="200" height="4" rx="2" fill="url(#z-inject)"/>
     <text x="16" y="28" class="stageTitle">INJECTION</text>
-    <text x="16" y="50" class="fn">RemoteDesktop / enigo</text>
+    <text x="16" y="50" class="fn">Clipboard Shuffle</text>
     <line x1="16" y1="62" x2="184" y2="62" stroke="#ffffff10" stroke-width="1"/>
-    <text x="16" y="80" class="detail">Wayland: portal session</text>
-    <text x="16" y="96" class="detail">X11: xdotool keystrokes</text>
-    <text x="16" y="118" class="detail" style="fill:#2dd4bf;">fallback: clipboard shuffle</text>
+    <text x="16" y="80" class="detail">arboard → Ctrl+V via:</text>
+    <text x="16" y="96" class="detail" style="fill:#2dd4bf;">ydotool → wtype → xdotool</text>
+    <text x="16" y="118" class="detail">save → write → paste → restore</text>
   </g>
 
   <!-- ═══ STAGE 5: TARGET ═══ -->
@@ -192,7 +192,7 @@
         fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="8 6" opacity="0.3">
     <animate attributeName="stroke-dashoffset" values="0;-28" dur="2s" repeatCount="indefinite"/>
   </path>
-  <text x="560" y="440" class="label" text-anchor="middle" style="font-size:10px; fill:#f43f5e80;">CLIPBOARD SHUFFLE: SAVE → WRITE EMOJI → CTRL+V → RESTORE</text>
+  <text x="560" y="440" class="label" text-anchor="middle" style="font-size:10px; fill:#f43f5e80;">ARBOARD SERVE THREAD KEEPS EMOJI ALIVE THROUGH PASTE, THEN RESTORES OR CLEARS</text>
 
   <!-- ═══ WAYLAND / X11 LABELS ═══ -->
   <g transform="translate(50, 300)">
