@@ -94,6 +94,11 @@ fn update_shortcut(app: AppHandle, shortcut: String) {
 /// The shortcut session lives as long as the returned handle.
 fn register_wayland_shortcut(app: AppHandle) {
     info!("registering global shortcut via Wayland portal");
+    if let Ok(addr) = std::env::var("DBUS_SESSION_BUS_ADDRESS") {
+        info!("DBUS_SESSION_BUS_ADDRESS={addr}");
+    } else {
+        log::warn!("DBUS_SESSION_BUS_ADDRESS is not set — portal shortcuts may fail");
+    }
     let handle = app.clone();
     tauri::async_runtime::spawn(async move {
         match tauri_plugin_xdg_portal::global_shortcuts::listen_for_shortcut(

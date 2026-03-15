@@ -33,19 +33,39 @@ where
         .await
         .map_err(|e| PortalError::Internal(format!("failed to create GlobalShortcuts session: {e}")))?;
 
-    let mut shortcut = NewShortcut::new(shortcut_id, description);
-    if let Some(trigger) = preferred_trigger {
-        shortcut = shortcut.preferred_trigger(trigger);
-    }
+    let make_shortcut = || {
+        let s = NewShortcut::new(shortcut_id, description);
+        if let Some(trigger) = preferred_trigger {
+            s.preferred_trigger(trigger)
+        } else {
+            s
+        }
+    };
 
-    let request = portal
-        .bind_shortcuts(&session, &[shortcut], &WindowIdentifier::default())
-        .await
-        .map_err(|e| PortalError::Internal(format!("failed to bind shortcuts: {e}")))?;
+    // The portal may reject bind_shortcuts if the app isn't fully initialised
+    // yet or if a previous session is still active. Retry once after a short delay.
+    let response = {
+        let request = portal
+            .bind_shortcuts(&session, &[make_shortcut()], &WindowIdentifier::default())
+            .await
+            .map_err(|e| PortalError::Internal(format!("failed to bind shortcuts: {e}")))?;
 
-    let response = request
-        .response()
-        .map_err(|e| PortalError::Internal(format!("bind shortcuts response error: {e}")))?;
+        match request.response() {
+            Ok(r) => r,
+            Err(first_err) => {
+                info!("first bind_shortcuts attempt failed ({first_err}), retrying in 1s");
+                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+
+                let request2 = portal
+                    .bind_shortcuts(&session, &[make_shortcut()], &WindowIdentifier::default())
+                    .await
+                    .map_err(|e| PortalError::Internal(format!("failed to bind shortcuts (retry): {e}")))?;
+                request2
+                    .response()
+                    .map_err(|e| PortalError::Internal(format!("bind shortcuts failed after retry: {e}")))?
+            }
+        }
+    };
 
     info!(
         "global shortcuts bound: {:?}",
