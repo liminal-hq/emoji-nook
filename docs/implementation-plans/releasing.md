@@ -16,10 +16,11 @@ The repository already has a good base for release work, but several pieces are 
 - App, frontend package, workspace package, and plugin manifests all carry explicit versions
 - Linux icons are present for bundle generation
 - Release/versioning policy is now documented in `docs/releasing.md`
-- There is no release-note, changelog, signing, or updater strategy yet
-- There is no checked-in GitHub release workflow
+- GitHub-generated release notes are now the defined baseline policy, while signing and updater strategy remain pending
+- A checked-in GitHub release workflow now exists in `.github/workflows/release.yml`
 - A release-prep helper script and CI version drift check now exist
-- Packaging metadata is still incomplete for Linux distribution
+- A maintainer release checklist now exists under `docs/release-checklist.md`
+- Linux package dependency metadata is still intentionally minimal pending the first end-to-end release validation
 
 ## Related Repository Review
 
@@ -159,7 +160,7 @@ Define the versioning and metadata needed for a trustworthy package.
 - [x] Confirm application naming is consistent across bundle metadata, desktop entry, and GitHub release naming
 - [x] Audit icons and confirm they are sufficient for AppImage, `.deb`, and `.rpm` outputs
 - [x] Add licence metadata where packaging surfaces require it
-- [ ] Verify all user-facing packaging text uses Canadian English
+- [x] Verify all user-facing packaging text uses Canadian English
 
 **Gate 1 result: the project has a defined versioning model and complete Linux packaging metadata.**
 
@@ -169,18 +170,18 @@ Create repeatable CI so release builds start from a known-good state.
 
 #### Phase 3: Validation workflow
 
-- [ ] Add `.github/workflows/ci.yml`
-- [ ] Run on pushes and pull requests to `main`
+- [x] Add `.github/workflows/ci.yml`
+- [x] Run on pushes and pull requests to `main`
 - [ ] Include:
   - `pnpm install --frozen-lockfile`
   - `pnpm build`
   - `cargo build --manifest-path apps/emoji-picker/src-tauri/Cargo.toml`
-- [ ] Add caching for:
+- [x] Add caching for:
   - `pnpm` store
   - Cargo registry and target directories where worthwhile
-- [ ] Use the `threshold` and `liminal-notes` CI workflows as the baseline structure for job naming, caching, and summaries
-- [ ] Add a `GITHUB_STEP_SUMMARY` block to every CI job so maintainers can scan outcomes without opening raw logs
-- [ ] Design CI summaries for Emoji Nook specifically:
+- [x] Use the `threshold` and `liminal-notes` CI workflows as the baseline structure for job naming, caching, and summaries
+- [x] Add a `GITHUB_STEP_SUMMARY` block to every CI job so maintainers can scan outcomes without opening raw logs
+- [x] Design CI summaries for Emoji Nook specifically:
   - Validation scope run in the job
   - Linux environment or container used
   - Result state for build, test, and upload steps
@@ -211,7 +212,7 @@ Create repeatable CI so release builds start from a known-good state.
   - `plugins/xdg-portal/Cargo.toml`
   - `plugins/xdg-portal/guest-js/package.json` when required
 - [x] If adopted, make the script the recommended maintainer path for starting a release PR
-- [ ] Land the release-prep script and the first complete release workflow in the same implementation pass so maintainers get a full release path, not disconnected pieces
+- [x] Land the release-prep script and the first complete release workflow in the same implementation pass so maintainers get a full release path, not disconnected pieces
 
 **Gate 2 result: every merge is validated, and version drift is caught before release day.**
 
@@ -221,36 +222,36 @@ Automate Linux builds and GitHub Releases.
 
 #### Phase 5: Release workflow
 
-- [ ] Add `.github/workflows/release.yml`
-- [ ] Trigger on tags matching `v*`
-- [ ] Support `workflow_dispatch` for maintainers, following the existing `prepare-release` pattern used in `threshold`, `liminal-notes`, and `smdu`
-- [ ] Add a `prepare-release` job that:
+- [x] Add `.github/workflows/release.yml`
+- [x] Trigger on tags matching `v*`
+- [x] Support `workflow_dispatch` for maintainers, following the existing `prepare-release` pattern used in `threshold`, `liminal-notes`, and `smdu`
+- [x] Add a `prepare-release` job that:
   - Validates the tag format
   - Creates or reuses the GitHub Release
   - Exposes `tag_name` and `release_id` outputs for later jobs
-- [ ] Build on GitHub-hosted Ubuntu runners using the shared GHCR Docker image pattern already established in `liminal-hq/.github` where possible
-- [ ] Decide whether Emoji Nook can consume the shared desktop CI image directly or needs a small derived image for any extra Linux packaging dependencies
-- [ ] Run `pnpm install --frozen-lockfile`
-- [ ] Run the Tauri production build for the app
-- [ ] Upload generated AppImage, `.deb`, and `.rpm` artefacts
-- [ ] Generate `SHA256SUMS`
-- [ ] Create or update the corresponding GitHub Release
-- [ ] Add a workflow summary to every release job, including:
+- [x] Build on GitHub-hosted Ubuntu runners using the shared GHCR Docker image pattern already established in `liminal-hq/.github` where possible
+- [x] Decide whether Emoji Nook can consume the shared desktop CI image directly or needs a small derived image for any extra Linux packaging dependencies
+- [x] Run `pnpm install --frozen-lockfile`
+- [x] Run the Tauri production build for the app
+- [x] Upload generated AppImage, `.deb`, and `.rpm` artefacts
+- [x] Generate `SHA256SUMS`
+- [x] Create or update the corresponding GitHub Release
+- [x] Add a workflow summary to every release job, including:
   - `prepare-release`: resolved tag, release name, created versus reused release, release URL
   - Linux build job: target platform, bundle formats found, checksum generation result, upload result
   - Final publish job if used: attached asset count, checksum file presence, final release URL
-- [ ] Keep the summary tone product-specific and concise, for example `Emoji Nook Release Summary` rather than generic build text
+- [x] Keep the summary tone product-specific and concise, for example `Emoji Nook Release Summary` rather than generic build text
 
 #### Phase 6: Release notes and provenance
 
-- [ ] Generate release notes automatically from GitHub, then allow manual edits when needed
+- [x] Generate release notes automatically from GitHub, then allow manual edits when needed
 - [ ] Include:
   - Supported desktop/session expectations
   - Known Wayland/X11 limitations
   - Installation notes for each artefact type
-- [ ] Attach checksums to the release
+- [x] Attach checksums to the release
 - [ ] Decide whether to add build provenance or attestation in the first release wave
-- [ ] Mirror the most important release metadata in the job summaries so maintainers can verify tag, assets, and release destination from the Actions UI alone
+- [x] Mirror the most important release metadata in the job summaries so maintainers can verify tag, assets, and release destination from the Actions UI alone
 
 **Gate 3 result: pushing a release tag produces downloadable Linux packages on GitHub automatically.**
 
@@ -260,15 +261,15 @@ Reduce human error and prepare for future update mechanisms.
 
 #### Phase 7: Release operator workflow
 
-- [ ] Add a documented release checklist under `docs/`
-- [ ] Cover:
+- [x] Add a documented release checklist under `docs/`
+- [x] Cover:
   - Version bump
   - Tag creation
   - CI verification
   - Release-note review
   - Post-release smoke test on at least one Wayland and one X11 environment
-- [ ] Define who can cut releases and how failed releases are repaired
-- [ ] Decide whether GitHub Releases are drafted first and published after manual verification
+- [x] Define who can cut releases and how failed releases are repaired
+- [x] Decide whether GitHub Releases are drafted first and published after manual verification
 
 #### Phase 8: Updater readiness
 
