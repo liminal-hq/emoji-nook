@@ -11,7 +11,7 @@ interface PickerShellProps {
 
 export default function PickerShell({ children }: PickerShellProps) {
 	return (
-		<div className="picker-shell" data-tauri-drag-region>
+		<div className="picker-shell" data-tauri-drag-region="true">
 			{children}
 		</div>
 	);

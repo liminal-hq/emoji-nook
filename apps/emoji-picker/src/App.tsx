@@ -68,8 +68,12 @@ function App() {
 		return () => document.removeEventListener('keydown', handleKeyDown);
 	}, [view]);
 
-	// Click-outside (window blur) hides the picker
+	// Click-outside (window blur) hides the picker.
+	// Suppressed while settings is open — native dropdowns and shortcut
+	// capture trigger blur events that would dismiss the window.
 	useEffect(() => {
+		if (view === 'settings') return;
+
 		const appWindow = getCurrentWebviewWindow();
 		const unlisten = appWindow.onFocusChanged(({ payload: focused }) => {
 			if (!focused) {
@@ -81,7 +85,7 @@ function App() {
 		return () => {
 			unlisten.then((fn) => fn());
 		};
-	}, []);
+	}, [view]);
 
 	const handleSettingsSave = useCallback(
 		(next: Settings) => {

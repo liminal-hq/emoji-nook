@@ -87,16 +87,6 @@ export default function EmojiPickerPanel({
 						</div>
 					)}
 				</EmojiPicker.SkinTone>
-				{onOpenSettings && (
-					<button
-						className="settings-gear"
-						onClick={onOpenSettings}
-						title="Settings"
-						aria-label="Settings"
-					>
-						&#9881;
-					</button>
-				)}
 			</div>
 
 			<CategoryBar viewportRef={viewportRef} />
@@ -157,6 +147,16 @@ export default function EmojiPickerPanel({
 								<span className="preview-label">
 									Pick an emoji…
 								</span>
+							)}
+							{onOpenSettings && (
+								<button
+									className="settings-gear"
+									onClick={onOpenSettings}
+									title="Settings"
+									aria-label="Settings"
+								>
+									&#9881;
+								</button>
 							)}
 						</div>
 					)}

@@ -54,6 +54,9 @@ body {
 	background: transparent;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
+	-webkit-user-select: none;
+	user-select: none;
+	-webkit-tap-highlight-color: transparent;
 }
 
 /* App layout — fills the frameless overlay window */
@@ -74,7 +77,6 @@ body {
 	display: flex;
 	flex-direction: column;
 	margin: 4px;
-	user-select: none;
 }
 
 /* Picker root fills the shell */
@@ -85,13 +87,26 @@ body {
 	overflow: hidden;
 }
 
+/* Draggable regions for the frameless window */
+.picker-header,
+.picker-footer {
+	-webkit-app-region: drag;
+}
+
 /* Interactive elements opt out of window dragging */
 .picker-search,
 .skin-tone-btn,
+.settings-gear,
 .category-tab,
 .picker-viewport,
 .picker-emoji {
 	-webkit-app-region: no-drag;
+}
+
+/* Search input allows text selection */
+.picker-search {
+	-webkit-user-select: text;
+	user-select: text;
 }
 
 /* Header — search + skin tone selector */
@@ -131,6 +146,7 @@ body {
 	background: var(--border);
 	border-radius: var(--radius-sm);
 	overflow: hidden;
+	flex-shrink: 0;
 }
 
 .skin-tone-btn {
@@ -321,20 +337,24 @@ body {
 	white-space: nowrap;
 }
 
-/* Settings gear button in the header */
+/* Settings gear button in the footer */
 .settings-gear {
-	width: 28px;
-	height: 28px;
+	width: 24px;
+	height: 24px;
 	border: none;
 	background: transparent;
 	cursor: pointer;
-	font-size: 1rem;
+	font-size: 0.875rem;
 	display: grid;
 	place-items: center;
 	border-radius: var(--radius-sm);
-	color: var(--text-secondary);
-	transition: background 0.1s;
+	color: var(--text-tertiary);
+	transition:
+		background 0.1s,
+		color 0.1s;
 	-webkit-app-region: no-drag;
+	margin-left: auto;
+	flex-shrink: 0;
 }
 
 .settings-gear:hover {

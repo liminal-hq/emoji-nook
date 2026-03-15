@@ -92,6 +92,10 @@ export function useTheme() {
 
 				const tokens = getTokens(info.desktopEnvironment, isDark, accent);
 				applyTokens(tokens);
+
+				// Tell the browser the colour scheme so native form controls
+				// (select dropdowns, checkboxes) render in the correct theme
+				document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
 			})
 			.catch((err) => {
 				console.warn('failed to fetch theme info, using CSS defaults:', err);
