@@ -19,6 +19,7 @@ interface EmojiPickerPanelProps {
 	skinTone: SkinTone;
 	onSkinToneChange: (skinTone: SkinTone) => void;
 	onEmojiSelect: (selection: EmojiSelection) => void;
+	onOpenSettings?: () => void;
 }
 
 /** Convert a category label like "Smileys & emotion" to a slug like "smileys-emotion". */
@@ -36,6 +37,7 @@ export default function EmojiPickerPanel({
 	skinTone,
 	onSkinToneChange,
 	onEmojiSelect,
+	onOpenSettings,
 }: EmojiPickerPanelProps) {
 	const internalSearchRef = useRef<HTMLInputElement>(null);
 	const searchRef = externalSearchRef ?? internalSearchRef;
@@ -60,7 +62,6 @@ export default function EmojiPickerPanel({
 			columns={9}
 			className="picker-root"
 		>
-			<div className="picker-drag-handle" data-tauri-drag-region />
 			<div className="picker-header">
 				<EmojiPicker.Search
 					ref={searchRef}
@@ -86,6 +87,16 @@ export default function EmojiPickerPanel({
 						</div>
 					)}
 				</EmojiPicker.SkinTone>
+				{onOpenSettings && (
+					<button
+						className="settings-gear"
+						onClick={onOpenSettings}
+						title="Settings"
+						aria-label="Settings"
+					>
+						&#9881;
+					</button>
+				)}
 			</div>
 
 			<CategoryBar viewportRef={viewportRef} />
@@ -129,21 +140,21 @@ export default function EmojiPickerPanel({
 				/>
 			</EmojiPicker.Viewport>
 
-			<div className="picker-footer" data-tauri-drag-region>
+			<div className="picker-footer">
 				<EmojiPicker.ActiveEmoji>
 					{({ emoji }) => (
-						<div className="picker-preview" data-tauri-drag-region>
+						<div className="picker-preview">
 							{emoji ? (
 								<>
-									<span className="preview-emoji" data-tauri-drag-region>
+									<span className="preview-emoji">
 										{emoji.emoji}
 									</span>
-									<span className="preview-label" data-tauri-drag-region>
+									<span className="preview-label">
 										{emoji.label}
 									</span>
 								</>
 							) : (
-								<span className="preview-label" data-tauri-drag-region>
+								<span className="preview-label">
 									Pick an emoji…
 								</span>
 							)}
