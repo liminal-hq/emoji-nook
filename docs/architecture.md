@@ -382,16 +382,16 @@ stateDiagram-v2
 
 The picker window is configured as a frameless overlay:
 
-| Property | Value | Purpose |
-| --- | --- | --- |
-| `visible` | `false` | Hidden on startup |
-| `decorations` | `false` | Frameless |
-| `transparent` | `true` | Rounded corners float over desktop |
-| `alwaysOnTop` | `true` | Stays above other windows |
-| `center` | `true` | Centred on screen |
-| `resizable` | `false` | Fixed compact size |
-| `skipTaskbar` | `true` | Background process, tray-only |
-| Size | 370 x 380 | Compact picker dimensions |
+| Property      | Value     | Purpose                            |
+| ------------- | --------- | ---------------------------------- |
+| `visible`     | `false`   | Hidden on startup                  |
+| `decorations` | `false`   | Frameless                          |
+| `transparent` | `true`    | Rounded corners float over desktop |
+| `alwaysOnTop` | `true`    | Stays above other windows          |
+| `center`      | `true`    | Centred on screen                  |
+| `resizable`   | `false`   | Fixed compact size                 |
+| `skipTaskbar` | `true`    | Background process, tray-only      |
+| Size          | 370 x 380 | Compact picker dimensions          |
 
 ## Native Theming
 
@@ -494,26 +494,26 @@ emoji-nook/
 
 ## Key Dependencies
 
-| Layer | Library | Purpose |
-| --- | --- | --- |
-| Emoji | [Frimousse](https://github.com/liveblocks/frimousse) v0.3 | Headless React 19 emoji picker |
-| Portal | [ashpd](https://github.com/bilelmoussaoui/ashpd) | D-Bus interface to `xdg-desktop-portal` |
-| Framework | [Tauri](https://v2.tauri.app/) v2 | Desktop application shell |
-| Clipboard | [arboard](https://crates.io/crates/arboard) | Cross-platform clipboard access |
-| Settings | tauri-plugin-store | Persistent JSON key-value store |
-| Autostart | tauri-plugin-autostart | XDG autostart desktop file management |
-| Shortcuts (X11) | tauri-plugin-global-shortcut | X11 global shortcut registration |
-| Logging | tauri-plugin-log | Structured logging with console bridge |
+| Layer           | Library                                                   | Purpose                                 |
+| --------------- | --------------------------------------------------------- | --------------------------------------- |
+| Emoji           | [Frimousse](https://github.com/liveblocks/frimousse) v0.3 | Headless React 19 emoji picker          |
+| Portal          | [ashpd](https://github.com/bilelmoussaoui/ashpd)          | D-Bus interface to `xdg-desktop-portal` |
+| Framework       | [Tauri](https://v2.tauri.app/) v2                         | Desktop application shell               |
+| Clipboard       | [arboard](https://crates.io/crates/arboard)               | Cross-platform clipboard access         |
+| Settings        | tauri-plugin-store                                        | Persistent JSON key-value store         |
+| Autostart       | tauri-plugin-autostart                                    | XDG autostart desktop file management   |
+| Shortcuts (X11) | tauri-plugin-global-shortcut                              | X11 global shortcut registration        |
+| Logging         | tauri-plugin-log                                          | Structured logging with console bridge  |
 
 ### Runtime Dependencies
 
 Emoji injection requires a keystroke simulation tool:
 
-| Tool | Scope | Mechanism |
-| --- | --- | --- |
-| `ydotool` | Primary — works everywhere | Kernel `/dev/uinput` |
-| `wtype` | Wayland fallback (Sway, Hyprland) | Native Wayland protocol |
-| `xdotool` | X11/XWayland fallback | X11 protocol |
+| Tool      | Scope                             | Mechanism               |
+| --------- | --------------------------------- | ----------------------- |
+| `ydotool` | Primary — works everywhere        | Kernel `/dev/uinput`    |
+| `wtype`   | Wayland fallback (Sway, Hyprland) | Native Wayland protocol |
+| `xdotool` | X11/XWayland fallback             | X11 protocol            |
 
 ## Known Limitations
 
