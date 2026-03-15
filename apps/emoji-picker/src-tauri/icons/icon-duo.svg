@@ -47,9 +47,8 @@
     <ellipse cx="128" cy="132" rx="50" ry="46" fill="url(#nookGlow)"/>
   </g>
 
-  <!-- Nook bracket — an alcove/archway shape evoking a cozy nook -->
-  <path d="M96 72 L80 72 C68 72 58 82 58 94 L58 162 C58 174 68 184 80 184 L176 184 C188 184 198 174 198 162 L198 94 C198 82 188 72 176 72 L160 72"
-        stroke="url(#brandStroke)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- Nook border — closed rounded rectangle -->
+  <rect x="58" y="72" width="140" height="112" rx="16" stroke="url(#brandStroke)" stroke-width="12" stroke-linejoin="round" fill="none"/>
 
   <!-- Faint grid inside the nook — evokes the emoji picker grid -->
   <g opacity="0.04" stroke="#F7E2BA" stroke-width="0.75">
@@ -89,10 +88,4 @@
           fill="#F7E2BA" opacity="0.8"/>
   </g>
 
-  <!-- Opening / gap at the top — the portal into the nook -->
-  <path d="M128 58 L128 72" stroke="#F7E2BA" stroke-opacity="0.6" stroke-width="6" stroke-linecap="round"/>
-
-  <!-- Small sparkle dots — emoji floating near the nook entrance -->
-  <circle cx="112" cy="62" r="3" fill="#fbbf24" opacity="0.4"/>
-  <circle cx="144" cy="62" r="3" fill="#fbbf24" opacity="0.4"/>
 </svg>
