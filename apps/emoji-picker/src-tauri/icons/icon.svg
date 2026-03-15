@@ -1,0 +1,74 @@
+<!-- Emoji Nook app icon -->
+<!-- (c) Copyright 2026 Liminal HQ, Scott Morris -->
+<!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <!-- Dark container — matches Liminal HQ ink base -->
+    <linearGradient id="bg" x1="40" y1="32" x2="216" y2="224" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0E0D12"/>
+      <stop offset="0.55" stop-color="#0A0A0D"/>
+      <stop offset="1" stop-color="#08080B"/>
+    </linearGradient>
+
+    <!-- Subtle ambient lift -->
+    <radialGradient id="bloom" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse"
+      gradientTransform="translate(96 80) rotate(90) scale(210 210)">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.018"/>
+      <stop offset="0.55" stop-color="#FFFFFF" stop-opacity="0.006"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Liminal brand stroke gradient — plum through orange to amber -->
+    <linearGradient id="brandStroke" x1="64" y1="64" x2="192" y2="192" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5D3147"/>
+      <stop offset="0.55" stop-color="#CF5D22"/>
+      <stop offset="1" stop-color="#F19B18"/>
+    </linearGradient>
+
+    <!-- Warm glow behind the nook opening -->
+    <radialGradient id="nookGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse"
+      gradientTransform="translate(128 128) rotate(90) scale(60 50)">
+      <stop offset="0" stop-color="#F7E2BA" stop-opacity="0.3"/>
+      <stop offset="0.5" stop-color="#F19B18" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#F19B18" stop-opacity="0"/>
+    </radialGradient>
+
+    <filter id="softGlow" x="-40%" y="-40%" width="180%" height="180%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+  </defs>
+
+  <!-- Container — same as Liminal HQ mark -->
+  <rect x="16" y="16" width="224" height="224" rx="56" fill="url(#bg)"/>
+  <rect x="16" y="16" width="224" height="224" rx="56" fill="url(#bloom)"/>
+
+  <!-- Warm glow behind the nook -->
+  <g filter="url(#softGlow)">
+    <ellipse cx="128" cy="128" rx="42" ry="46" fill="url(#nookGlow)"/>
+  </g>
+
+  <!-- Nook bracket — an alcove/archway shape evoking a cozy nook -->
+  <!-- Top-left corner down and across the bottom and up the right side -->
+  <path d="M96 72 L80 72 C68 72 58 82 58 94 L58 162 C58 174 68 184 80 184 L176 184 C188 184 198 174 198 162 L198 94 C198 82 188 72 176 72 L160 72"
+        stroke="url(#brandStroke)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+  <!-- Emoji circle — the selected emoji, centred in the nook -->
+  <circle cx="128" cy="128" r="24" fill="#fbbf24" opacity="0.15"/>
+  <circle cx="128" cy="128" r="24" stroke="#fbbf24" stroke-width="3" fill="none" opacity="0.6"/>
+
+  <!-- Smiley face inside the circle — simple, warm -->
+  <!-- Left eye -->
+  <circle cx="118" cy="122" r="3.5" fill="#F7E2BA" opacity="0.85"/>
+  <!-- Right eye -->
+  <circle cx="138" cy="122" r="3.5" fill="#F7E2BA" opacity="0.85"/>
+  <!-- Smile -->
+  <path d="M118 134 Q128 143 138 134" stroke="#F7E2BA" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.85"/>
+
+  <!-- Opening / gap at the top — the portal into the nook -->
+  <!-- Warm vertical accent in the gap, echoing Liminal HQ's centre gap -->
+  <path d="M128 58 L128 72" stroke="#F7E2BA" stroke-opacity="0.6" stroke-width="6" stroke-linecap="round"/>
+
+  <!-- Small sparkle dots — emoji floating near the nook entrance -->
+  <circle cx="112" cy="62" r="3" fill="#fbbf24" opacity="0.4"/>
+  <circle cx="144" cy="62" r="3" fill="#fbbf24" opacity="0.4"/>
+</svg>
