@@ -166,6 +166,7 @@ Run one of these, quickly click into a text field, and see if "hello" appears.
 ### `ydotool` says "permission denied" or similar
 
 Make sure:
+
 1. Your user is in the `input` group: `groups $USER` should include `input`
 2. You logged out and back in after adding the group
 3. The `ydotool` user service is running: `systemctl --user status ydotool`

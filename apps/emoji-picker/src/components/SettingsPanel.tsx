@@ -24,11 +24,7 @@ interface SettingsPanelProps {
 	onCancel: () => void;
 }
 
-export default function SettingsPanel({
-	settings,
-	onSave,
-	onCancel,
-}: SettingsPanelProps) {
+export default function SettingsPanel({ settings, onSave, onCancel }: SettingsPanelProps) {
 	const [draft, setDraft] = useState<Settings>(settings);
 	const [capturing, setCapturing] = useState(false);
 
@@ -131,9 +127,7 @@ export default function SettingsPanel({
 						type="checkbox"
 						className="settings-checkbox"
 						checked={draft.closeOnSelect}
-						onChange={(e) =>
-							setDraft((d) => ({ ...d, closeOnSelect: e.target.checked }))
-						}
+						onChange={(e) => setDraft((d) => ({ ...d, closeOnSelect: e.target.checked }))}
 					/>
 				</label>
 
@@ -143,9 +137,7 @@ export default function SettingsPanel({
 						type="checkbox"
 						className="settings-checkbox"
 						checked={draft.autostart}
-						onChange={(e) =>
-							setDraft((d) => ({ ...d, autostart: e.target.checked }))
-						}
+						onChange={(e) => setDraft((d) => ({ ...d, autostart: e.target.checked }))}
 					/>
 				</label>
 			</div>

@@ -136,17 +136,11 @@ export default function EmojiPickerPanel({
 						<div className="picker-preview">
 							{emoji ? (
 								<>
-									<span className="preview-emoji">
-										{emoji.emoji}
-									</span>
-									<span className="preview-label">
-										{emoji.label}
-									</span>
+									<span className="preview-emoji">{emoji.emoji}</span>
+									<span className="preview-label">{emoji.label}</span>
 								</>
 							) : (
-								<span className="preview-label">
-									Pick an emoji…
-								</span>
+								<span className="preview-label">Pick an emoji…</span>
 							)}
 							{onOpenSettings && (
 								<button

@@ -39,8 +39,7 @@ export async function loadSettings(): Promise<Settings> {
 	const store = await getStore();
 	const shortcut = ((await store.get('shortcut')) as string) ?? DEFAULTS.shortcut;
 	const skinTone = ((await store.get('skinTone')) as SkinTone) ?? DEFAULTS.skinTone;
-	const closeOnSelect =
-		(await store.get('closeOnSelect')) ?? DEFAULTS.closeOnSelect;
+	const closeOnSelect = (await store.get('closeOnSelect')) ?? DEFAULTS.closeOnSelect;
 	const autostart = (await store.get('autostart')) ?? DEFAULTS.autostart;
 	return {
 		shortcut,

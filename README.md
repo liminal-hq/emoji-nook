@@ -21,15 +21,15 @@ This repository is a `pnpm` + Cargo workspace monorepo.
 
 ### Key dependencies
 
-| Layer      | Library                                                   | Purpose                                    |
-| ---------- | --------------------------------------------------------- | ------------------------------------------ |
-| Emoji      | [Frimousse](https://github.com/liveblocks/frimousse) v0.3 | Headless, React 19 compatible emoji picker |
-| Portal     | [ashpd](https://github.com/bilelmoussaoui/ashpd)          | D-Bus interface to `xdg-desktop-portal`    |
-| Framework  | [Tauri](https://v2.tauri.app/) v2                         | Desktop application shell                  |
-| Clipboard  | [arboard](https://crates.io/crates/arboard)               | Cross-platform clipboard access            |
-| Settings   | tauri-plugin-store                                        | Persistent JSON key-value store            |
-| Autostart  | tauri-plugin-autostart                                    | XDG autostart desktop file management      |
-| Logging    | tauri-plugin-log                                          | Structured logging with console bridge     |
+| Layer     | Library                                                   | Purpose                                    |
+| --------- | --------------------------------------------------------- | ------------------------------------------ |
+| Emoji     | [Frimousse](https://github.com/liveblocks/frimousse) v0.3 | Headless, React 19 compatible emoji picker |
+| Portal    | [ashpd](https://github.com/bilelmoussaoui/ashpd)          | D-Bus interface to `xdg-desktop-portal`    |
+| Framework | [Tauri](https://v2.tauri.app/) v2                         | Desktop application shell                  |
+| Clipboard | [arboard](https://crates.io/crates/arboard)               | Cross-platform clipboard access            |
+| Settings  | tauri-plugin-store                                        | Persistent JSON key-value store            |
+| Autostart | tauri-plugin-autostart                                    | XDG autostart desktop file management      |
+| Logging   | tauri-plugin-log                                          | Structured logging with console bridge     |
 
 ### Desktop theme support
 
@@ -57,11 +57,11 @@ Falls back to CSS `prefers-color-scheme` when portal access is unavailable.
 
 Emoji injection requires a keystroke simulation tool. Install one (or more) for your environment:
 
-| Tool       | Scope                                          | Install                               |
-| ---------- | ---------------------------------------------- | ------------------------------------- |
-| `ydotool`  | Primary — kernel `/dev/uinput`, works everywhere | `sudo pacman -S ydotool` / `sudo apt install ydotool` |
-| `wtype`    | Wayland fallback (Sway, Hyprland — not GNOME)  | `sudo pacman -S wtype` / `sudo apt install wtype` |
-| `xdotool`  | X11/XWayland fallback                          | `sudo pacman -S xdotool` / `sudo apt install xdotool` |
+| Tool      | Scope                                            | Install                                               |
+| --------- | ------------------------------------------------ | ----------------------------------------------------- |
+| `ydotool` | Primary — kernel `/dev/uinput`, works everywhere | `sudo pacman -S ydotool` / `sudo apt install ydotool` |
+| `wtype`   | Wayland fallback (Sway, Hyprland — not GNOME)    | `sudo pacman -S wtype` / `sudo apt install wtype`     |
+| `xdotool` | X11/XWayland fallback                            | `sudo pacman -S xdotool` / `sudo apt install xdotool` |
 
 `ydotool` also needs the `input` group and user service — see [docs/linux-setup.md](docs/linux-setup.md) for full instructions, or run:
 

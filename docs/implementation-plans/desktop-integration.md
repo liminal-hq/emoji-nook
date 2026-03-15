@@ -21,11 +21,11 @@ The emoji picker UI plan must be complete (Gates 1 and 2 passed). The following 
 
 Linux has two display server protocols with fundamentally different security models:
 
-| Capability       | X11                                             | Wayland                                                                |
-| ---------------- | ----------------------------------------------- | ---------------------------------------------------------------------- |
-| Global shortcuts | `tauri-plugin-global-shortcut` (works directly) | `xdg-desktop-portal` GlobalShortcuts (requires user permission prompt) |
-| Input injection  | `ydotool` / `xdotool` via `std::process::Command` | `ydotool` / `wtype` via `std::process::Command`                     |
-| Clipboard        | `arboard` (handles both transparently)          | `arboard` (handles both transparently)                                 |
+| Capability       | X11                                               | Wayland                                                                |
+| ---------------- | ------------------------------------------------- | ---------------------------------------------------------------------- |
+| Global shortcuts | `tauri-plugin-global-shortcut` (works directly)   | `xdg-desktop-portal` GlobalShortcuts (requires user permission prompt) |
+| Input injection  | `ydotool` / `xdotool` via `std::process::Command` | `ydotool` / `wtype` via `std::process::Command`                        |
+| Clipboard        | `arboard` (handles both transparently)            | `arboard` (handles both transparently)                                 |
 
 Detection: check `WAYLAND_DISPLAY` environment variable at startup. Route all shortcut and injection calls through the appropriate backend.
 
@@ -273,16 +273,16 @@ On i3, Sway, Hyprland etc., hiding a window may not return focus to the previous
 
 ## File Map
 
-| File                                             | Purpose                                    |
-| ------------------------------------------------ | ------------------------------------------ |
-| `apps/emoji-picker/src-tauri/src/lib.rs`         | App setup, tray, shortcut routing          |
-| `apps/emoji-picker/src-tauri/src/injection.rs`   | Clipboard shuffle and injection logic      |
-| `apps/emoji-picker/src/hooks/useSettings.ts`     | Settings persistence via tauri-plugin-store|
-| `apps/emoji-picker/src/components/SettingsPanel.tsx` | Settings UI panel                      |
-| `plugins/xdg-portal/src/global_shortcuts.rs`     | Real GlobalShortcuts portal implementation |
-| `plugins/xdg-portal/src/remote_desktop.rs`       | (stub) RemoteDesktop portal — future use   |
-| `docs/linux-setup.md`                            | Linux setup guide for system dependencies  |
-| `scripts/setup-linux.sh`                         | Auto-install script for Linux dependencies |
+| File                                                 | Purpose                                     |
+| ---------------------------------------------------- | ------------------------------------------- |
+| `apps/emoji-picker/src-tauri/src/lib.rs`             | App setup, tray, shortcut routing           |
+| `apps/emoji-picker/src-tauri/src/injection.rs`       | Clipboard shuffle and injection logic       |
+| `apps/emoji-picker/src/hooks/useSettings.ts`         | Settings persistence via tauri-plugin-store |
+| `apps/emoji-picker/src/components/SettingsPanel.tsx` | Settings UI panel                           |
+| `plugins/xdg-portal/src/global_shortcuts.rs`         | Real GlobalShortcuts portal implementation  |
+| `plugins/xdg-portal/src/remote_desktop.rs`           | (stub) RemoteDesktop portal — future use    |
+| `docs/linux-setup.md`                                | Linux setup guide for system dependencies   |
+| `scripts/setup-linux.sh`                             | Auto-install script for Linux dependencies  |
 
 ## Follow-On (outside this plan)
 

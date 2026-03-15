@@ -58,9 +58,7 @@ function App() {
 				if (view === 'settings') {
 					setView('picker');
 				} else {
-					invoke('hide_picker').catch((err) =>
-						console.error('hide_picker IPC failed:', err),
-					);
+					invoke('hide_picker').catch((err) => console.error('hide_picker IPC failed:', err));
 				}
 			}
 		}
@@ -77,9 +75,7 @@ function App() {
 		const appWindow = getCurrentWebviewWindow();
 		const unlisten = appWindow.onFocusChanged(({ payload: focused }) => {
 			if (!focused) {
-				invoke('hide_picker').catch((err) =>
-					console.error('hide_picker IPC failed:', err),
-				);
+				invoke('hide_picker').catch((err) => console.error('hide_picker IPC failed:', err));
 			}
 		});
 		return () => {
@@ -102,9 +98,7 @@ function App() {
 					<EmojiPickerPanel
 						searchRef={searchRef}
 						skinTone={settings.skinTone}
-						onSkinToneChange={(skinTone) =>
-							update({ ...settings, skinTone })
-						}
+						onSkinToneChange={(skinTone) => update({ ...settings, skinTone })}
 						onEmojiSelect={handleSelect}
 						onOpenSettings={() => setView('settings')}
 					/>

@@ -24,14 +24,13 @@ where
     use ashpd::desktop::global_shortcuts::{GlobalShortcuts, NewShortcut};
     use ashpd::WindowIdentifier;
 
-    let portal = GlobalShortcuts::new()
-        .await
-        .map_err(|e| PortalError::Internal(format!("failed to connect to GlobalShortcuts portal: {e}")))?;
+    let portal = GlobalShortcuts::new().await.map_err(|e| {
+        PortalError::Internal(format!("failed to connect to GlobalShortcuts portal: {e}"))
+    })?;
 
-    let session = portal
-        .create_session()
-        .await
-        .map_err(|e| PortalError::Internal(format!("failed to create GlobalShortcuts session: {e}")))?;
+    let session = portal.create_session().await.map_err(|e| {
+        PortalError::Internal(format!("failed to create GlobalShortcuts session: {e}"))
+    })?;
 
     let make_shortcut = || {
         let s = NewShortcut::new(shortcut_id, description);
@@ -59,10 +58,12 @@ where
                 let request2 = portal
                     .bind_shortcuts(&session, &[make_shortcut()], &WindowIdentifier::default())
                     .await
-                    .map_err(|e| PortalError::Internal(format!("failed to bind shortcuts (retry): {e}")))?;
-                request2
-                    .response()
-                    .map_err(|e| PortalError::Internal(format!("bind shortcuts failed after retry: {e}")))?
+                    .map_err(|e| {
+                        PortalError::Internal(format!("failed to bind shortcuts (retry): {e}"))
+                    })?;
+                request2.response().map_err(|e| {
+                    PortalError::Internal(format!("bind shortcuts failed after retry: {e}"))
+                })?
             }
         }
     };
@@ -104,9 +105,7 @@ where
         }
     });
 
-    Ok(ShortcutHandle {
-        _cancel: cancel_tx,
-    })
+    Ok(ShortcutHandle { _cancel: cancel_tx })
 }
 
 /// Dropping this handle cancels the shortcut listener and closes the portal session.

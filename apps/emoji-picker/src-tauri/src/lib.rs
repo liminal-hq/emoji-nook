@@ -6,13 +6,18 @@
 mod injection;
 
 use log::info;
+use std::ffi::OsStr;
 use tauri::menu::{MenuBuilder, MenuItemBuilder};
 use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Emitter, Manager};
 
+fn has_wayland_display(value: Option<&OsStr>) -> bool {
+    value.is_some()
+}
+
 /// Returns true when running under a Wayland compositor.
 fn is_wayland() -> bool {
-    std::env::var("WAYLAND_DISPLAY").is_ok()
+    has_wayland_display(std::env::var_os("WAYLAND_DISPLAY").as_deref())
 }
 
 /// Receives a selected emoji from the frontend, hides the picker,
@@ -68,20 +73,22 @@ fn update_shortcut(app: AppHandle, shortcut: String) {
         let _ = app.global_shortcut().unregister_all();
 
         let handle = app.clone();
-        let result = app.global_shortcut().on_shortcut(shortcut.as_str(), move |_app, _shortcut, event| {
-            if event.state == tauri_plugin_global_shortcut::ShortcutState::Pressed {
-                if let Some(window) = handle.get_webview_window("main") {
-                    if window.is_visible().unwrap_or(false) {
-                        let _ = window.hide();
-                    } else {
-                        let _ = window.center();
-                        let _ = window.show();
-                        let _ = window.set_focus();
-                        let _ = handle.emit("picker-shown", ());
+        let result =
+            app.global_shortcut()
+                .on_shortcut(shortcut.as_str(), move |_app, _shortcut, event| {
+                    if event.state == tauri_plugin_global_shortcut::ShortcutState::Pressed {
+                        if let Some(window) = handle.get_webview_window("main") {
+                            if window.is_visible().unwrap_or(false) {
+                                let _ = window.hide();
+                            } else {
+                                let _ = window.center();
+                                let _ = window.show();
+                                let _ = window.set_focus();
+                                let _ = handle.emit("picker-shown", ());
+                            }
+                        }
                     }
-                }
-            }
-        });
+                });
 
         match result {
             Ok(()) => info!("X11 global shortcut updated to: {shortcut}"),
@@ -140,20 +147,22 @@ fn register_x11_shortcut(app: &AppHandle) {
 
     info!("registering global shortcut via X11 (tauri-plugin-global-shortcut)");
     let handle = app.clone();
-    let result = app.global_shortcut().on_shortcut("alt+shift+e", move |_app, _shortcut, event| {
-        if event.state == tauri_plugin_global_shortcut::ShortcutState::Pressed {
-            if let Some(window) = handle.get_webview_window("main") {
-                if window.is_visible().unwrap_or(false) {
-                    let _ = window.hide();
-                } else {
-                    let _ = window.center();
-                    let _ = window.show();
-                    let _ = window.set_focus();
-                    let _ = handle.emit("picker-shown", ());
+    let result = app
+        .global_shortcut()
+        .on_shortcut("alt+shift+e", move |_app, _shortcut, event| {
+            if event.state == tauri_plugin_global_shortcut::ShortcutState::Pressed {
+                if let Some(window) = handle.get_webview_window("main") {
+                    if window.is_visible().unwrap_or(false) {
+                        let _ = window.hide();
+                    } else {
+                        let _ = window.center();
+                        let _ = window.show();
+                        let _ = window.set_focus();
+                        let _ = handle.emit("picker-shown", ());
+                    }
                 }
             }
-        }
-    });
+        });
 
     match result {
         Ok(()) => info!("X11 global shortcut registered"),
@@ -205,7 +214,12 @@ pub fn run() {
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
         ))
-        .invoke_handler(tauri::generate_handler![insert_emoji, show_picker, hide_picker, update_shortcut])
+        .invoke_handler(tauri::generate_handler![
+            insert_emoji,
+            show_picker,
+            hide_picker,
+            update_shortcut
+        ])
         .setup(|app| {
             let handle = app.handle().clone();
 
@@ -220,4 +234,16 @@ pub fn run() {
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::has_wayland_display;
+    use std::ffi::OsStr;
+
+    #[test]
+    fn wayland_detection_requires_the_display_variable() {
+        assert!(has_wayland_display(Some(OsStr::new("wayland-0"))));
+        assert!(!has_wayland_display(None));
+    }
 }
