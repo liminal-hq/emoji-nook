@@ -64,15 +64,16 @@ pub fn clipboard_shuffle(emoji: &str) {
     std::thread::sleep(Duration::from_millis(200));
     drop(clipboard);
 
-    // 6. Restore original clipboard via clipboard manager handover
+    // 6. Restore original clipboard or clear it so the emoji doesn't linger
+    let mut restore = match Clipboard::new() {
+        Ok(c) => c,
+        Err(e) => {
+            warn!("failed to open clipboard for restore: {e}");
+            return;
+        }
+    };
+
     if let Some(text) = saved {
-        let mut restore = match Clipboard::new() {
-            Ok(c) => c,
-            Err(e) => {
-                warn!("failed to open clipboard for restore: {e}");
-                return;
-            }
-        };
         #[cfg(target_os = "linux")]
         let restore_result = restore
             .set()
@@ -84,6 +85,12 @@ pub fn clipboard_shuffle(emoji: &str) {
         if let Err(e) = restore_result {
             warn!("failed to restore clipboard: {e}");
         }
+    } else {
+        // Nothing was saved — clear the clipboard so the emoji doesn't
+        // stay around for an accidental Ctrl+V later
+        restore.clear().unwrap_or_else(|e| {
+            warn!("failed to clear clipboard: {e}");
+        });
     }
 }
 
