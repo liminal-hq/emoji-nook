@@ -146,16 +146,15 @@ body {
 	background: var(--border);
 	border-radius: var(--radius-sm);
 	overflow: hidden;
-	flex-shrink: 0;
 }
 
 .skin-tone-btn {
-	width: 28px;
-	height: 28px;
+	width: 24px;
+	height: 24px;
 	border: none;
 	background: var(--bg-surface);
 	cursor: pointer;
-	font-size: 0.875rem;
+	font-size: 0.75rem;
 	display: grid;
 	place-items: center;
 	transition: background 0.1s;
@@ -440,10 +439,12 @@ body {
 }
 
 .settings-checkbox {
-	width: 16px;
-	height: 16px;
+	width: 18px;
+	height: 18px;
+	margin: 0;
 	accent-color: var(--accent);
 	cursor: pointer;
+	flex-shrink: 0;
 }
 
 .settings-actions {
