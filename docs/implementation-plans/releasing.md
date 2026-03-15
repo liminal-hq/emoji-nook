@@ -18,7 +18,7 @@ The repository already has a good base for release work, but several pieces are 
 - Release/versioning policy is now documented in `docs/releasing.md`
 - There is no release-note, changelog, signing, or updater strategy yet
 - There is no checked-in GitHub release workflow
-- There is no release-prep helper script or version drift check yet
+- A release-prep helper script and CI version drift check now exist
 - Packaging metadata is still incomplete for Linux distribution
 
 ## Related Repository Review
@@ -189,28 +189,28 @@ Create repeatable CI so release builds start from a known-good state.
 
 #### Phase 4: Version consistency checks
 
-- [ ] Add a small script or workflow check that asserts all release version fields match
-- [ ] Fail CI when `package.json`, `tauri.conf.json`, and Cargo manifest versions drift
+- [x] Add a small script or workflow check that asserts all release version fields match
+- [x] Fail CI when `package.json`, `tauri.conf.json`, and Cargo manifest versions drift
 - [ ] Add a changelog or release-notes presence check if the project adopts one
-- [ ] Add a release-prep helper script, likely `scripts/prepare-release-version.sh`, that:
+- [x] Add a release-prep helper script, likely `scripts/prepare-release-version.sh`, that:
   - Prints the current release version
   - Updates all release-facing version fields together
   - Supports `--dry-run`
   - Optionally creates a release branch such as `chore/release-vX.Y.Z`
   - Stops on a dirty working tree
-- [ ] Keep the helper script narrow in scope:
+- [x] Keep the helper script narrow in scope:
   - prepare files for review
   - do not create tags
   - do not push branches
   - do not publish releases
-- [ ] Design the script around Emoji Nook's actual version-bearing files:
+- [x] Design the script around Emoji Nook's actual version-bearing files:
   - Root `package.json`
   - `apps/emoji-picker/package.json`
   - `apps/emoji-picker/src-tauri/tauri.conf.json`
   - `apps/emoji-picker/src-tauri/Cargo.toml`
   - `plugins/xdg-portal/Cargo.toml`
   - `plugins/xdg-portal/guest-js/package.json` when required
-- [ ] If adopted, make the script the recommended maintainer path for starting a release PR
+- [x] If adopted, make the script the recommended maintainer path for starting a release PR
 - [ ] Land the release-prep script and the first complete release workflow in the same implementation pass so maintainers get a full release path, not disconnected pieces
 
 **Gate 2 result: every merge is validated, and version drift is caught before release day.**

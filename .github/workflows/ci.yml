@@ -131,6 +131,36 @@ jobs:
             echo "- Run URL: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           } >> "${GITHUB_STEP_SUMMARY}"
 
+  release-metadata:
+    name: Release metadata
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+
+      - name: Check release version synchronisation
+        id: release_versions
+        run: |
+          VERSION="$(./scripts/check-release-versions.sh --current-version)"
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+
+      - name: Write summary
+        if: always()
+        run: |
+          {
+            echo "## Emoji Nook Release Metadata Summary"
+            echo
+            echo "- Runner: \`ubuntu-24.04\`"
+            echo "- Version drift check: \`${{ steps.release_versions.outcome }}\`"
+            echo "- Resolved release version: \`${{ steps.release_versions.outputs.version || 'unavailable' }}\`"
+            echo "- Run URL: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
   frontend-tests:
     name: Frontend tests
     runs-on: ubuntu-24.04

@@ -89,7 +89,14 @@ pnpm tauri:build
 
 ## Releasing
 
-Release policy and maintainer workflow live in [docs/releasing.md](docs/releasing.md). Public GitHub release automation is still being implemented, but the versioning model, tag format, and release branch policy are now defined there so documentation and future tooling stay aligned.
+Release policy and maintainer workflow live in [docs/releasing.md](docs/releasing.md). Public GitHub release automation is still being implemented, but version preparation now has dedicated helper commands:
+
+```bash
+pnpm release:version:check
+pnpm release:version:prepare -- --version 0.2.0 --dry-run
+```
+
+The release-prep helper keeps all release-facing manifests on the same version and creates `chore/release-vX.Y.Z` branches by default so the review-first workflow stays consistent.
 
 ## Licence
 

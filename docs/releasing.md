@@ -4,7 +4,7 @@ This document records the current release policy for Emoji Nook so documentation
 
 ## Current status
 
-Emoji Nook does not yet publish GitHub Releases automatically. CI validation is in place, and release-specific automation is being added in stages.
+Emoji Nook does not yet publish GitHub Releases automatically. CI validation is in place, a release version-drift check now runs in CI, and release-specific automation is being added in stages.
 
 Until the release workflow lands, treat this document as the source of truth for release decisions and naming.
 
@@ -22,6 +22,19 @@ The following files should move together for each app release:
 - `plugins/xdg-portal/guest-js/package.json`
 
 This keeps the desktop app, the local Rust plugin crate, and the guest JavaScript package aligned while the plugin remains an internal workspace component rather than a separately published product.
+
+## Maintainer commands
+
+Use these helpers when preparing or validating a release:
+
+```bash
+pnpm release:version:check
+pnpm release:version:prepare -- --current-version
+pnpm release:version:prepare -- --version 0.2.0
+pnpm release:version:prepare -- --version 0.2.0 --dry-run
+```
+
+The release-prep helper creates `chore/release-vX.Y.Z` by default, updates all release-facing version fields together, and refuses to run on a dirty working tree.
 
 ## Tags and branches
 
