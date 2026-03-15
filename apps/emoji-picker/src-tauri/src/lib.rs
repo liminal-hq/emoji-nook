@@ -53,6 +53,43 @@ fn hide_picker(app: AppHandle) {
     }
 }
 
+/// Re-registers the global shortcut with a new binding.
+#[tauri::command]
+fn update_shortcut(app: AppHandle, shortcut: String) {
+    info!("updating global shortcut to: {shortcut}");
+    if is_wayland() {
+        // Wayland shortcuts are bound via the portal — re-registering requires
+        // a new session. For now, log a note that restart is needed.
+        log::warn!("Wayland shortcut change requires app restart to take effect");
+    } else {
+        use tauri_plugin_global_shortcut::GlobalShortcutExt;
+
+        // Unregister all existing shortcuts, then register the new one
+        let _ = app.global_shortcut().unregister_all();
+
+        let handle = app.clone();
+        let result = app.global_shortcut().on_shortcut(shortcut.as_str(), move |_app, _shortcut, event| {
+            if event.state == tauri_plugin_global_shortcut::ShortcutState::Pressed {
+                if let Some(window) = handle.get_webview_window("main") {
+                    if window.is_visible().unwrap_or(false) {
+                        let _ = window.hide();
+                    } else {
+                        let _ = window.center();
+                        let _ = window.show();
+                        let _ = window.set_focus();
+                        let _ = handle.emit("picker-shown", ());
+                    }
+                }
+            }
+        });
+
+        match result {
+            Ok(()) => info!("X11 global shortcut updated to: {shortcut}"),
+            Err(e) => log::error!("failed to update shortcut: {e}"),
+        }
+    }
+}
+
 /// Register the global shortcut via the Wayland GlobalShortcuts portal.
 /// The shortcut session lives as long as the returned handle.
 fn register_wayland_shortcut(app: AppHandle) {
@@ -156,9 +193,14 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_log::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_xdg_portal::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
-        .invoke_handler(tauri::generate_handler![insert_emoji, show_picker, hide_picker])
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ))
+        .invoke_handler(tauri::generate_handler![insert_emoji, show_picker, hide_picker, update_shortcut])
         .setup(|app| {
             let handle = app.handle().clone();
 

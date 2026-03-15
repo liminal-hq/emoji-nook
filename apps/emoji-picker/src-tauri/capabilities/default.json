@@ -6,9 +6,11 @@
 	"permissions": [
 		"core:default",
 		"core:window:allow-start-dragging",
+		"autostart:default",
 		"global-shortcut:default",
 		"log:default",
 		"opener:default",
+		"store:default",
 		"xdg-portal:default",
 		"xdg-portal:allow-bind-global-shortcut",
 		"xdg-portal:allow-unbind-global-shortcut"
