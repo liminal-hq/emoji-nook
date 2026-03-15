@@ -8,7 +8,7 @@ A native Linux emoji picker built with Tauri v2 and React 19, designed to blend 
 
 Emoji Nook runs in the background and pops up on a global shortcut, letting you search for and select an emoji that gets injected into the previously focused application. The picker adapts to your desktop's colour scheme, accent colour, and font preferences via `xdg-desktop-portal`.
 
-> **Status:** Early development — the picker UI, theme detection, global shortcuts, emoji injection, settings persistence, and system tray are functional. Releasing and packaging are planned.
+> **Status:** Early development — the picker UI, theme detection, global shortcuts, emoji injection, settings persistence, and system tray are functional. CI is in place, and release automation is being built out now.
 
 ## Architecture
 
@@ -86,6 +86,10 @@ pnpm tauri:dev
 ```bash
 pnpm tauri:build
 ```
+
+## Releasing
+
+Release policy and maintainer workflow live in [docs/releasing.md](docs/releasing.md). Public GitHub release automation is still being implemented, but the versioning model, tag format, and release branch policy are now defined there so documentation and future tooling stay aligned.
 
 ## Licence
 

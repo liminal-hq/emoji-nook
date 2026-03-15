@@ -2,6 +2,8 @@
 	"name": "emoji-picker-workspace",
 	"private": true,
 	"version": "0.1.0",
+	"description": "Emoji Nook workspace for the desktop app and XDG portal plugin",
+	"license": "(Apache-2.0 OR MIT)",
 	"packageManager": "pnpm@9.15.0",
 	"workspaces": [
 		"apps/*",

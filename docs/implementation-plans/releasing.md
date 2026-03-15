@@ -11,12 +11,15 @@ Produce signed, versioned, reproducible Linux release artefacts for Emoji Nook, 
 The repository already has a good base for release work, but several pieces are still missing:
 
 - Tauri bundling is enabled in `apps/emoji-picker/src-tauri/tauri.conf.json`
+- CI validation already exists in `.github/workflows/ci.yml`
+- Rust CI jobs already use the shared GHCR desktop container pattern
 - App, frontend package, workspace package, and plugin manifests all carry explicit versions
 - Linux icons are present for bundle generation
-- There is no checked-in GitHub Actions workflow
-- There is no documented version bump or tagging flow
+- Release/versioning policy is now documented in `docs/releasing.md`
 - There is no release-note, changelog, signing, or updater strategy yet
-- Packaging metadata is still minimal for Linux distribution
+- There is no checked-in GitHub release workflow
+- There is no release-prep helper script or version drift check yet
+- Packaging metadata is still incomplete for Linux distribution
 
 ## Related Repository Review
 
@@ -102,6 +105,8 @@ Adopt a single release version per app release and keep these files in sync:
 
 Recommendation: use the app release version as the workspace version anchor, even while the plugin remains unpublished.
 
+Decision: keep all current version-bearing workspace manifests in sync for each app release, including `plugins/xdg-portal/guest-js/package.json`, until any plugin package is published independently.
+
 ### Release trigger
 
 Use annotated Git tags in the form `vX.Y.Z`.
@@ -112,6 +117,8 @@ Use annotated Git tags in the form `vX.Y.Z`.
 
 Recommendation: follow the `threshold` and `smdu` convention with plain `vX.Y.Z` tags unless Emoji Nook later needs multiple independently versioned release channels.
 
+Decision: standardise on `vX.Y.Z` tags for stable releases and reserve `vX.Y.Z-beta.N` / `vX.Y.Z-rc.N` for prereleases when maintainers need them.
+
 ### Release artefacts
 
 Initial artefacts should target Linux users directly:
@@ -121,6 +128,8 @@ Initial artefacts should target Linux users directly:
 - `.rpm` for Fedora/openSUSE and derivatives
 - Checksums file (`SHA256SUMS`)
 
+Decision: GitHub-generated release notes are the initial changelog policy. A separate `CHANGELOG.md` is unnecessary until the project has a stronger need for hand-curated historical notes.
+
 ## Implementation Phases
 
 ### Gate 1: Release foundations (Phases 1–2)
@@ -129,14 +138,14 @@ Define the versioning and metadata needed for a trustworthy package.
 
 #### Phase 1: Version and branching policy
 
-- [ ] Document the release flow in `README.md` or a dedicated release guide
-- [ ] Decide whether plugin manifest versions always move with app releases or only when plugin surface changes
-- [ ] Standardise tag format on `vX.Y.Z`
-- [ ] Decide whether prereleases are needed before `1.0.0`
-- [ ] Add a lightweight changelog policy:
+- [x] Document the release flow in `README.md` or a dedicated release guide
+- [x] Decide whether plugin manifest versions always move with app releases or only when plugin surface changes
+- [x] Standardise tag format on `vX.Y.Z`
+- [x] Decide whether prereleases are needed before `1.0.0`
+- [x] Add a lightweight changelog policy:
   - Use GitHub-generated notes, or
   - Maintain `CHANGELOG.md`
-- [ ] Decide whether release prep should happen on a dedicated branch by default, following the lightweight `flow` pattern
+- [x] Decide whether release prep should happen on a dedicated branch by default, following the lightweight `flow` pattern
 
 #### Phase 2: Package metadata hardening
 
@@ -147,9 +156,9 @@ Define the versioning and metadata needed for a trustworthy package.
   - `copyright`
   - `publisher`
   - Linux package dependencies if required
-- [ ] Confirm application naming is consistent across bundle metadata, desktop entry, and GitHub release naming
-- [ ] Audit icons and confirm they are sufficient for AppImage, `.deb`, and `.rpm` outputs
-- [ ] Add licence metadata where packaging surfaces require it
+- [x] Confirm application naming is consistent across bundle metadata, desktop entry, and GitHub release naming
+- [x] Audit icons and confirm they are sufficient for AppImage, `.deb`, and `.rpm` outputs
+- [x] Add licence metadata where packaging surfaces require it
 - [ ] Verify all user-facing packaging text uses Canadian English
 
 **Gate 1 result: the project has a defined versioning model and complete Linux packaging metadata.**
