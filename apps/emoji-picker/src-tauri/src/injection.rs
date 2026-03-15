@@ -14,12 +14,12 @@ use std::time::{Duration, Instant};
 /// clipboard shuffle technique:
 ///
 /// 1. Save current clipboard contents
-/// 2. Write emoji to clipboard (kept alive for the target app to read)
+/// 2. Write emoji to clipboard (handed to clipboard manager)
 /// 3. Wait for focus to settle on the target app
 /// 4. Simulate Ctrl+V
 /// 5. Wait for paste to complete
 /// 6. Restore original clipboard contents
-pub fn clipboard_shuffle(emoji: &str, wayland: bool) {
+pub fn clipboard_shuffle(emoji: &str) {
     let mut clipboard = match Clipboard::new() {
         Ok(c) => c,
         Err(e) => {
@@ -31,8 +31,8 @@ pub fn clipboard_shuffle(emoji: &str, wayland: bool) {
     // 1. Save current clipboard
     let saved = clipboard.get_text().ok();
 
-    // 2. Write emoji to clipboard, waiting for the clipboard manager to
-    //    grab the contents so they survive after `Clipboard` is dropped
+    // 2. Write emoji to clipboard, handing contents to the clipboard manager
+    //    so they survive after this `Clipboard` instance is dropped
     #[cfg(target_os = "linux")]
     let set_result = clipboard
         .set()
@@ -46,46 +46,67 @@ pub fn clipboard_shuffle(emoji: &str, wayland: bool) {
         return;
     }
     info!("clipboard set to: {emoji}");
+    drop(clipboard);
 
     // 3. Wait for focus to settle on target app
     std::thread::sleep(Duration::from_millis(100));
 
     // 4. Simulate Ctrl+V
-    //    - Wayland (GNOME): `xdotool` via XWayland (GNOME doesn't support
-    //      the `wl_virtual_keyboard` protocol that `wtype` needs)
-    //    - X11: `xdotool` directly
-    //    - Other Wayland compositors: try `wtype` first
-    let paste_result = if wayland {
-        simulate_paste_wtype().or_else(|e| {
-            info!("`wtype` failed ({e}), falling back to `xdotool`");
-            simulate_paste_xdotool()
-        })
-    } else {
-        simulate_paste_xdotool().or_else(|e| {
-            info!("`xdotool` failed ({e}), falling back to `wtype`");
+    //    Try in order: `ydotool` (kernel uinput, works everywhere),
+    //    `wtype` (native Wayland), `xdotool` (X11/XWayland)
+    let paste_result = simulate_paste_ydotool()
+        .or_else(|e| {
+            info!("{e}, trying `wtype`");
             simulate_paste_wtype()
         })
-    };
+        .or_else(|e| {
+            info!("{e}, trying `xdotool`");
+            simulate_paste_xdotool()
+        });
     if let Err(e) = paste_result {
         warn!("failed to simulate paste: {e}");
     }
 
     // 5. Wait for paste to complete before restoring
-    std::thread::sleep(Duration::from_millis(150));
+    std::thread::sleep(Duration::from_millis(200));
 
     // 6. Restore original clipboard
     if let Some(text) = saved {
-        let mut restore_clipboard = match Clipboard::new() {
+        let mut restore = match Clipboard::new() {
             Ok(c) => c,
             Err(e) => {
                 warn!("failed to open clipboard for restore: {e}");
                 return;
             }
         };
-        if let Err(e) = restore_clipboard.set_text(&text) {
+        #[cfg(target_os = "linux")]
+        let restore_result = restore
+            .set()
+            .wait_until(Instant::now() + Duration::from_secs(2))
+            .text(&text);
+        #[cfg(not(target_os = "linux"))]
+        let restore_result = restore.set_text(&text);
+
+        if let Err(e) = restore_result {
             warn!("failed to restore clipboard: {e}");
         }
     }
+}
+
+/// Simulates Ctrl+V using `ydotool` (kernel uinput — works on X11, Wayland,
+/// GNOME, KDE, Sway, etc.). Requires `ydotoold` running.
+fn simulate_paste_ydotool() -> Result<(), String> {
+    // ydotool key: 29 = KEY_LEFTCTRL, 47 = KEY_V
+    // Format: <keycode>:<press=1/release=0>
+    let status = Command::new("ydotool")
+        .args(["key", "29:1", "47:1", "47:0", "29:0"])
+        .status()
+        .map_err(|e| format!("`ydotool` not found: {e}"))?;
+
+    if !status.success() {
+        return Err(format!("`ydotool` exited with: {status}"));
+    }
+    Ok(())
 }
 
 /// Simulates Ctrl+V using `xdotool` (X11 / XWayland).
@@ -101,7 +122,7 @@ fn simulate_paste_xdotool() -> Result<(), String> {
     Ok(())
 }
 
-/// Simulates Ctrl+V using `wtype` (native Wayland).
+/// Simulates Ctrl+V using `wtype` (native Wayland, needs compositor support).
 fn simulate_paste_wtype() -> Result<(), String> {
     let status = Command::new("wtype")
         .args(["-M", "ctrl", "-P", "v", "-p", "v", "-m", "ctrl"])
