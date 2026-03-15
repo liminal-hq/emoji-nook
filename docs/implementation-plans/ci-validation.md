@@ -8,14 +8,15 @@ Establish a practical CI baseline for Emoji Nook that checks formatting, linting
 
 ## Current State Review
 
-Emoji Nook is still early in its tooling maturity:
+Emoji Nook now has a practical CI baseline in place:
 
-- There is no checked-in `.github/workflows/` directory
-- Root scripts cover development and builds, but not dedicated lint, format, or test gates
-- The frontend app currently has `build`, but no explicit `test`, `typecheck`, or `lint` scripts
-- There is no checked-in formatter, linter, or test-runner configuration
-- The Rust workspace builds locally, but there is no CI enforcement for `cargo fmt`, `cargo clippy`, or workspace tests
-- There is no required branch-protection or merge-gate policy documented yet
+- `.github/workflows/ci.yml` is checked in and runs on pull requests, pushes to `main`, and manual dispatch
+- Root scripts cover formatting, linting, typechecking, tests, and builds
+- The frontend app has explicit `lint`, `typecheck`, `test`, and `test:ci` scripts
+- Prettier, ESLint, Vitest, Testing Library, `cargo fmt`, `cargo clippy`, and `cargo nextest` are all part of the current validation surface
+- Rust CI jobs already use the shared GHCR desktop container pattern
+- A lightweight release metadata job checks release-version synchronisation in CI
+- Required branch-protection policy is still a maintainer decision rather than documented repository policy
 
 ## Related Repository Review
 
@@ -127,7 +128,7 @@ Create the commands that CI will eventually run.
 
 #### Phase 1: Root script surface
 
-- [ ] Add root scripts for:
+- [x] Add root scripts for:
   - `format`
   - `format:check`
   - `typecheck`
@@ -135,22 +136,23 @@ Create the commands that CI will eventually run.
   - `test:rust`
   - `build`
   - `build:rust`
-  - `ci`
-- [ ] Prefer root-level orchestration commands so developers and CI use the same entry points
-- [ ] Add app-level scripts in `apps/emoji-picker/package.json` for:
+  - `validate`
+  - `ci:all`
+- [x] Prefer root-level orchestration commands so developers and CI use the same entry points
+- [x] Add app-level scripts in `apps/emoji-picker/package.json` for:
   - `typecheck`
   - `test`
   - `test:ci`
   - `lint`
-- [ ] Keep script names aligned with the patterns seen in `liminal-notes` and `smdu`
+- [x] Keep script names aligned with the patterns seen in `liminal-notes` and `smdu`
 
 #### Phase 2: Base tooling
 
-- [ ] Add Prettier configuration for Markdown, JSON, TypeScript, and other authored text files
-- [ ] Add Vitest configuration for `apps/emoji-picker`
-- [ ] Add Testing Library support for React component tests
-- [ ] Add ESLint configuration in the first pass so linting ships alongside formatting and typechecking
-- [ ] Add Rust formatting and clippy commands to the documented local workflow
+- [x] Add Prettier configuration for Markdown, JSON, TypeScript, and other authored text files
+- [x] Add Vitest configuration for `apps/emoji-picker`
+- [x] Add Testing Library support for React component tests
+- [x] Add ESLint configuration in the first pass so linting ships alongside formatting and typechecking
+- [x] Add Rust formatting and clippy commands to the documented local workflow
 
 **Gate 1 result: developers can run the full local validation suite with stable, documented commands.**
 
@@ -166,16 +168,16 @@ Add enough tests and static analysis for CI to enforce something meaningful.
   - Keyboard navigation
   - Selection preview behaviour
   - Theme hook behaviour where practical
-- [ ] Add a dedicated frontend typecheck command using `tsc --noEmit`
-- [ ] Ensure test output can be emitted as JUnit for CI consumption
+- [x] Add a dedicated frontend typecheck command using `tsc --noEmit`
+- [x] Ensure test output can be emitted as JUnit for CI consumption
 - [ ] If linting is enabled, ensure it covers React and TypeScript files without producing noisy low-value failures
 
 #### Phase 4: Rust validation baseline
 
-- [ ] Add `cargo nextest` coverage for the app backend and plugin workspace
-- [ ] Add `cargo fmt --check`
-- [ ] Add `cargo clippy --workspace --all-targets -- -D warnings`
-- [ ] Document Rust test runner policy explicitly:
+- [x] Add `cargo nextest` coverage for the app backend and plugin workspace
+- [x] Add `cargo fmt --check`
+- [x] Add `cargo clippy --workspace --all-targets -- -D warnings`
+- [x] Document Rust test runner policy explicitly:
   - `cargo nextest` is the shared Rust test path
   - installation expectations are documented
   - any fallback behaviour is documented if it is kept
@@ -189,21 +191,21 @@ Add GitHub Actions jobs that mirror the local commands.
 
 #### Phase 5: CI workflow structure
 
-- [ ] Add `.github/workflows/ci.yml`
-- [ ] Trigger on:
+- [x] Add `.github/workflows/ci.yml`
+- [x] Trigger on:
   - pull requests targeting `main`
   - pushes to `main`
   - optional manual dispatch
-- [ ] Prefer separate jobs for:
+- [x] Prefer separate jobs for the active validation surface:
   - format
   - frontend typecheck
   - frontend tests
   - Rust format and clippy
   - Rust tests
-  - production build
-- [ ] Use the shared GHCR CI image pattern from `liminal-hq/.github` where it improves consistency for Tauri and Rust jobs
+- [ ] Keep the production build as a separately scoped job once packaging confidence is worth the extra CI cost
+- [x] Use the shared GHCR CI image pattern from `liminal-hq/.github` where it improves consistency for Tauri and Rust jobs
 - [ ] Keep the first workflow intentionally modest; avoid too many matrix combinations until the basics are stable
-- [ ] Structure the workflow so fast checks fail early and heavy checks start in parallel:
+- [x] Structure the workflow so fast checks fail early and heavy checks start in parallel:
   - formatting and typecheck should return quickly
   - tests should start without waiting on production packaging
   - Tauri production builds should be isolated in their own job
@@ -214,20 +216,23 @@ Add GitHub Actions jobs that mirror the local commands.
 
 #### Phase 6: Workflow summaries and artefacts
 
-- [ ] Add a `GITHUB_STEP_SUMMARY` section to every job
-- [ ] Design summaries to fit Emoji Nook specifically:
+- [x] Add a `GITHUB_STEP_SUMMARY` section to every job
+- [x] Design summaries to fit Emoji Nook specifically:
   - `Emoji Nook Format Summary`
+  - `Emoji Nook Lint Summary`
+  - `Emoji Nook Typecheck Summary`
   - `Emoji Nook Frontend Test Summary`
   - `Emoji Nook Rust Check Summary`
-  - `Emoji Nook Build Summary`
+  - `Emoji Nook Rust Test Summary`
+  - `Emoji Nook Release Metadata Summary`
 - [ ] Include in summaries:
   - job purpose
   - runner or container used
   - key command results
   - artefacts or reports produced
   - workflow run link when useful
-- [ ] Upload JUnit or equivalent test artefacts from frontend and Rust jobs where available
-- [ ] Publish test reports in the Actions UI when practical
+- [x] Upload JUnit or equivalent test artefacts from frontend and Rust jobs where available
+- [x] Publish test reports in the Actions UI when practical
 
 **Gate 3 result: pull requests receive clear, per-concern status checks with useful job summaries.**
 

@@ -1,8 +1,11 @@
 [package]
 name = "emoji-picker"
 version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
+description = "A native Linux emoji picker that blends with your desktop"
+authors = ["Liminal HQ, Scott Morris"]
+license.workspace = true
+homepage = "https://github.com/liminal-hq/emoji-nook"
+repository = "https://github.com/liminal-hq/emoji-nook"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -30,4 +33,3 @@ tauri-plugin-xdg-portal = { path = "../../../plugins/xdg-portal" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1", features = ["sync"] }
-

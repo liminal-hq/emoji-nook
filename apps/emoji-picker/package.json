@@ -2,6 +2,8 @@
 	"name": "@emoji-picker/emoji-picker",
 	"private": true,
 	"version": "0.1.0",
+	"description": "Emoji Nook desktop application frontend",
+	"license": "(Apache-2.0 OR MIT)",
 	"type": "module",
 	"scripts": {
 		"dev": "vite",

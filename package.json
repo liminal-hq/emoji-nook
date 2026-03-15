@@ -2,6 +2,8 @@
 	"name": "emoji-picker-workspace",
 	"private": true,
 	"version": "0.1.0",
+	"description": "Emoji Nook workspace for the desktop app and XDG portal plugin",
+	"license": "(Apache-2.0 OR MIT)",
 	"packageManager": "pnpm@9.15.0",
 	"workspaces": [
 		"apps/*",
@@ -14,6 +16,8 @@
 		"format:rust:check": "cargo fmt --all -- --check",
 		"lint": "pnpm --filter @emoji-picker/emoji-picker lint",
 		"lint:rust": "cargo clippy --workspace --all-targets -- -D warnings",
+		"release:version:check": "./scripts/check-release-versions.sh",
+		"release:version:prepare": "./scripts/prepare-release-version.sh",
 		"typecheck": "pnpm --filter @emoji-picker/emoji-picker typecheck",
 		"test": "pnpm --filter @emoji-picker/emoji-picker test",
 		"test:rust": "cargo nextest run --workspace --locked --config-file nextest.toml --profile ci",

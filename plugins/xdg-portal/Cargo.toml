@@ -2,8 +2,11 @@
 name = "tauri-plugin-xdg-portal"
 version = "0.1.0"
 edition = "2021"
-license = "MIT"
+license.workspace = true
 description = "Tauri plugin for xdg-desktop-portal integrations"
+authors = ["Liminal HQ, Scott Morris"]
+homepage = "https://github.com/liminal-hq/emoji-nook"
+repository = "https://github.com/liminal-hq/emoji-nook"
 build = "build.rs"
 links = "tauri-plugin-xdg-portal"
 

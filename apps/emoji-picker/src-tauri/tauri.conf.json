@@ -32,6 +32,11 @@
 	"bundle": {
 		"active": true,
 		"targets": "all",
+		"category": "Utility",
+		"publisher": "Liminal HQ",
+		"shortDescription": "A native Linux emoji picker that blends with your desktop.",
+		"longDescription": "Emoji Nook is a native Linux emoji picker built with Tauri and React. It stays out of the way until you call it with a shortcut, then injects the selected emoji back into the previously focused application.",
+		"copyright": "Copyright 2026 Liminal HQ, Scott Morris",
 		"icon": [
 			"icons/32x32.png",
 			"icons/128x128.png",
