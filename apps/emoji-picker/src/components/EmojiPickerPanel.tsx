@@ -3,6 +3,7 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+import type { RefObject } from 'react';
 import { useCallback, useRef, useEffect } from 'react';
 import { EmojiPicker } from 'frimousse';
 import type { SkinTone } from 'frimousse';
@@ -14,9 +15,11 @@ export interface EmojiSelection {
 }
 
 interface EmojiPickerPanelProps {
+	searchRef?: RefObject<HTMLInputElement | null>;
 	skinTone: SkinTone;
 	onSkinToneChange: (skinTone: SkinTone) => void;
 	onEmojiSelect: (selection: EmojiSelection) => void;
+	onOpenSettings?: () => void;
 }
 
 /** Convert a category label like "Smileys & emotion" to a slug like "smileys-emotion". */
@@ -30,16 +33,19 @@ function slugify(label: string): string {
 }
 
 export default function EmojiPickerPanel({
+	searchRef: externalSearchRef,
 	skinTone,
 	onSkinToneChange,
 	onEmojiSelect,
+	onOpenSettings,
 }: EmojiPickerPanelProps) {
-	const searchRef = useRef<HTMLInputElement>(null);
+	const internalSearchRef = useRef<HTMLInputElement>(null);
+	const searchRef = externalSearchRef ?? internalSearchRef;
 	const viewportRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
 		searchRef.current?.focus();
-	}, []);
+	}, [searchRef]);
 
 	const handleSelect = useCallback(
 		(emoji: EmojiSelection) => {
@@ -135,6 +141,16 @@ export default function EmojiPickerPanel({
 								</>
 							) : (
 								<span className="preview-label">Pick an emoji…</span>
+							)}
+							{onOpenSettings && (
+								<button
+									className="settings-gear"
+									onClick={onOpenSettings}
+									title="Settings"
+									aria-label="Settings"
+								>
+									&#9881;
+								</button>
 							)}
 						</div>
 					)}

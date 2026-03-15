@@ -11,8 +11,31 @@ vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(() => Promise.resolve()),
 }));
 
+vi.mock('@tauri-apps/api/event', () => ({
+	listen: vi.fn(() => Promise.resolve(() => {})),
+}));
+
+vi.mock('@tauri-apps/api/webviewWindow', () => ({
+	getCurrentWebviewWindow: () => ({
+		onFocusChanged: vi.fn(() => Promise.resolve(() => {})),
+	}),
+}));
+
 vi.mock('./hooks/useTheme', () => ({
 	useTheme: vi.fn(),
+}));
+
+vi.mock('./hooks/useSettings', () => ({
+	useSettings: () => ({
+		settings: {
+			shortcut: 'Alt+Shift+E',
+			skinTone: 'none',
+			closeOnSelect: true,
+			autostart: false,
+		},
+		loaded: true,
+		update: vi.fn(),
+	}),
 }));
 
 vi.mock('./components/EmojiPickerPanel', () => ({
@@ -34,7 +57,7 @@ describe('App', () => {
 		vi.clearAllMocks();
 	});
 
-	it('invokes the backend command and shows the selection toast', async () => {
+	it('invokes the backend command on emoji selection', async () => {
 		render(<App />);
 
 		fireEvent.click(screen.getByRole('button', { name: 'Select mock emoji' }));
@@ -45,7 +68,5 @@ describe('App', () => {
 				label: 'grinning face',
 			}),
 		);
-
-		expect(screen.getByText('Selected: 😀 grinning face')).toBeInTheDocument();
 	});
 });

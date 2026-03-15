@@ -12,9 +12,17 @@
 	"app": {
 		"windows": [
 			{
-				"title": "emoji-picker",
-				"width": 800,
-				"height": 600
+				"label": "main",
+				"title": "Emoji Nook",
+				"width": 370,
+				"height": 380,
+				"visible": false,
+				"decorations": false,
+				"transparent": true,
+				"alwaysOnTop": true,
+				"center": true,
+				"resizable": false,
+				"skipTaskbar": true
 			}
 		],
 		"security": {

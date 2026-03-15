@@ -13,6 +13,10 @@ vi.mock('tauri-plugin-xdg-portal', () => ({
 	},
 }));
 
+vi.mock('@tauri-apps/api/event', () => ({
+	listen: vi.fn(() => Promise.resolve(() => {})),
+}));
+
 function ThemeHarness() {
 	useTheme();
 	return null;

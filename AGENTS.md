@@ -89,6 +89,11 @@ Body requirements:
 - Use markdown formatting where useful (`**bold**`, `_italics_`, `code`, bullets).
 - Do not use markdown headings in commit bodies.
 - Keep each commit message focused on that specific commit.
+- Prefer the branch-local body style already used across this repository:
+  - start with a short framing sentence when context helps
+  - use flat bullets for concrete change items
+  - use short subsystem labels like `Dragging:` or `Theme:` when a commit spans a few related areas
+  - end with a brief rationale or tradeoff note when behaviour changed for a specific reason
 
 Shell safety:
 

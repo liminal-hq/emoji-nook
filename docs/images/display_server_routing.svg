@@ -1,0 +1,324 @@
+<!-- Animated diagram of Wayland vs X11 display server detection and routing -->
+<!-- -->
+<!-- (c) Copyright 2026 Liminal HQ, Scott Morris -->
+<!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 640" role="img" aria-labelledby="ds-title ds-desc">
+  <title id="ds-title">Display Server Routing</title>
+  <desc id="ds-desc">Animated diagram showing how Emoji Nook detects Wayland or X11 at startup and routes global shortcuts, emoji injection, and theme detection through the appropriate platform path, converging on a shared component layer.</desc>
+
+  <defs>
+    <!-- Background gradient -->
+    <linearGradient id="ds-bg" x1="0" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#0a0a12"/>
+      <stop offset="50%" stop-color="#0f1628"/>
+      <stop offset="100%" stop-color="#1a0e2e"/>
+    </linearGradient>
+
+    <!-- Dot grid -->
+    <pattern id="ds-dots" x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="12" cy="12" r="0.6" fill="#ffffff08"/>
+    </pattern>
+
+    <!-- Zone colours -->
+    <linearGradient id="z-detect" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#c2410c"/>
+    </linearGradient>
+    <linearGradient id="z-wayland" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#818cf8"/>
+      <stop offset="100%" stop-color="#6366f1"/>
+    </linearGradient>
+    <linearGradient id="z-x11" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2dd4bf"/>
+      <stop offset="100%" stop-color="#0d9488"/>
+    </linearGradient>
+    <linearGradient id="z-shared" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+
+    <!-- Scanning ring gradient -->
+    <linearGradient id="scan-ring" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f97316" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#f97316" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#f97316" stop-opacity="0.8"/>
+    </linearGradient>
+
+    <!-- Markers -->
+    <marker id="ds-arrow-violet" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="10" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 3.5 L0 7 L1.5 3.5 Z" fill="#818cf8"/>
+    </marker>
+    <marker id="ds-arrow-teal" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="10" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 3.5 L0 7 L1.5 3.5 Z" fill="#2dd4bf"/>
+    </marker>
+    <marker id="ds-arrow-gold" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="10" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 3.5 L0 7 L1.5 3.5 Z" fill="#fbbf24"/>
+    </marker>
+
+    <!-- Filters -->
+    <filter id="ds-glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="ds-shadow">
+      <feDropShadow dx="2" dy="3" stdDeviation="4" flood-color="#00000040"/>
+    </filter>
+    <filter id="ds-glow-orange">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+
+    <style>
+      .ds-heading { font: 700 26px "Space Grotesk", "Inter", system-ui, sans-serif; fill: #f97316; letter-spacing: -0.02em; }
+      .ds-sub { font: 500 13px "Inter", system-ui, sans-serif; fill: #8892a8; }
+      .ds-title { font: 700 13px "Space Grotesk", "Inter", system-ui, sans-serif; fill: #fff; letter-spacing: 0.02em; }
+      .ds-code { font: 600 11px "JetBrains Mono", "Fira Code", monospace; fill: #b4bfce; }
+      .ds-val { font: 600 11px "JetBrains Mono", "Fira Code", monospace; }
+      .ds-label { font: 600 10px "JetBrains Mono", monospace; letter-spacing: 0.06em; }
+      .ds-note { font: 500 10px "Inter", system-ui, sans-serif; fill: #8892a8; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="640" rx="14" fill="url(#ds-bg)"/>
+  <rect width="1200" height="640" rx="14" fill="url(#ds-dots)"/>
+
+  <!-- Ambient orbs -->
+  <g opacity="0.05">
+    <circle cx="250" cy="300" r="180" fill="#818cf8">
+      <animate attributeName="r" values="180;195;180" dur="18s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="600" cy="80" r="140" fill="#f97316">
+      <animate attributeName="r" values="140;155;140" dur="14s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="950" cy="300" r="180" fill="#2dd4bf">
+      <animate attributeName="r" values="180;195;180" dur="20s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="600" cy="550" r="200" fill="#fbbf24">
+      <animate attributeName="r" values="200;215;200" dur="22s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- Title -->
+  <text x="50" y="42" class="ds-heading">DISPLAY SERVER ROUTING</text>
+  <text x="50" y="62" class="ds-sub">is_wayland() detection at startup, branching to platform-specific implementations</text>
+
+  <!-- ================================================================ -->
+  <!-- TOP CENTRE: DETECTION NODE                                       -->
+  <!-- ================================================================ -->
+  <g transform="translate(600, 90)">
+    <!-- Scanning ring animation -->
+    <circle cx="0" cy="28" r="52" fill="none" stroke="#f97316" stroke-width="1.5" opacity="0.3">
+      <animate attributeName="r" values="48;58;48" dur="3s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.4;0.1;0.4" dur="3s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="0" cy="28" r="42" fill="none" stroke="#f97316" stroke-width="1" opacity="0.2">
+      <animate attributeName="r" values="42;52;42" dur="3s" begin="0.5s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.3;0.05;0.3" dur="3s" begin="0.5s" repeatCount="indefinite"/>
+    </circle>
+
+    <!-- Decision diamond -->
+    <g filter="url(#ds-glow-orange)">
+      <polygon points="0,-20 80,28 0,76 -80,28" fill="#0f1520" stroke="#f9731660" stroke-width="1.5"/>
+      <polygon points="0,-16 76,28 0,72 -76,28" fill="#0f1520" stroke="none"/>
+    </g>
+    <!-- Orange top accent on diamond -->
+    <line x1="-40" y1="-8" x2="40" y2="-8" stroke="#f97316" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+
+    <text x="0" y="20" text-anchor="middle" class="ds-title" style="font-size:11px;">DETECTION</text>
+    <text x="0" y="36" text-anchor="middle" class="ds-val" style="fill:#f97316; font-size:10px;">is_wayland()</text>
+    <text x="0" y="52" text-anchor="middle" class="ds-code" style="font-size:9px;">WAYLAND_DISPLAY</text>
+
+    <!-- Pulsing centre dot -->
+    <circle cx="0" cy="28" r="3" fill="#f97316" opacity="0.8">
+      <animate attributeName="r" values="2;4;2" dur="2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.5;1;0.5" dur="2s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- Branch labels -->
+  <text x="380" y="140" class="ds-label" fill="#818cf8">WAYLAND = true</text>
+  <text x="780" y="140" class="ds-label" fill="#2dd4bf">WAYLAND = false</text>
+
+  <!-- ================================================================ -->
+  <!-- BRANCHING PATHS FROM DETECTION                                   -->
+  <!-- ================================================================ -->
+
+  <!-- Left branch: Detection → Wayland column -->
+  <g filter="url(#ds-glow)">
+    <path d="M520 118 C440 140, 320 160, 270 180" fill="none" stroke="#818cf8" stroke-width="2.5" marker-end="url(#ds-arrow-violet)">
+      <animate attributeName="opacity" values="0.3;0.8;0.3" dur="3s" repeatCount="indefinite"/>
+    </path>
+  </g>
+
+  <!-- Right branch: Detection → X11 column -->
+  <g filter="url(#ds-glow)">
+    <path d="M680 118 C760 140, 880 160, 930 180" fill="none" stroke="#2dd4bf" stroke-width="2.5" marker-end="url(#ds-arrow-teal)">
+      <animate attributeName="opacity" values="0.3;0.8;0.3" dur="3s" begin="0.5s" repeatCount="indefinite"/>
+    </path>
+  </g>
+
+  <!-- Data particles on branches -->
+  <circle r="3.5" fill="#818cf8" opacity="0.8">
+    <animateMotion dur="2.5s" repeatCount="indefinite" path="M520 118 C440 140, 320 160, 270 180"/>
+    <animate attributeName="opacity" values="0.2;1;0.2" dur="2.5s" repeatCount="indefinite"/>
+  </circle>
+  <circle r="3.5" fill="#2dd4bf" opacity="0.8">
+    <animateMotion dur="2.5s" repeatCount="indefinite" path="M680 118 C760 140, 880 160, 930 180" begin="0.5s"/>
+    <animate attributeName="opacity" values="0.2;1;0.2" dur="2.5s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- ================================================================ -->
+  <!-- LEFT COLUMN: WAYLAND PATH                                        -->
+  <!-- ================================================================ -->
+
+  <!-- Wayland Card 1: Global Shortcuts -->
+  <g transform="translate(70, 185)">
+    <rect width="240" height="100" rx="10" fill="#0f1520" stroke="#818cf830" stroke-width="1.5" filter="url(#ds-shadow)"/>
+    <rect width="240" height="4" rx="2" fill="url(#z-wayland)"/>
+    <text x="14" y="26" class="ds-title">GLOBAL SHORTCUTS</text>
+    <line x1="14" y1="34" x2="226" y2="34" stroke="#ffffff10" stroke-width="1"/>
+    <text x="14" y="52" class="ds-code" style="fill:#818cf8;">ashpd::GlobalShortcuts</text>
+    <text x="14" y="68" class="ds-code">bind_shortcuts() + retry</text>
+    <text x="14" y="84" class="ds-code">receive_activated() stream</text>
+  </g>
+
+  <!-- Wayland connector 1→2 -->
+  <path d="M190 285 L190 300" fill="none" stroke="#818cf840" stroke-width="1.5"/>
+
+  <!-- Wayland Card 2: Emoji Injection -->
+  <g transform="translate(70, 305)">
+    <rect width="240" height="100" rx="10" fill="#0f1520" stroke="#818cf830" stroke-width="1.5" filter="url(#ds-shadow)"/>
+    <rect width="240" height="4" rx="2" fill="url(#z-wayland)"/>
+    <text x="14" y="26" class="ds-title">EMOJI INJECTION</text>
+    <line x1="14" y1="34" x2="226" y2="34" stroke="#ffffff10" stroke-width="1"/>
+    <text x="14" y="52" class="ds-code">Clipboard shuffle via <tspan fill="#818cf8">arboard</tspan></text>
+    <text x="14" y="68" class="ds-code">Paste: <tspan fill="#fbbf24" font-weight="700">ydotool</tspan> (primary)</text>
+    <text x="14" y="84" class="ds-code">Fallback: <tspan fill="#8892a8">wtype</tspan></text>
+    <!-- Glow on ydotool -->
+    <rect x="52" y="57" width="56" height="14" rx="3" fill="#fbbf2408" stroke="none">
+      <animate attributeName="fill" values="#fbbf2408;#fbbf2418;#fbbf2408" dur="3s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+
+  <!-- Wayland connector 2→3 -->
+  <path d="M190 405 L190 420" fill="none" stroke="#818cf840" stroke-width="1.5"/>
+
+  <!-- Wayland Card 3: Theme Detection -->
+  <g transform="translate(70, 425)">
+    <rect width="240" height="86" rx="10" fill="#0f1520" stroke="#818cf830" stroke-width="1.5" filter="url(#ds-shadow)"/>
+    <rect width="240" height="4" rx="2" fill="url(#z-wayland)"/>
+    <text x="14" y="26" class="ds-title">THEME DETECTION</text>
+    <line x1="14" y1="34" x2="226" y2="34" stroke="#ffffff10" stroke-width="1"/>
+    <text x="14" y="52" class="ds-code" style="fill:#818cf8;">xdg-desktop-portal</text>
+    <text x="14" y="68" class="ds-code">colour_scheme + accent + contrast</text>
+  </g>
+
+  <!-- Animated particles flowing down Wayland column -->
+  <circle r="3" fill="#818cf8" opacity="0.6">
+    <animateMotion dur="4s" repeatCount="indefinite" path="M190 185 L190 511"/>
+    <animate attributeName="opacity" values="0.2;0.8;0.2" dur="4s" repeatCount="indefinite"/>
+  </circle>
+  <circle r="2.5" fill="#818cf8" opacity="0.5">
+    <animateMotion dur="4s" repeatCount="indefinite" path="M190 185 L190 511" begin="2s"/>
+    <animate attributeName="opacity" values="0.1;0.7;0.1" dur="4s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- ================================================================ -->
+  <!-- RIGHT COLUMN: X11 PATH                                           -->
+  <!-- ================================================================ -->
+
+  <!-- X11 Card 1: Global Shortcuts -->
+  <g transform="translate(890, 185)">
+    <rect width="240" height="100" rx="10" fill="#0f1520" stroke="#2dd4bf30" stroke-width="1.5" filter="url(#ds-shadow)"/>
+    <rect width="240" height="4" rx="2" fill="url(#z-x11)"/>
+    <text x="14" y="26" class="ds-title">GLOBAL SHORTCUTS</text>
+    <line x1="14" y1="34" x2="226" y2="34" stroke="#ffffff10" stroke-width="1"/>
+    <text x="14" y="52" class="ds-code" style="fill:#2dd4bf;">tauri-plugin-global-shortcut</text>
+    <text x="14" y="68" class="ds-code">on_shortcut("alt+shift+e")</text>
+    <text x="14" y="84" class="ds-code">unregister_all() for updates</text>
+  </g>
+
+  <!-- X11 connector 1→2 -->
+  <path d="M1010 285 L1010 300" fill="none" stroke="#2dd4bf40" stroke-width="1.5"/>
+
+  <!-- X11 Card 2: Emoji Injection -->
+  <g transform="translate(890, 305)">
+    <rect width="240" height="100" rx="10" fill="#0f1520" stroke="#2dd4bf30" stroke-width="1.5" filter="url(#ds-shadow)"/>
+    <rect width="240" height="4" rx="2" fill="url(#z-x11)"/>
+    <text x="14" y="26" class="ds-title">EMOJI INJECTION</text>
+    <line x1="14" y1="34" x2="226" y2="34" stroke="#ffffff10" stroke-width="1"/>
+    <text x="14" y="52" class="ds-code">Clipboard shuffle via <tspan fill="#2dd4bf">arboard</tspan></text>
+    <text x="14" y="68" class="ds-code">Paste: <tspan fill="#fbbf24" font-weight="700">ydotool</tspan> (primary)</text>
+    <text x="14" y="84" class="ds-code">Fallback: <tspan fill="#8892a8">xdotool</tspan></text>
+    <!-- Glow on ydotool -->
+    <rect x="52" y="57" width="56" height="14" rx="3" fill="#fbbf2408" stroke="none">
+      <animate attributeName="fill" values="#fbbf2408;#fbbf2418;#fbbf2408" dur="3s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+
+  <!-- X11 connector 2→3 -->
+  <path d="M1010 405 L1010 420" fill="none" stroke="#2dd4bf40" stroke-width="1.5"/>
+
+  <!-- X11 Card 3: Theme Detection -->
+  <g transform="translate(890, 425)">
+    <rect width="240" height="86" rx="10" fill="#0f1520" stroke="#2dd4bf30" stroke-width="1.5" filter="url(#ds-shadow)"/>
+    <rect width="240" height="4" rx="2" fill="url(#z-x11)"/>
+    <text x="14" y="26" class="ds-title">THEME DETECTION</text>
+    <line x1="14" y1="34" x2="226" y2="34" stroke="#ffffff10" stroke-width="1"/>
+    <text x="14" y="52" class="ds-code">Same portal path (works on X11)</text>
+    <text x="14" y="68" class="ds-code">via <tspan fill="#2dd4bf">xdg-desktop-portal-gtk</tspan></text>
+  </g>
+
+  <!-- Animated particles flowing down X11 column -->
+  <circle r="3" fill="#2dd4bf" opacity="0.6">
+    <animateMotion dur="4s" repeatCount="indefinite" path="M1010 185 L1010 511"/>
+    <animate attributeName="opacity" values="0.2;0.8;0.2" dur="4s" repeatCount="indefinite"/>
+  </circle>
+  <circle r="2.5" fill="#2dd4bf" opacity="0.5">
+    <animateMotion dur="4s" repeatCount="indefinite" path="M1010 185 L1010 511" begin="2s"/>
+    <animate attributeName="opacity" values="0.1;0.7;0.1" dur="4s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- ================================================================ -->
+  <!-- DASHED CONNECTIONS: BOTH PATHS → SHARED LAYER                    -->
+  <!-- ================================================================ -->
+
+  <!-- Wayland → Shared -->
+  <path d="M190 511 C190 535, 300 550, 400 555" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.35">
+    <animate attributeName="stroke-dashoffset" values="0;-20" dur="2s" repeatCount="indefinite"/>
+  </path>
+
+  <!-- X11 → Shared -->
+  <path d="M1010 511 C1010 535, 900 550, 800 555" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.35">
+    <animate attributeName="stroke-dashoffset" values="0;-20" dur="2s" repeatCount="indefinite"/>
+  </path>
+
+  <!-- ================================================================ -->
+  <!-- BOTTOM: SHARED LAYER                                             -->
+  <!-- ================================================================ -->
+  <g transform="translate(340, 545)">
+    <rect width="520" height="60" rx="10" fill="#0f1520" stroke="#fbbf2430" stroke-width="1.5" filter="url(#ds-shadow)"/>
+    <rect width="520" height="4" rx="2" fill="url(#z-shared)"/>
+    <text x="14" y="24" class="ds-title">SHARED LAYER</text>
+    <line x1="14" y1="32" x2="506" y2="32" stroke="#ffffff10" stroke-width="1"/>
+
+    <!-- Shared components in a row -->
+    <text x="14" y="50" class="ds-val" fill="#fbbf24">arboard</text>
+    <text x="76" y="50" class="ds-code">clipboard</text>
+    <text x="158" y="50" class="ds-code" style="fill:#ffffff20;">|</text>
+    <text x="170" y="50" class="ds-val" fill="#fbbf24">tauri-plugin-store</text>
+    <text x="310" y="50" class="ds-code" style="fill:#ffffff20;">|</text>
+    <text x="322" y="50" class="ds-val" fill="#fbbf24">System tray</text>
+    <text x="404" y="50" class="ds-code" style="fill:#ffffff20;">|</text>
+    <text x="416" y="50" class="ds-val" fill="#fbbf24">Window mgmt</text>
+  </g>
+
+  <!-- ================================================================ -->
+  <!-- BOTTOM ANNOTATION                                                -->
+  <!-- ================================================================ -->
+  <g transform="translate(50, 625)">
+    <circle cx="8" cy="4" r="5" fill="#fbbf24" opacity="0.6"/>
+    <text x="20" y="8" class="ds-code" style="font-size:10px;">ydotool works at kernel /dev/uinput level -- display-server-agnostic, primary paste tool for both paths</text>
+  </g>
+</svg>
