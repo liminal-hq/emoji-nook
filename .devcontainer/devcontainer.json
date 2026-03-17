@@ -4,10 +4,7 @@
 	"remoteUser": "vscode",
 	"updateRemoteUserUID": true,
 	"workspaceFolder": "/workspaces/emoji-nook",
-	"forwardPorts": [
-		1420,
-		5173
-	],
+	"forwardPorts": [1420, 5173],
 	"customizations": {
 		"vscode": {
 			"extensions": [
