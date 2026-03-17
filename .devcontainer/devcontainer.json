@@ -1,0 +1,21 @@
+{
+	"name": "Emoji Nook Dev",
+	"image": "ghcr.io/liminal-hq/tauri-dev-desktop:latest",
+	"remoteUser": "vscode",
+	"updateRemoteUserUID": true,
+	"workspaceFolder": "/workspaces/emoji-nook",
+	"forwardPorts": [1420, 5173],
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"rust-lang.rust-analyzer",
+				"esbenp.prettier-vscode",
+				"dbaeumer.vscode-eslint",
+				"tauri-apps.tauri-vscode",
+				"ms-vscode.vscode-typescript-next",
+				"streetsidesoftware.code-spell-checker"
+			]
+		}
+	},
+	"postCreateCommand": "pnpm install"
+}
