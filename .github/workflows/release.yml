@@ -335,6 +335,7 @@ jobs:
         id: upload_release_assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
           TAG_NAME: ${{ needs.prepare-release.outputs.tag_name }}
         run: gh release upload "${TAG_NAME}" release-assets/linux/* --clobber
 
