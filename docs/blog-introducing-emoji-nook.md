@@ -113,9 +113,11 @@ The settings panel (accessible via the gear icon) lets you reconfigure the short
 
 <!-- TODO: Add screenshot of the settings panel -->
 
-## Architecture at a Glance
+## Architecture
 
-The app has three layers:
+### The Layer Cake
+
+Emoji Nook is split into four distinct layers, each with a clear responsibility boundary:
 
 ```
 ┌─────────────────────────────────────────┐
@@ -138,7 +140,136 @@ The app has three layers:
 
 The frontend never touches the clipboard or the display server directly. It sends an emoji string over IPC and trusts the backend to handle the rest. This separation means the security-sensitive operations — clipboard access, input simulation, portal sessions — live entirely in Rust where they can be audited and sandboxed.
 
+**The frontend** is a single-page React 19 app rendered inside a Tauri webview (WebKitGTK on Linux). It wraps Frimousse's headless emoji picker with custom components: a search bar, skin tone selector, category navigation bar, emoji grid, and a settings panel. Two custom hooks — `useTheme` and `useSettings` — manage the bridge between the frontend and the Rust backend via Tauri's IPC.
+
+**The IPC layer** exposes four commands: `insert_emoji` (sends the selected emoji to the backend for injection), `show_picker` / `hide_picker` (window lifecycle), and `update_shortcut` (re-registers the global hotkey). The frontend also listens for a `picker-shown` event emitted by the backend so it can reset its state — clear the search, scroll to top, and autofocus the input.
+
+**The Rust backend** (`lib.rs`) is the orchestrator. On startup it reads the saved shortcut from `tauri-plugin-store`, detects the display server, registers the global shortcut through the appropriate path (portal or X11 plugin), and sets up the system tray. When an emoji is selected, the backend hides the window and spawns a background thread for the clipboard shuffle — keeping the IPC handler responsive while the injection sleeps through its timing windows.
+
+**The xdg-portal plugin** is the Linux integration layer. It's a full Tauri v2 plugin with its own Cargo crate, TypeScript guest bindings, and auto-generated permission manifests. It talks to `xdg-desktop-portal` over D-Bus using `ashpd`, exposing commands like `get_theme_info` and `bind_global_shortcut` to the rest of the app. The plugin is intentionally general — it could be extracted and used by other Tauri apps that need portal access.
+
+### The Window
+
+The picker window is configured as a frameless, transparent, always-on-top overlay:
+
+| Property | Value | Purpose |
+|----------|-------|---------|
+| `decorations` | `false` | No title bar or window controls |
+| `transparent` | `true` | CSS provides the background — transparency enables rounded corners floating over the desktop |
+| `alwaysOnTop` | `true` | Stays above the target app |
+| `skipTaskbar` | `true` | Background process, tray-only — no taskbar clutter |
+| `visible` | `false` | Hidden on startup, shown on shortcut |
+| Size | 370 × 380 | Compact enough to not obscure the target app |
+
+The window is created once at startup and never destroyed — only shown and hidden. This avoids re-creation cost and means the picker is ready instantly when the shortcut fires. The CSS uses `-webkit-app-region: drag` on the header and footer so the user can reposition the overlay, with interactive elements opting out via `no-drag`.
+
 <!-- TODO: Add architecture overview diagram or link to docs/architecture.md -->
+
+## Integrating with Wayland and X11
+
+Linux doesn't have one input system — it has two, and they work in fundamentally different ways. Getting an emoji picker to work across both required us to build two complete integration paths behind a single runtime switch.
+
+### The Core Challenge
+
+On **X11**, the legacy display server, apps have broad access. Any application can listen for global key events, inject keystrokes into other windows, and read the clipboard freely. This makes building a system-wide emoji picker straightforward — tools like `xdotool` can simulate `Ctrl+V` in any window, and `tauri-plugin-global-shortcut` can grab hotkeys regardless of which window has focus.
+
+**Wayland** is deliberately different. Its security model isolates applications from each other: an app cannot listen to inputs directed at other windows (preventing keyloggers) and cannot inject inputs into them (preventing malicious control). These are good restrictions, but they mean every capability an emoji picker needs — global shortcuts, keystroke injection, even clipboard serving — requires explicit cooperation from the compositor through portal interfaces.
+
+### Detection
+
+The routing decision is simple and happens once at app startup:
+
+```rust
+fn is_wayland() -> bool {
+    std::env::var_os("WAYLAND_DISPLAY").is_some()
+}
+```
+
+If `WAYLAND_DISPLAY` is set, we're on Wayland. Otherwise, we assume X11. No complex capability probing, no fallback chains — just a binary decision that gates the entire backend path.
+
+### Global Shortcuts: Two Completely Different Mechanisms
+
+**On X11**, we use `tauri-plugin-global-shortcut`, which registers hotkeys via the X11 protocol. It's reliable and immediate — the shortcut fires a callback, and we show or hide the window:
+
+```rust
+app.global_shortcut().on_shortcut("Alt+Shift+E", move |_app, _shortcut, event| {
+    if event.state == ShortcutState::Pressed {
+        // Toggle picker visibility
+    }
+});
+```
+
+Shortcut changes take effect immediately by calling `unregister_all()` and re-registering.
+
+**On Wayland**, global shortcuts go through `xdg-desktop-portal`'s GlobalShortcuts interface. Our custom plugin creates a D-Bus session via `ashpd`, binds the shortcut, and listens for activation signals on a long-lived async stream:
+
+```rust
+let portal = GlobalShortcuts::new().await?;
+let session = portal.create_session().await?;
+portal.bind_shortcuts(&session, &[shortcut], &WindowIdentifier::default()).await?;
+
+let activated_stream = portal.receive_activated().await?;
+// Listen for activations in a spawned task...
+```
+
+The session handle is intentionally leaked (`std::mem::forget`) to keep it alive for the lifetime of the process — dropping it would tear down the portal session and the shortcut would stop working. This also means Wayland shortcut changes require an app restart, because a portal session can't be dynamically re-bound. The settings panel communicates this to the user.
+
+There's also retry logic: the portal may reject `bind_shortcuts` if the app isn't fully initialised yet or if a previous session is still active. We retry once after a one-second delay before giving up.
+
+### Emoji Injection: The Clipboard Shuffle in Detail
+
+Once the user picks an emoji, the injection path is the same on both display servers — but the paste simulation tool differs.
+
+The clipboard shuffle runs on a background thread (to avoid blocking the IPC handler) and follows a precise sequence with carefully tuned timing:
+
+```
+1. Save clipboard     → arboard get_text()
+2. Write emoji        → arboard set_text(emoji)  [serve thread starts]
+3. Sleep 100ms        → focus settles on target app
+4. Simulate Ctrl+V    → ydotool / wtype / xdotool
+5. Sleep 200ms        → paste completes
+6. Drop clipboard     → arboard serve thread stops
+7. Restore or clear   → new Clipboard instance
+```
+
+The paste simulation cascades through three tools in priority order:
+
+1. **`ydotool`** — talks directly to the kernel's `/dev/uinput` interface. Works on X11, Wayland, GNOME, KDE, Sway, and everything else. It's the most reliable option but requires the `ydotoold` daemon running and the user in the `input` group.
+
+2. **`wtype`** — native Wayland protocol for keystroke simulation. Works on compositors that support `wlr-virtual-keyboard-v1` (Sway, Hyprland) but not on GNOME's Mutter.
+
+3. **`xdotool`** — X11 protocol. Works on X11 and XWayland apps but can't reach native Wayland windows.
+
+If all three fail, the emoji is still on the clipboard — the user can paste manually. The app logs which tool succeeded or failed for debugging.
+
+### Clipboard Ownership on Wayland
+
+The most subtle part of the injection is clipboard ownership. On Wayland, the clipboard follows a "last writer serves" model — the application that wrote to the clipboard must remain alive and serve data requests when another app asks to paste. This is fundamentally different from X11, where clipboard data is typically stored in a shared buffer.
+
+This is why we keep the `arboard::Clipboard` instance alive through stages 2–5. When the target app receives the `Ctrl+V` and asks the compositor "what's on the clipboard?", the compositor forwards that request to our arboard serve thread, which responds with the emoji. Only after the paste completes (the 200ms sleep in stage 5) do we drop the instance.
+
+If the clipboard originally held non-text content (an image, a file path), we can't snapshot it with the text API, so we skip the restore step entirely rather than destroying the user's clipboard contents.
+
+### The Portal Plugin: A Reusable Bridge
+
+`tauri-plugin-xdg-portal` isn't just glue code — it's a proper Tauri v2 plugin with:
+
+- **Rust source** — `commands.rs` (IPC handlers), `linux.rs` (ashpd D-Bus queries), `global_shortcuts.rs` (portal session management), `models.rs` (serialisable types like `ThemeInfo`, `ColourScheme`, `AccentColour`)
+- **TypeScript guest bindings** — auto-generated API so the frontend can call `portal.getThemeInfo()` directly
+- **Permission manifests** — Tauri v2's capability system requires explicit grants for each command. The plugin's `default.toml` declares `allow-check-availability` and `allow-get-theme-info`; the app's capability file opts in.
+- **A stub for RemoteDesktop** — the portal also offers input injection via `org.freedesktop.portal.RemoteDesktop`, which would let us inject keystrokes without external tools. This is deferred but architecturally planned.
+
+The plugin queries three portal settings over D-Bus:
+
+| Portal Setting | What It Returns | How We Use It |
+|---------------|----------------|---------------|
+| `color_scheme()` | `prefer-dark`, `prefer-light`, or `no-preference` | Selects dark/light token set. Falls back to `matchMedia` on `no-preference` |
+| `accent_color()` | sRGB floats (r, g, b) | Converted to hex and injected as `--accent` CSS property |
+| `contrast()` | Normal or high | Reserved for future high-contrast token support |
+
+Desktop environment detection (`XDG_CURRENT_DESKTOP`) selects between Adwaita tokens (GNOME, Cinnamon, MATE, XFCE) and Breeze tokens (KDE). Theme info is re-fetched every time the picker is shown, so if the user switches from light to dark mode while the picker is hidden, it'll pick up the change on the next invocation.
+
+<!-- TODO: Add the display server routing diagram -->
 
 ## Building It With AI
 
