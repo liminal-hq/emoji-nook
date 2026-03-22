@@ -72,6 +72,16 @@ write_toml_version() {
     perl -0pi -e 's/^version = "\Q'"${current_version}"'\E"$/version = "'"${new_version}"'"/m' "$file_path"
 }
 
+refresh_cargo_lock() {
+    local lockfile_path="${REPO_ROOT}/Cargo.lock"
+
+    [[ -f "$lockfile_path" ]] || return 0
+
+    info
+    info "Refreshing Cargo.lock for workspace version updates"
+    cargo update --workspace --manifest-path "${REPO_ROOT}/Cargo.toml" >/dev/null
+}
+
 CURRENT_VERSION_ONLY=false
 VERSION_INPUT=""
 BRANCH_INPUT=""
@@ -180,6 +190,7 @@ write_toml_version "${REPO_ROOT}/plugins/desktop-integration/Cargo.toml" "${CURR
 write_json_version "${REPO_ROOT}/plugins/desktop-integration/guest-js/package.json" "${NEW_VERSION}"
 write_toml_version "${REPO_ROOT}/plugins/xdg-portal/Cargo.toml" "${CURRENT_VERSION}" "${NEW_VERSION}"
 write_json_version "${REPO_ROOT}/plugins/xdg-portal/guest-js/package.json" "${NEW_VERSION}"
+refresh_cargo_lock
 
 resolved_version="$("${CHECK_SCRIPT}" --current-version)"
 if [[ "$resolved_version" != "$NEW_VERSION" ]]; then
@@ -191,6 +202,9 @@ info "Updated release-facing versions to ${NEW_VERSION}:"
 for file in "${FILES[@]}"; do
     info "  - ${file}"
 done
+if [[ -f "${REPO_ROOT}/Cargo.lock" ]]; then
+    info "  - Cargo.lock"
+fi
 
 info
 info "Next steps:"
