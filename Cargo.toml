@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "apps/emoji-picker/src-tauri",
+  "plugins/desktop-integration",
   "plugins/xdg-portal"
 ]
 resolver = "2"

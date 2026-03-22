@@ -16,20 +16,31 @@ This repository is a `pnpm` + Cargo workspace monorepo.
 
 - `apps/emoji-picker/` — React 19 + TypeScript frontend
 - `apps/emoji-picker/src-tauri/` — Rust/Tauri v2 backend
+- `plugins/desktop-integration/` — Custom Tauri plugin for backend desktop activation helpers
+- `plugins/desktop-integration/guest-js/` — Guest package placeholder for future frontend helpers
 - `plugins/xdg-portal/` — Custom Tauri plugin bridging `xdg-desktop-portal` via `ashpd`
 - `plugins/xdg-portal/guest-js/` — TypeScript guest API for the plugin
 
 ### Key dependencies
 
-| Layer     | Library                                                   | Purpose                                    |
-| --------- | --------------------------------------------------------- | ------------------------------------------ |
-| Emoji     | [Frimousse](https://github.com/liveblocks/frimousse) v0.3 | Headless, React 19 compatible emoji picker |
-| Portal    | [ashpd](https://github.com/bilelmoussaoui/ashpd)          | D-Bus interface to `xdg-desktop-portal`    |
-| Framework | [Tauri](https://v2.tauri.app/) v2                         | Desktop application shell                  |
-| Clipboard | [arboard](https://crates.io/crates/arboard)               | Cross-platform clipboard access            |
-| Settings  | tauri-plugin-store                                        | Persistent JSON key-value store            |
-| Autostart | tauri-plugin-autostart                                    | XDG autostart desktop file management      |
-| Logging   | tauri-plugin-log                                          | Structured logging with console bridge     |
+| Layer          | Library                                                   | Purpose                                    |
+| -------------- | --------------------------------------------------------- | ------------------------------------------ |
+| Emoji          | [Frimousse](https://github.com/liveblocks/frimousse) v0.3 | Headless, React 19 compatible emoji picker |
+| Portal plugin  | tauri-plugin-xdg-portal                                   | Tauri bridge to desktop portal features    |
+| Portal backend | [ashpd](https://github.com/bilelmoussaoui/ashpd)          | D-Bus interface to `xdg-desktop-portal`    |
+| Framework      | [Tauri](https://v2.tauri.app/) v2                         | Desktop application shell                  |
+| Activation     | tauri-plugin-desktop-integration                          | Native X11 user-time activation            |
+| Clipboard      | [arboard](https://crates.io/crates/arboard)               | Cross-platform clipboard access            |
+| Settings       | tauri-plugin-store                                        | Persistent JSON key-value store            |
+| Autostart      | tauri-plugin-autostart                                    | XDG autostart desktop file management      |
+| Logging        | tauri-plugin-log                                          | Structured logging with console bridge     |
+
+### Desktop integration
+
+Emoji Nook uses two custom workspace plugins for desktop integration:
+
+- `tauri-plugin-xdg-portal` handles theme detection and Wayland-facing portal integration.
+- `tauri-plugin-desktop-integration` handles backend-only X11 activation quirks such as GTK `present_with_time(...)` and `_NET_WM_USER_TIME` stamping on fresh picker windows.
 
 ### Desktop theme support
 

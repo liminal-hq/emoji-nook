@@ -10,21 +10,7 @@
 		"frontendDist": "../dist"
 	},
 	"app": {
-		"windows": [
-			{
-				"label": "main",
-				"title": "Emoji Nook",
-				"width": 370,
-				"height": 380,
-				"visible": false,
-				"decorations": false,
-				"transparent": true,
-				"alwaysOnTop": true,
-				"center": true,
-				"resizable": false,
-				"skipTaskbar": true
-			}
-		],
+		"windows": [],
 		"security": {
 			"csp": null
 		}

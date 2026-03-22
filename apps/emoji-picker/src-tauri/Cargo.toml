@@ -25,6 +25,7 @@ arboard = "3"
 log = "0.4"
 tauri = { workspace = true }
 tauri-plugin-autostart = { workspace = true }
+tauri-plugin-desktop-integration = { path = "../../../plugins/desktop-integration" }
 tauri-plugin-global-shortcut = { workspace = true }
 tauri-plugin-log = "2"
 tauri-plugin-opener = "2"

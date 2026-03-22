@@ -46,11 +46,13 @@ graph TB
         Compositor[Wayland / X11]
         CB[Clipboard — arboard]
         Tools[ydotool / wtype / xdotool]
+        WMHints[_NET_WM_USER_TIME / X11 activation]
     end
 
     KB --> SC
     SC --> WM
     WM --> Picker
+    WM --> WMHints
     Picker --> INJ
     INJ --> CB
     CB --> Tools
@@ -117,7 +119,9 @@ graph TD
 
 ### Backend (Rust / Tauri v2)
 
-The Rust backend manages the application lifecycle, system tray, shortcut registration, and emoji injection. It delegates Linux-specific portal operations to the xdg-portal plugin.
+The Rust backend manages the application lifecycle, system tray, shortcut registration, and emoji injection. It delegates Linux-specific portal operations to the xdg-portal plugin and X11 activation quirks to the desktop-integration plugin.
+
+Unlike the xdg-portal plugin, the desktop-integration plugin is backend-only today. It keeps a standard Tauri plugin scaffold for permissions and future growth, but its current API is used directly from Rust through an extension trait rather than frontend `invoke(...)` commands.
 
 ```mermaid
 graph LR
@@ -130,6 +134,7 @@ graph LR
         subgraph Plugins
             Log["tauri-plugin-log"]
             Opener["tauri-plugin-opener"]
+            Desktop["tauri-plugin-desktop-integration"]
             XDG["tauri-plugin-xdg-portal"]
             GlobalSC["tauri-plugin-global-shortcut"]
             StorePlugin["tauri-plugin-store"]
@@ -144,9 +149,10 @@ graph LR
         end
 
         InsertEmoji --> Injection
+        Lib --> Desktop
     end
 
-    subgraph PluginCrate["tauri-plugin-xdg-portal"]
+    subgraph PortalPlugin["tauri-plugin-xdg-portal"]
         PluginLib["lib.rs — Plugin registration"]
         PluginLib --> Cmds["commands.rs"]
         PluginLib --> Linux["linux.rs"]
@@ -163,7 +169,17 @@ graph LR
         Cmds --> PortalCommands
     end
 
+    subgraph DesktopPlugin["tauri-plugin-desktop-integration"]
+        DesktopLib["lib.rs — Activation helpers"]
+        DesktopBuild["build.rs — Plugin metadata"]
+        DesktopPerms["permissions/default.toml"]
+        DesktopGuest["guest-js/ — Future guest bindings"]
+        DesktopLib --> GTK["gtk_window() / present_with_time()"]
+        DesktopLib --> X11["gdkx11 user-time metadata"]
+    end
+
     XDG --> PluginLib
+    Desktop --> DesktopLib
 ```
 
 ## Data Flow
@@ -246,19 +262,17 @@ graph LR
 
 > **Visual:** See the [animated theme detection diagram](images/theme_detection_flow.svg) for a visual overview of this pipeline.
 
-The picker adapts its appearance to the host desktop environment by reading theme properties via `xdg-desktop-portal` and mapping them to CSS custom properties. Theme info is re-fetched each time the picker is shown, catching changes that occurred while it was hidden.
+The picker adapts its appearance to the host desktop environment by reading theme properties via `xdg-desktop-portal` and mapping them to CSS custom properties. Because the picker window is recreated on each activation, theme info is fetched on mount for every fresh window.
 
 ```mermaid
 sequenceDiagram
     participant React as useTheme Hook
-    participant Event as Tauri Events
     participant IPC as Tauri IPC
     participant Plugin as xdg-portal Plugin
     participant DBus as xdg-desktop-portal
     participant DOM as Document Root
 
-    Event->>React: "picker-shown" event
-    React->>IPC: invoke("get_theme_info")
+    React->>IPC: getThemeInfo() on mount
     IPC->>Plugin: get_theme_info()
     Plugin->>DBus: Settings.color_scheme()
     Plugin->>DBus: Settings.accent_color()
@@ -353,38 +367,38 @@ flowchart TD
 
 > **Visual:** See the [animated window lifecycle diagram](images/window_lifecycle.svg) for an interactive state machine view.
 
-The picker window has a simple three-state lifecycle. It is created once at startup and never destroyed — only shown and hidden to avoid re-creation cost.
+The picker window has a simple three-state lifecycle. The app process stays resident in the tray, but the picker window itself is disposable and recreated for each activation under a fresh `picker-*` label.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Hidden: App starts hidden
+    [*] --> Background: App starts in tray
 
-    Hidden --> Visible: Global shortcut pressed
-    Hidden --> Visible: Tray menu show picker
+    Background --> Visible: Global shortcut pressed
+    Background --> Visible: Tray menu show picker
 
-    Visible --> Hidden: Emoji selected (if closeOnSelect)
-    Visible --> Hidden: Esc pressed
-    Visible --> Hidden: Click outside (blur)
-    Visible --> Hidden: Shortcut pressed again
+    Visible --> Background: Emoji selected
+    Visible --> Background: Esc pressed
+    Visible --> Background: Click outside (blur)
+    Visible --> Background: New activation recreates picker window
 
     Visible --> Settings: Gear icon clicked
     Settings --> Visible: Save cancel or Esc
 
     note right of Settings
-        Blur-to-hide suppressed
+        Blur-to-close suppressed
         Native dropdowns trigger blur
     end note
 
-    Hidden --> [*]: Tray quit
+    Background --> [*]: Tray quit
 ```
 
 ### Window Configuration
 
-The picker window is configured as a frameless overlay:
+The picker window is configured as a frameless overlay template in Rust. The app starts without any picker window, and later activations create fresh `picker-*` windows with the same overlay properties:
 
 | Property      | Value     | Purpose                            |
 | ------------- | --------- | ---------------------------------- |
-| `visible`     | `false`   | Hidden on startup                  |
+| Startup       | none      | Tray-first process with no window  |
 | `decorations` | `false`   | Frameless                          |
 | `transparent` | `true`    | Rounded corners float over desktop |
 | `alwaysOnTop` | `true`    | Stays above other windows          |
@@ -392,6 +406,8 @@ The picker window is configured as a frameless overlay:
 | `resizable`   | `false`   | Fixed compact size                 |
 | `skipTaskbar` | `true`    | Background process, tray-only      |
 | Size          | 370 x 380 | Compact picker dimensions          |
+
+On X11, each fresh picker window is also handed to the desktop-integration plugin. The plugin asks GTK to `present_with_time(...)` and stamps `_NET_WM_USER_TIME` via `gdkx11` so Cinnamon/Muffin receives a native activation timestamp for the fresh picker window.
 
 ## Native Theming
 
@@ -437,13 +453,13 @@ graph LR
     style Breeze fill:#2980b9,color:#fff
 ```
 
-Theme info is re-fetched each time the picker is shown (via `picker-shown` event), catching changes that occurred between hides. The `color-scheme` CSS property is set on the document root so native form controls (selects, checkboxes) match the detected theme.
+Theme info is fetched whenever a fresh picker window mounts. The `color-scheme` CSS property is set on the document root so native form controls (selects, checkboxes) match the detected theme.
 
 ## System Tray
 
 The app provides a system tray icon with a context menu:
 
-- **Show Picker** — opens the overlay (centres, shows, focuses)
+- **Show Picker** — recreates and focuses a fresh picker window
 - **Quit** — exits the application
 
 The tray uses the default app icon and the tooltip "Emoji Nook". The tray provides a fallback for showing the picker when global shortcuts are unavailable (e.g. portal permission denied on Wayland).
@@ -472,6 +488,13 @@ emoji-nook/
 │           │   └── injection.rs           # Clipboard shuffle
 │           └── capabilities/              # Tauri v2 permission grants
 ├── plugins/
+│   ├── desktop-integration/
+│   │   ├── src/                    # Rust plugin
+│   │   │   └── lib.rs              # X11 activation + user-time helpers
+│   │   ├── guest-js/               # Guest bindings placeholder
+│   │   ├── permissions/            # Plugin permission definitions
+│   │   ├── build.rs                # Plugin metadata generation
+│   │   └── README.md               # Plugin-specific notes
 │   └── xdg-portal/
 │       ├── src/                    # Rust plugin
 │       │   ├── lib.rs                     # Plugin registration
@@ -503,6 +526,7 @@ emoji-nook/
 | Settings        | tauri-plugin-store                                        | Persistent JSON key-value store         |
 | Autostart       | tauri-plugin-autostart                                    | XDG autostart desktop file management   |
 | Shortcuts (X11) | tauri-plugin-global-shortcut                              | X11 global shortcut registration        |
+| Activation      | tauri-plugin-desktop-integration                          | Native X11 user-time activation         |
 | Logging         | tauri-plugin-log                                          | Structured logging with console bridge  |
 
 ### Runtime Dependencies
