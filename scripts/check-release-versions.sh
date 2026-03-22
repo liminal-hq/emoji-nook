@@ -72,6 +72,8 @@ FILE_SPECS=(
     "Desktop package.json|apps/emoji-picker/package.json|json"
     "Tauri config|apps/emoji-picker/src-tauri/tauri.conf.json|json"
     "Desktop Cargo manifest|apps/emoji-picker/src-tauri/Cargo.toml|toml"
+    "Desktop integration Cargo manifest|plugins/desktop-integration/Cargo.toml|toml"
+    "Desktop integration guest JS package|plugins/desktop-integration/guest-js/package.json|json"
     "Plugin Cargo manifest|plugins/xdg-portal/Cargo.toml|toml"
     "Plugin guest JS package|plugins/xdg-portal/guest-js/package.json|json"
 )

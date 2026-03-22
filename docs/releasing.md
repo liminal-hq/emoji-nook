@@ -18,10 +18,12 @@ The following files should move together for each app release:
 - `apps/emoji-picker/package.json`
 - `apps/emoji-picker/src-tauri/tauri.conf.json`
 - `apps/emoji-picker/src-tauri/Cargo.toml`
+- `plugins/desktop-integration/Cargo.toml`
+- `plugins/desktop-integration/guest-js/package.json`
 - `plugins/xdg-portal/Cargo.toml`
 - `plugins/xdg-portal/guest-js/package.json`
 
-This keeps the desktop app, the local Rust plugin crate, and the guest JavaScript package aligned while the plugin remains an internal workspace component rather than a separately published product.
+This keeps the desktop app, the local Rust plugin crates, and the guest JavaScript packages aligned while the plugins remain internal workspace components rather than separately published products.
 
 ## Maintainer commands
 

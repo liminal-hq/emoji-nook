@@ -136,6 +136,8 @@ FILES=(
     "apps/emoji-picker/package.json"
     "apps/emoji-picker/src-tauri/tauri.conf.json"
     "apps/emoji-picker/src-tauri/Cargo.toml"
+    "plugins/desktop-integration/Cargo.toml"
+    "plugins/desktop-integration/guest-js/package.json"
     "plugins/xdg-portal/Cargo.toml"
     "plugins/xdg-portal/guest-js/package.json"
 )
@@ -174,6 +176,8 @@ write_json_version "${REPO_ROOT}/package.json" "${NEW_VERSION}"
 write_json_version "${REPO_ROOT}/apps/emoji-picker/package.json" "${NEW_VERSION}"
 write_json_version "${REPO_ROOT}/apps/emoji-picker/src-tauri/tauri.conf.json" "${NEW_VERSION}"
 write_toml_version "${REPO_ROOT}/apps/emoji-picker/src-tauri/Cargo.toml" "${CURRENT_VERSION}" "${NEW_VERSION}"
+write_toml_version "${REPO_ROOT}/plugins/desktop-integration/Cargo.toml" "${CURRENT_VERSION}" "${NEW_VERSION}"
+write_json_version "${REPO_ROOT}/plugins/desktop-integration/guest-js/package.json" "${NEW_VERSION}"
 write_toml_version "${REPO_ROOT}/plugins/xdg-portal/Cargo.toml" "${CURRENT_VERSION}" "${NEW_VERSION}"
 write_json_version "${REPO_ROOT}/plugins/xdg-portal/guest-js/package.json" "${NEW_VERSION}"
 
