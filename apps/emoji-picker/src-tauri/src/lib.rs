@@ -149,7 +149,7 @@ fn present_picker(app: &AppHandle, source: &'static str) {
 /// Receives a selected emoji from the frontend, hides the picker,
 /// and injects the emoji into the previously focused application.
 #[tauri::command]
-fn insert_emoji(app: AppHandle, emoji: String, label: &str) {
+fn insert_emoji(app: AppHandle, emoji: String, label: &str, close_on_select: bool) {
     info!("emoji selected: {} ({})", emoji, label);
 
     // Close the picker first so focus returns to the target app with a
@@ -158,8 +158,12 @@ fn insert_emoji(app: AppHandle, emoji: String, label: &str) {
 
     // Inject on a background thread to avoid blocking the IPC handler
     // during the sleep-based clipboard shuffle
+    let reopen_handle = app.clone();
     std::thread::spawn(move || {
         injection::clipboard_shuffle(&emoji);
+        if !close_on_select {
+            present_picker(&reopen_handle, "post-select-reopen");
+        }
     });
 }
 

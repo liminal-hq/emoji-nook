@@ -64,6 +64,7 @@ describe('App', () => {
 
 		await waitFor(() =>
 			expect(invoke).toHaveBeenCalledWith('insert_emoji', {
+				closeOnSelect: true,
 				emoji: '😀',
 				label: 'grinning face',
 			}),
