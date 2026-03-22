@@ -31,7 +31,7 @@ fn request_x11_user_time<R: Runtime>(window: &WebviewWindow<R>, source: &'static
 
     if let Some(gdk_window) = gtk_window.window() {
         if let Ok(x11_window) = gdk_window.downcast::<gdkx11::X11Window>() {
-            xid = Some(x11_window.xid() as u64);
+            xid = Some(x11_window.xid());
 
             let server_time = x11_get_server_time(&x11_window);
             if server_time != 0 {
