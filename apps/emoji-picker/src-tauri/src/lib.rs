@@ -7,10 +7,12 @@ mod injection;
 
 use log::info;
 use std::ffi::OsStr;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::Mutex;
 use tauri::image::Image;
 use tauri::menu::{MenuBuilder, MenuItemBuilder};
 use tauri::tray::TrayIconBuilder;
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Manager, RunEvent, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 use tauri_plugin_store::StoreExt;
 
 fn has_wayland_display(value: Option<&OsStr>) -> bool {
@@ -18,6 +20,13 @@ fn has_wayland_display(value: Option<&OsStr>) -> bool {
 }
 
 const DEFAULT_SHORTCUT: &str = "Alt+Shift+E";
+
+#[derive(Default)]
+struct LifecycleState {
+    quit_requested: AtomicBool,
+    picker_counter: AtomicUsize,
+    current_picker_label: Mutex<Option<String>>,
+}
 
 /// Reads the saved shortcut from the settings store, falling back to the default.
 fn load_saved_shortcut(app: &AppHandle) -> String {
@@ -38,19 +47,117 @@ fn is_wayland() -> bool {
     has_wayland_display(std::env::var_os("WAYLAND_DISPLAY").as_deref())
 }
 
+fn set_current_picker_label(app: &AppHandle, label: Option<String>) {
+    if let Ok(mut current_label) = app.state::<LifecycleState>().current_picker_label.lock() {
+        *current_label = label;
+    }
+}
+
+fn current_picker_label(app: &AppHandle) -> Option<String> {
+    app.state::<LifecycleState>()
+        .current_picker_label
+        .lock()
+        .ok()
+        .and_then(|label| label.clone())
+}
+
 fn load_app_icon() -> tauri::Result<Image<'static>> {
     Image::from_bytes(include_bytes!("../icons/icon.png"))
 }
+
+fn close_picker_window(app: &AppHandle) {
+    if let Some(label) = current_picker_label(app) {
+        if let Some(window) = app.get_webview_window(&label) {
+            let _ = window.close();
+        }
+    }
+
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.close();
+    }
+
+    set_current_picker_label(app, None);
+}
+
+fn create_picker_window(app: &AppHandle, label: &str) -> tauri::Result<WebviewWindow> {
+    let mut builder = WebviewWindowBuilder::new(app, label, WebviewUrl::App("index.html".into()))
+        .title("Emoji Nook")
+        .inner_size(370.0, 380.0)
+        .resizable(false)
+        .decorations(false)
+        .transparent(true)
+        .always_on_top(true)
+        .skip_taskbar(true)
+        .center();
+
+    builder = builder.icon(load_app_icon()?)?;
+
+    builder.build()
+}
+
+fn log_picker_focus_state(app: &AppHandle, source: &'static str, label: String, delay_ms: u64) {
+    let handle = app.clone();
+
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(delay_ms));
+
+        if let Some(window) = handle.get_webview_window(&label) {
+            let visible = window.is_visible().unwrap_or(false);
+            let focused = window.is_focused().unwrap_or(false);
+            info!(
+                "picker focus probe ({source}) label={label} delay={}ms visible={} focused={}",
+                delay_ms, visible, focused
+            );
+        } else {
+            info!(
+                "picker focus probe ({source}) label={label} delay={}ms window-missing",
+                delay_ms
+            );
+        }
+    });
+}
+
+fn present_picker(app: &AppHandle, source: &'static str) {
+    info!("presenting picker from {source}");
+    close_picker_window(app);
+    let picker_id = app
+        .state::<LifecycleState>()
+        .picker_counter
+        .fetch_add(1, Ordering::SeqCst);
+    let label = format!("picker-{picker_id}");
+
+    match create_picker_window(app, &label) {
+        Ok(window) => {
+            info!("created picker window label={label} from {source}");
+            set_current_picker_label(app, Some(label.clone()));
+            let _ = window.center();
+            let _ = window.show();
+            let _ = window.set_focus();
+            if !is_wayland() {
+                tauri_plugin_desktop_integration::request_activation_assist(
+                    source,
+                    "Emoji Nook",
+                    &label,
+                );
+            }
+            log_picker_focus_state(app, source, label.clone(), 75);
+            log_picker_focus_state(app, source, label, 225);
+        }
+        Err(error) => {
+            log::error!("failed to create picker window from {source}: {error}");
+        }
+    }
+}
+
 /// Receives a selected emoji from the frontend, hides the picker,
 /// and injects the emoji into the previously focused application.
 #[tauri::command]
 fn insert_emoji(app: AppHandle, emoji: String, label: &str) {
     info!("emoji selected: {} ({})", emoji, label);
 
-    // Hide the picker first so focus returns to the target app
-    if let Some(window) = app.get_webview_window("main") {
-        let _ = window.hide();
-    }
+    // Close the picker first so focus returns to the target app with a
+    // brand-new window created the next time it is shown.
+    close_picker_window(&app);
 
     // Inject on a background thread to avoid blocking the IPC handler
     // during the sleep-based clipboard shuffle
@@ -63,20 +170,13 @@ fn insert_emoji(app: AppHandle, emoji: String, label: &str) {
 /// can reset its state (clear search, focus input, scroll to top).
 #[tauri::command]
 fn show_picker(app: AppHandle) {
-    if let Some(window) = app.get_webview_window("main") {
-        let _ = window.center();
-        let _ = window.show();
-        let _ = window.set_focus();
-        let _ = app.emit("picker-shown", ());
-    }
+    present_picker(&app, "command");
 }
 
 /// Hides the picker window.
 #[tauri::command]
 fn hide_picker(app: AppHandle) {
-    if let Some(window) = app.get_webview_window("main") {
-        let _ = window.hide();
-    }
+    close_picker_window(&app);
 }
 
 /// Re-registers the global shortcut with a new binding.
@@ -98,16 +198,7 @@ fn update_shortcut(app: AppHandle, shortcut: String) {
             app.global_shortcut()
                 .on_shortcut(shortcut.as_str(), move |_app, _shortcut, event| {
                     if event.state == tauri_plugin_global_shortcut::ShortcutState::Pressed {
-                        if let Some(window) = handle.get_webview_window("main") {
-                            if window.is_visible().unwrap_or(false) {
-                                let _ = window.hide();
-                            } else {
-                                let _ = window.center();
-                                let _ = window.show();
-                                let _ = window.set_focus();
-                                let _ = handle.emit("picker-shown", ());
-                            }
-                        }
+                        present_picker(&handle, "shortcut-update");
                     }
                 });
 
@@ -135,16 +226,7 @@ fn register_wayland_shortcut(app: AppHandle, shortcut: &str) {
             "Toggle Emoji Nook",
             Some(&trigger),
             move || {
-                if let Some(window) = handle.get_webview_window("main") {
-                    if window.is_visible().unwrap_or(false) {
-                        let _ = window.hide();
-                    } else {
-                        let _ = window.center();
-                        let _ = window.show();
-                        let _ = window.set_focus();
-                        let _ = handle.emit("picker-shown", ());
-                    }
-                }
+                present_picker(&handle, "wayland-shortcut");
             },
         )
         .await
@@ -173,16 +255,7 @@ fn register_x11_shortcut(app: &AppHandle, shortcut: &str) {
         .global_shortcut()
         .on_shortcut(shortcut, move |_app, _shortcut, event| {
             if event.state == tauri_plugin_global_shortcut::ShortcutState::Pressed {
-                if let Some(window) = handle.get_webview_window("main") {
-                    if window.is_visible().unwrap_or(false) {
-                        let _ = window.hide();
-                    } else {
-                        let _ = window.center();
-                        let _ = window.show();
-                        let _ = window.set_focus();
-                        let _ = handle.emit("picker-shown", ());
-                    }
-                }
+                present_picker(&handle, "x11-shortcut");
             }
         });
 
@@ -207,14 +280,12 @@ fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
         .menu(&menu)
         .on_menu_event(move |app, event| match event.id().as_ref() {
             "show" => {
-                if let Some(window) = app.get_webview_window("main") {
-                    let _ = window.center();
-                    let _ = window.show();
-                    let _ = window.set_focus();
-                    let _ = app.emit("picker-shown", ());
-                }
+                present_picker(app, "tray");
             }
             "quit" => {
+                app.state::<LifecycleState>()
+                    .quit_requested
+                    .store(true, Ordering::SeqCst);
                 app.exit(0);
             }
             _ => {}
@@ -226,7 +297,9 @@ fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
+        .manage(LifecycleState::default())
+        .plugin(tauri_plugin_desktop_integration::init())
         .plugin(tauri_plugin_log::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::new().build())
@@ -257,8 +330,21 @@ pub fn run() {
             }
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application");
+
+    app.run(|app_handle, event| {
+        if let RunEvent::ExitRequested { api, .. } = event {
+            let quit_requested = app_handle
+                .state::<LifecycleState>()
+                .quit_requested
+                .load(Ordering::SeqCst);
+
+            if !quit_requested {
+                api.prevent_exit();
+            }
+        }
+    });
 }
 
 #[cfg(test)]

@@ -1,7 +1,24 @@
-# Tauri + React + Typescript
+# Emoji Picker
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+Emoji Nook is a tray-backed Tauri desktop emoji picker for Linux. The app keeps a background process alive for the tray icon, global shortcut, settings store, and injection pipeline, then creates a fresh picker window each time you open it.
 
-## Recommended IDE Setup
+## Development
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+From the workspace root:
+
+- `pnpm dev` runs the app in development mode
+- `pnpm build` builds the frontend package
+- `pnpm lint` runs the shared frontend lint pass
+- `pnpm typecheck` runs the shared TypeScript checks
+
+## Window Lifecycle
+
+The picker window is intentionally disposable:
+
+- the app process starts in the background with no picker window at all
+- showing the picker closes any stale picker window and creates a fresh `picker-*` window from the Tauri window config
+- selecting an emoji, pressing `Esc`, or losing focus closes the picker window entirely
+
+This keeps each activation on a clean UI state and gives X11 window managers a genuinely fresh window to focus.
+
+On X11, the app also uses the desktop-integration plugin to request a stronger activation handoff after the picker window appears. That is what makes repeated shortcut opens behave reliably under Cinnamon/Muffin.

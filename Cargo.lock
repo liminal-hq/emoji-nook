@@ -1000,6 +1000,7 @@ dependencies = [
  "tauri",
  "tauri-build",
  "tauri-plugin-autostart",
+ "tauri-plugin-desktop-integration",
  "tauri-plugin-global-shortcut",
  "tauri-plugin-log",
  "tauri-plugin-opener",
@@ -4140,6 +4141,14 @@ dependencies = [
  "tauri",
  "tauri-plugin",
  "thiserror 2.0.18",
+]
+
+[[package]]
+name = "tauri-plugin-desktop-integration"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "tauri",
 ]
 
 [[package]]
