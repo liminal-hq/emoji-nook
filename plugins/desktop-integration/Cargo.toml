@@ -5,6 +5,14 @@ description = "Desktop activation helpers for Emoji Nook"
 authors = ["Liminal HQ, Scott Morris"]
 license.workspace = true
 edition.workspace = true
+homepage = "https://github.com/liminal-hq/emoji-nook"
+repository = "https://github.com/liminal-hq/emoji-nook"
+build = "build.rs"
+links = "tauri-plugin-desktop-integration"
+
+[lib]
+name = "tauri_plugin_desktop_integration"
+crate-type = ["rlib", "cdylib"]
 
 [dependencies]
 gdk = "0.18"
@@ -12,3 +20,6 @@ gdkx11 = "0.18"
 gtk = "0.18"
 log = { workspace = true }
 tauri = { workspace = true }
+
+[build-dependencies]
+tauri-plugin = { version = "2", features = ["build"] }

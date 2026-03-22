@@ -13,6 +13,7 @@ use tauri::image::Image;
 use tauri::menu::{MenuBuilder, MenuItemBuilder};
 use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Manager, RunEvent, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
+use tauri_plugin_desktop_integration::DesktopIntegrationExt;
 use tauri_plugin_store::StoreExt;
 
 fn has_wayland_display(value: Option<&OsStr>) -> bool {
@@ -134,9 +135,7 @@ fn present_picker(app: &AppHandle, source: &'static str) {
             let _ = window.show();
             let _ = window.set_focus();
             if !is_wayland() {
-                tauri_plugin_desktop_integration::request_activation_assist(
-                    &window, source, &label,
-                );
+                app.request_desktop_activation_assist(&window, source, &label);
             }
             log_picker_focus_state(app, source, label.clone(), 75);
             log_picker_focus_state(app, source, label, 225);

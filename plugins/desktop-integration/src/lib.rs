@@ -13,6 +13,15 @@ use tauri::{
 
 use gdkx11::functions::x11_get_server_time;
 
+pub trait DesktopIntegrationExt<R: Runtime> {
+    fn request_desktop_activation_assist(
+        &self,
+        window: &WebviewWindow<R>,
+        source: &'static str,
+        label: &str,
+    );
+}
+
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
     Builder::new("desktop-integration").build()
 }
@@ -57,24 +66,27 @@ fn request_x11_user_time<R: Runtime>(window: &WebviewWindow<R>, source: &'static
     );
 }
 
-pub fn request_activation_assist<R: Runtime>(
-    window: &WebviewWindow<R>,
-    source: &'static str,
-    label: &str,
-) {
-    let label = label.to_string();
-    let window = window.clone();
-    let main_thread_window = window.clone();
-    let fallback_label = label.clone();
+impl<R: Runtime, T> DesktopIntegrationExt<R> for T {
+    fn request_desktop_activation_assist(
+        &self,
+        window: &WebviewWindow<R>,
+        source: &'static str,
+        label: &str,
+    ) {
+        let label = label.to_string();
+        let window = window.clone();
+        let main_thread_window = window.clone();
+        let fallback_label = label.clone();
 
-    match main_thread_window.run_on_main_thread(move || {
-        request_x11_user_time(&window, source, &label);
-    }) {
-        Ok(()) => {}
-        Err(error) => {
-            info!(
-                "failed to schedule native X11 activation for {source} label={fallback_label}: {error}"
-            );
+        match main_thread_window.run_on_main_thread(move || {
+            request_x11_user_time(&window, source, &label);
+        }) {
+            Ok(()) => {}
+            Err(error) => {
+                info!(
+                    "failed to schedule native X11 activation for {source} label={fallback_label}: {error}"
+                );
+            }
         }
     }
 }

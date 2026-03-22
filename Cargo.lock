@@ -4152,6 +4152,7 @@ dependencies = [
  "gtk",
  "log",
  "tauri",
+ "tauri-plugin",
 ]
 
 [[package]]

@@ -121,6 +121,8 @@ graph TD
 
 The Rust backend manages the application lifecycle, system tray, shortcut registration, and emoji injection. It delegates Linux-specific portal operations to the xdg-portal plugin and X11 activation quirks to the desktop-integration plugin.
 
+Unlike the xdg-portal plugin, the desktop-integration plugin is backend-only today. It keeps a standard Tauri plugin scaffold for permissions and future growth, but its current API is used directly from Rust through an extension trait rather than frontend `invoke(...)` commands.
+
 ```mermaid
 graph LR
     subgraph AppCrate["emoji-picker crate"]
@@ -169,8 +171,11 @@ graph LR
 
     subgraph DesktopPlugin["tauri-plugin-desktop-integration"]
         DesktopLib["lib.rs — Activation helpers"]
+        DesktopBuild["build.rs — Plugin metadata"]
+        DesktopPerms["permissions/default.toml"]
+        DesktopGuest["guest-js/ — Future guest bindings"]
         DesktopLib --> GTK["gtk_window() / present_with_time()"]
-        DesktopLib --> X11["gdkx11 user-time + xid fallback"]
+        DesktopLib --> X11["gdkx11 user-time metadata"]
     end
 
     XDG --> PluginLib
@@ -484,8 +489,12 @@ emoji-nook/
 │           └── capabilities/              # Tauri v2 permission grants
 ├── plugins/
 │   ├── desktop-integration/
-│   │   └── src/                    # Rust plugin
-│   │       └── lib.rs              # X11 activation + user-time helpers
+│   │   ├── src/                    # Rust plugin
+│   │   │   └── lib.rs              # X11 activation + user-time helpers
+│   │   ├── guest-js/               # Guest bindings placeholder
+│   │   ├── permissions/            # Plugin permission definitions
+│   │   ├── build.rs                # Plugin metadata generation
+│   │   └── README.md               # Plugin-specific notes
 │   └── xdg-portal/
 │       ├── src/                    # Rust plugin
 │       │   ├── lib.rs                     # Plugin registration

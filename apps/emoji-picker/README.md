@@ -22,3 +22,10 @@ The picker window is intentionally disposable:
 This keeps each activation on a clean UI state and gives X11 window managers a genuinely fresh window to focus.
 
 On X11, the app also uses the desktop-integration plugin to stamp the fresh picker window with native GTK/X11 user-time metadata and present it with that timestamp. That native handoff is what makes repeated shortcut opens behave reliably under Cinnamon/Muffin.
+
+The desktop-integration plugin now follows the same first-class workspace shape as the xdg-portal plugin:
+
+- `build.rs` generates the Tauri plugin metadata and permission manifests
+- `permissions/default.toml` defines the plugin's default grant
+- `guest-js/` provides a stable guest package, even though the plugin is backend-only today
+- [`plugins/desktop-integration/README.md`](../../plugins/desktop-integration/README.md) documents the plugin's role and current limits
