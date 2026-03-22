@@ -402,7 +402,7 @@ The picker window is configured as a frameless overlay template in Rust. The app
 | `skipTaskbar` | `true`    | Background process, tray-only      |
 | Size          | 370 x 380 | Compact picker dimensions          |
 
-On X11, each fresh picker window is also handed to the desktop-integration plugin. The plugin asks GTK to `present_with_time(...)`, stamps `_NET_WM_USER_TIME` via `gdkx11` when possible, and keeps an `xdotool` activation fallback available for Cinnamon/Muffin focus-policy edge cases.
+On X11, each fresh picker window is also handed to the desktop-integration plugin. The plugin asks GTK to `present_with_time(...)` and stamps `_NET_WM_USER_TIME` via `gdkx11` so Cinnamon/Muffin receives a native activation timestamp for the fresh picker window.
 
 ## Native Theming
 
@@ -517,7 +517,7 @@ emoji-nook/
 | Settings        | tauri-plugin-store                                        | Persistent JSON key-value store         |
 | Autostart       | tauri-plugin-autostart                                    | XDG autostart desktop file management   |
 | Shortcuts (X11) | tauri-plugin-global-shortcut                              | X11 global shortcut registration        |
-| Activation      | tauri-plugin-desktop-integration                          | X11 user-time + activation assist       |
+| Activation      | tauri-plugin-desktop-integration                          | Native X11 user-time activation         |
 | Logging         | tauri-plugin-log                                          | Structured logging with console bridge  |
 
 ### Runtime Dependencies

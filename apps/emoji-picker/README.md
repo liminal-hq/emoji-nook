@@ -21,4 +21,4 @@ The picker window is intentionally disposable:
 
 This keeps each activation on a clean UI state and gives X11 window managers a genuinely fresh window to focus.
 
-On X11, the app also uses the desktop-integration plugin to stamp the fresh picker window with native GTK/X11 user-time metadata and present it with that timestamp. If the window manager still does not hand over focus cleanly, the plugin falls back to an `xdotool` activation nudge. That is what makes repeated shortcut opens behave reliably under Cinnamon/Muffin.
+On X11, the app also uses the desktop-integration plugin to stamp the fresh picker window with native GTK/X11 user-time metadata and present it with that timestamp. That native handoff is what makes repeated shortcut opens behave reliably under Cinnamon/Muffin.
