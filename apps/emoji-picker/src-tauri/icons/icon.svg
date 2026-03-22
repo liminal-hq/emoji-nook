@@ -1,7 +1,7 @@
-<!-- Emoji Nook app icon -->
+<!-- Emoji Nook app icon — primary duo mark -->
 <!-- (c) Copyright 2026 Liminal HQ, Scott Morris -->
 <!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="16 16 224 224" width="256" height="256">
   <defs>
     <!-- Dark container — matches Liminal HQ ink base -->
     <linearGradient id="bg" x1="40" y1="32" x2="216" y2="224" gradientUnits="userSpaceOnUse">
@@ -27,7 +27,7 @@
 
     <!-- Warm glow behind the nook opening -->
     <radialGradient id="nookGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse"
-      gradientTransform="translate(128 128) rotate(90) scale(60 50)">
+      gradientTransform="translate(128 134) rotate(90) scale(82 62)">
       <stop offset="0" stop-color="#F7E2BA" stop-opacity="0.3"/>
       <stop offset="0.5" stop-color="#F19B18" stop-opacity="0.12"/>
       <stop offset="1" stop-color="#F19B18" stop-opacity="0"/>
@@ -44,22 +44,35 @@
 
   <!-- Warm glow behind the nook -->
   <g filter="url(#softGlow)">
-    <ellipse cx="128" cy="128" rx="42" ry="46" fill="url(#nookGlow)"/>
+    <ellipse cx="128" cy="134" rx="62" ry="56" fill="url(#nookGlow)"/>
   </g>
 
   <!-- Nook border — closed rounded rectangle -->
-  <rect x="58" y="72" width="140" height="112" rx="16" stroke="url(#brandStroke)" stroke-width="12" stroke-linejoin="round" fill="none"/>
+  <rect x="42" y="58" width="172" height="140" rx="18" stroke="url(#brandStroke)" stroke-width="14" stroke-linejoin="round" fill="none"/>
 
-  <!-- Emoji circle — the selected emoji, centred in the nook -->
-  <circle cx="128" cy="128" r="24" fill="#fbbf24" opacity="0.15"/>
-  <circle cx="128" cy="128" r="24" stroke="#fbbf24" stroke-width="3" fill="none" opacity="0.6"/>
+  <!-- Faint grid inside the nook — evokes the emoji picker grid -->
+  <g opacity="0.04" stroke="#F7E2BA" stroke-width="0.75">
+    <line x1="86" y1="70" x2="86" y2="186"/>
+    <line x1="128" y1="70" x2="128" y2="186"/>
+    <line x1="170" y1="70" x2="170" y2="186"/>
+    <line x1="50" y1="94" x2="206" y2="94"/>
+    <line x1="50" y1="128" x2="206" y2="128"/>
+    <line x1="50" y1="162" x2="206" y2="162"/>
+  </g>
 
-  <!-- Smiley face inside the circle — simple, warm -->
-  <!-- Left eye -->
-  <circle cx="118" cy="122" r="3.5" fill="#F7E2BA" opacity="0.85"/>
-  <!-- Right eye -->
-  <circle cx="138" cy="122" r="3.5" fill="#F7E2BA" opacity="0.85"/>
-  <!-- Smile -->
-  <path d="M118 134 Q128 143 138 134" stroke="#F7E2BA" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.85"/>
+  <!-- Two emoji centred in the nook -->
+  <g transform="translate(96, 134)">
+    <rect x="-26" y="-26" width="52" height="52" rx="10" fill="#fbbf24" opacity="0.12"/>
+    <rect x="-26" y="-26" width="52" height="52" rx="10" fill="none" stroke="#fbbf24" stroke-width="1.5" opacity="0.4"/>
+    <circle r="22" fill="#fbbf24" opacity="0.15"/>
+    <circle r="22" stroke="#fbbf24" stroke-width="3" fill="none" opacity="0.6"/>
+    <circle cx="-7" cy="-5" r="3" fill="#F7E2BA" opacity="0.85"/>
+    <circle cx="7" cy="-5" r="3" fill="#F7E2BA" opacity="0.85"/>
+    <path d="M-8 5 Q0 13 8 5" stroke="#F7E2BA" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.85"/>
+  </g>
 
+  <g transform="translate(160, 134)">
+    <path d="M0 18 C-8 6 -23 -4 -23 -12 C-23 -20 -17 -24 -11 -24 C-5 -24 -1 -20 0 -16 C1 -20 5 -24 11 -24 C17 -24 23 -20 23 -12 C23 -4 8 6 0 18Z"
+          fill="#F7E2BA" opacity="0.8"/>
+  </g>
 </svg>

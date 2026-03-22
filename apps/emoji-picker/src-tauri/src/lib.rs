@@ -7,6 +7,7 @@ mod injection;
 
 use log::info;
 use std::ffi::OsStr;
+use tauri::image::Image;
 use tauri::menu::{MenuBuilder, MenuItemBuilder};
 use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Emitter, Manager};
@@ -37,6 +38,9 @@ fn is_wayland() -> bool {
     has_wayland_display(std::env::var_os("WAYLAND_DISPLAY").as_deref())
 }
 
+fn load_app_icon() -> tauri::Result<Image<'static>> {
+    Image::from_bytes(include_bytes!("../icons/icon.png"))
+}
 /// Receives a selected emoji from the frontend, hides the picker,
 /// and injects the emoji into the previously focused application.
 #[tauri::command]
@@ -198,7 +202,7 @@ fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let menu = MenuBuilder::new(app).items(&[&show, &quit]).build()?;
 
     let _tray = TrayIconBuilder::new()
-        .icon(app.default_window_icon().unwrap().clone())
+        .icon(load_app_icon()?)
         .tooltip("Emoji Nook")
         .menu(&menu)
         .on_menu_event(move |app, event| match event.id().as_ref() {
