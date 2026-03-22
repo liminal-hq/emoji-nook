@@ -4147,6 +4147,9 @@ dependencies = [
 name = "tauri-plugin-desktop-integration"
 version = "0.1.0"
 dependencies = [
+ "gdk",
+ "gdkx11",
+ "gtk",
  "log",
  "tauri",
 ]

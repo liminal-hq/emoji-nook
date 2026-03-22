@@ -46,11 +46,13 @@ graph TB
         Compositor[Wayland / X11]
         CB[Clipboard — arboard]
         Tools[ydotool / wtype / xdotool]
+        WMHints[_NET_WM_USER_TIME / X11 activation]
     end
 
     KB --> SC
     SC --> WM
     WM --> Picker
+    WM --> WMHints
     Picker --> INJ
     INJ --> CB
     CB --> Tools
@@ -117,7 +119,7 @@ graph TD
 
 ### Backend (Rust / Tauri v2)
 
-The Rust backend manages the application lifecycle, system tray, shortcut registration, and emoji injection. It delegates Linux-specific portal operations to the xdg-portal plugin.
+The Rust backend manages the application lifecycle, system tray, shortcut registration, and emoji injection. It delegates Linux-specific portal operations to the xdg-portal plugin and X11 activation quirks to the desktop-integration plugin.
 
 ```mermaid
 graph LR
@@ -148,7 +150,7 @@ graph LR
         Lib --> Desktop
     end
 
-    subgraph PluginCrate["tauri-plugin-xdg-portal"]
+    subgraph PortalPlugin["tauri-plugin-xdg-portal"]
         PluginLib["lib.rs — Plugin registration"]
         PluginLib --> Cmds["commands.rs"]
         PluginLib --> Linux["linux.rs"]
@@ -165,7 +167,14 @@ graph LR
         Cmds --> PortalCommands
     end
 
+    subgraph DesktopPlugin["tauri-plugin-desktop-integration"]
+        DesktopLib["lib.rs — Activation helpers"]
+        DesktopLib --> GTK["gtk_window() / present_with_time()"]
+        DesktopLib --> X11["gdkx11 user-time + xid fallback"]
+    end
+
     XDG --> PluginLib
+    Desktop --> DesktopLib
 ```
 
 ## Data Flow
@@ -393,6 +402,8 @@ The picker window is configured as a frameless overlay template in Rust. The app
 | `skipTaskbar` | `true`    | Background process, tray-only      |
 | Size          | 370 x 380 | Compact picker dimensions          |
 
+On X11, each fresh picker window is also handed to the desktop-integration plugin. The plugin asks GTK to `present_with_time(...)`, stamps `_NET_WM_USER_TIME` via `gdkx11` when possible, and keeps an `xdotool` activation fallback available for Cinnamon/Muffin focus-policy edge cases.
+
 ## Native Theming
 
 > **Visual:** See the [animated theme detection diagram](images/theme_detection_flow.svg) for a visual overview of this pipeline.
@@ -472,6 +483,9 @@ emoji-nook/
 │           │   └── injection.rs           # Clipboard shuffle
 │           └── capabilities/              # Tauri v2 permission grants
 ├── plugins/
+│   ├── desktop-integration/
+│   │   └── src/                    # Rust plugin
+│   │       └── lib.rs              # X11 activation + user-time helpers
 │   └── xdg-portal/
 │       ├── src/                    # Rust plugin
 │       │   ├── lib.rs                     # Plugin registration
@@ -503,7 +517,7 @@ emoji-nook/
 | Settings        | tauri-plugin-store                                        | Persistent JSON key-value store         |
 | Autostart       | tauri-plugin-autostart                                    | XDG autostart desktop file management   |
 | Shortcuts (X11) | tauri-plugin-global-shortcut                              | X11 global shortcut registration        |
-| Activation      | tauri-plugin-desktop-integration                          | X11 window activation assist            |
+| Activation      | tauri-plugin-desktop-integration                          | X11 user-time + activation assist       |
 | Logging         | tauri-plugin-log                                          | Structured logging with console bridge  |
 
 ### Runtime Dependencies

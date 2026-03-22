@@ -135,6 +135,7 @@ fn present_picker(app: &AppHandle, source: &'static str) {
             let _ = window.set_focus();
             if !is_wayland() {
                 tauri_plugin_desktop_integration::request_activation_assist(
+                    &window,
                     source,
                     "Emoji Nook",
                     &label,
