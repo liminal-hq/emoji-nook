@@ -991,7 +991,7 @@ checksum = "4ef6b89e5b37196644d8796de5268852ff179b44e96276cf4290264843743bb7"
 
 [[package]]
 name = "emoji-picker"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "arboard",
  "log",
@@ -4145,7 +4145,7 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-desktop-integration"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "gdk",
  "gdkx11",
@@ -4232,7 +4232,7 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-xdg-portal"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "ashpd",
  "futures-util",

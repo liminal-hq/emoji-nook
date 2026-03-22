@@ -18,10 +18,14 @@ The following files should move together for each app release:
 - `apps/emoji-picker/package.json`
 - `apps/emoji-picker/src-tauri/tauri.conf.json`
 - `apps/emoji-picker/src-tauri/Cargo.toml`
+- `plugins/desktop-integration/Cargo.toml`
+- `plugins/desktop-integration/guest-js/package.json`
 - `plugins/xdg-portal/Cargo.toml`
 - `plugins/xdg-portal/guest-js/package.json`
 
-This keeps the desktop app, the local Rust plugin crate, and the guest JavaScript package aligned while the plugin remains an internal workspace component rather than a separately published product.
+This keeps the desktop app, the local Rust plugin crates, and the guest JavaScript packages aligned while the plugins remain internal workspace components rather than separately published products.
+
+When those manifest versions change, `Cargo.lock` should be refreshed in the same release-preparation pass so `cargo ... --locked` validation keeps working on the release branch.
 
 ## Maintainer commands
 
@@ -34,7 +38,7 @@ pnpm release:version:prepare -- --version 0.2.0
 pnpm release:version:prepare -- --version 0.2.0 --dry-run
 ```
 
-The release-prep helper creates `chore/release-vX.Y.Z` by default, updates all release-facing version fields together, and refuses to run on a dirty working tree.
+The release-prep helper creates `chore/release-vX.Y.Z` by default, updates all release-facing version fields together, refreshes `Cargo.lock`, and refuses to run on a dirty working tree.
 
 ## Tags and branches
 

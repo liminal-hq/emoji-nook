@@ -1,6 +1,6 @@
 {
 	"name": "tauri-plugin-desktop-integration",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"description": "Guest JavaScript bindings for the Emoji Nook desktop-integration plugin",
 	"license": "(Apache-2.0 OR MIT)",
 	"type": "module",
