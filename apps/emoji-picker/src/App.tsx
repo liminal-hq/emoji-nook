@@ -19,7 +19,13 @@ import './App.css';
 function App() {
 	useTheme();
 	const { settings, update } = useSettings();
-	const [view, setView] = useState<'picker' | 'settings'>('picker');
+	const initialView =
+		(new URLSearchParams(window.location.search).get('view') as
+			| 'picker'
+			| 'settings'
+			| 'shortcut-setup'
+			| null) ?? 'picker';
+	const [view, setView] = useState<'picker' | 'settings' | 'shortcut-setup'>(initialView);
 	const searchRef = useRef<HTMLInputElement>(null);
 	const isDraggingRef = useRef(false);
 
@@ -45,14 +51,33 @@ function App() {
 		};
 	}, []);
 
-	// Esc key hides the picker (or closes settings)
+	// On Wayland, wait for portal shortcut binding to complete before showing picker.
+	useEffect(() => {
+		if (view !== 'shortcut-setup') return;
+		const unlisten = listen<{ success: boolean; error?: string }>(
+			'shortcut-binding-result',
+			({ payload }) => {
+				if (payload.success) {
+					setView('picker');
+				}
+				// On failure the view stays as shortcut-setup; the user sees no spinner
+				// change — future work: show an error message.
+			},
+		);
+		return () => {
+			unlisten.then((fn) => fn());
+		};
+	}, [view]);
+
+	// Esc key hides the picker (or closes settings). Blocked during shortcut-setup
+	// so the window stays open for the portal dialog.
 	useEffect(() => {
 		function handleKeyDown(e: KeyboardEvent) {
 			if (e.key === 'Escape') {
 				e.preventDefault();
 				if (view === 'settings') {
 					setView('picker');
-				} else {
+				} else if (view !== 'shortcut-setup') {
 					invoke('hide_picker').catch((err) => console.error('hide_picker IPC failed:', err));
 				}
 			}
@@ -115,11 +140,11 @@ function App() {
 		};
 	}, []);
 
-	// Suppressed while settings is open — native dropdowns and shortcut
-	// capture trigger blur events that would dismiss the window.
+	// Suppressed while settings or shortcut-setup is open — native dropdowns, shortcut
+	// capture, and the portal dialog all trigger blur events that would dismiss the window.
 	// isDraggingRef guards against blur fired by the compositor during window move.
 	useEffect(() => {
-		if (view === 'settings') return;
+		if (view === 'settings' || view === 'shortcut-setup') return;
 
 		const appWindow = getCurrentWebviewWindow();
 		const unlisten = appWindow.onFocusChanged(({ payload: focused }) => {
@@ -143,7 +168,14 @@ function App() {
 	return (
 		<main className="app-root">
 			<PickerShell>
-				{view === 'picker' ? (
+				{view === 'shortcut-setup' ? (
+					<div className="shortcut-setup">
+						<p className="shortcut-setup__message">Setting up keyboard shortcut…</p>
+						<p className="shortcut-setup__hint">
+							Approve the permission request from your desktop to enable the global shortcut.
+						</p>
+					</div>
+				) : view === 'picker' ? (
 					<EmojiPickerPanel
 						searchRef={searchRef}
 						skinTone={settings.skinTone}

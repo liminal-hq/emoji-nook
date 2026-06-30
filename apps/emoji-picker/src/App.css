@@ -361,6 +361,33 @@ body {
 	color: var(--text-primary);
 }
 
+/* Shortcut-setup view — shown on first Wayland launch until portal binding completes */
+.shortcut-setup {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	height: 100%;
+	gap: 12px;
+	padding: 24px;
+	text-align: center;
+	-webkit-app-region: no-drag;
+}
+
+.shortcut-setup__message {
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--text-primary);
+	margin: 0;
+}
+
+.shortcut-setup__hint {
+	font-size: 12px;
+	color: var(--text-secondary);
+	margin: 0;
+	line-height: 1.5;
+}
+
 /* Settings panel — replaces the picker when open */
 .settings-panel {
 	display: flex;

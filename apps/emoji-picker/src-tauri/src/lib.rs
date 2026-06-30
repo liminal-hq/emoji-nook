@@ -43,7 +43,6 @@ fn load_saved_shortcut(app: &AppHandle) -> String {
     }
 }
 
-/// Returns true when running under a Wayland compositor.
 fn is_wayland() -> bool {
     has_wayland_display(std::env::var_os("WAYLAND_DISPLAY").as_deref())
 }
@@ -80,8 +79,14 @@ fn close_picker_window(app: &AppHandle) {
     set_current_picker_label(app, None);
 }
 
-fn create_picker_window(app: &AppHandle, label: &str) -> tauri::Result<WebviewWindow> {
-    let mut builder = WebviewWindowBuilder::new(app, label, WebviewUrl::App("index.html".into()))
+fn create_picker_window(app: &AppHandle, label: &str, view: &str) -> tauri::Result<WebviewWindow> {
+    let url = if view.is_empty() {
+        "index.html".to_string()
+    } else {
+        format!("index.html?view={view}")
+    };
+
+    let mut builder = WebviewWindowBuilder::new(app, label, WebviewUrl::App(url.into()))
         .title("Emoji Nook")
         .inner_size(370.0, 380.0)
         .resizable(false)
@@ -127,13 +132,25 @@ fn present_picker(app: &AppHandle, source: &'static str) {
         .fetch_add(1, Ordering::SeqCst);
     let label = format!("picker-{picker_id}");
 
-    match create_picker_window(app, &label) {
+    // On Wayland, show the shortcut-setup view until the portal binding completes.
+    let view = if is_wayland() && !app.is_shortcut_binding_complete() {
+        "shortcut-setup"
+    } else {
+        ""
+    };
+
+    match create_picker_window(app, &label, view) {
         Ok(window) => {
-            info!("created picker window label={label} from {source}");
+            info!("created picker window label={label} view={view:?} from {source}");
             set_current_picker_label(app, Some(label.clone()));
             let _ = window.center();
             let _ = window.show();
             let _ = window.set_focus();
+
+            // Trigger deferred Wayland portal BindShortcuts on first show.
+            // No-op on X11 or if already called.
+            app.set_shortcut_window(&window);
+
             if !is_wayland() {
                 app.request_desktop_activation_assist(&window, source, &label);
             }
@@ -152,12 +169,8 @@ fn present_picker(app: &AppHandle, source: &'static str) {
 fn insert_emoji(app: AppHandle, emoji: String, label: &str, close_on_select: bool) {
     info!("emoji selected: {} ({})", emoji, label);
 
-    // Close the picker first so focus returns to the target app with a
-    // brand-new window created the next time it is shown.
     close_picker_window(&app);
 
-    // Inject on a background thread to avoid blocking the IPC handler
-    // during the sleep-based clipboard shuffle
     let reopen_handle = app.clone();
     std::thread::spawn(move || {
         injection::clipboard_shuffle(&emoji);
@@ -184,89 +197,10 @@ fn hide_picker(app: AppHandle) {
 #[tauri::command]
 fn update_shortcut(app: AppHandle, shortcut: String) {
     info!("updating global shortcut to: {shortcut}");
-    if is_wayland() {
-        // Wayland shortcuts are bound via the portal — re-registering requires
-        // a new session. For now, log a note that restart is needed.
-        log::warn!("Wayland shortcut change requires app restart to take effect");
-    } else {
-        use tauri_plugin_global_shortcut::GlobalShortcutExt;
-
-        // Unregister all existing shortcuts, then register the new one
-        let _ = app.global_shortcut().unregister_all();
-
-        let handle = app.clone();
-        let result =
-            app.global_shortcut()
-                .on_shortcut(shortcut.as_str(), move |_app, _shortcut, event| {
-                    if event.state == tauri_plugin_global_shortcut::ShortcutState::Pressed {
-                        present_picker(&handle, "shortcut-update");
-                    }
-                });
-
-        match result {
-            Ok(()) => info!("X11 global shortcut updated to: {shortcut}"),
-            Err(e) => log::error!("failed to update shortcut: {e}"),
-        }
-    }
-}
-
-/// Register the global shortcut via the Wayland GlobalShortcuts portal.
-/// The shortcut session lives as long as the returned handle.
-fn register_wayland_shortcut(app: AppHandle, shortcut: &str) {
-    info!("registering global shortcut via Wayland portal");
-    if let Ok(addr) = std::env::var("DBUS_SESSION_BUS_ADDRESS") {
-        info!("DBUS_SESSION_BUS_ADDRESS={addr}");
-    } else {
-        log::warn!("DBUS_SESSION_BUS_ADDRESS is not set — portal shortcuts may fail");
-    }
-    let trigger = shortcut.to_string();
     let handle = app.clone();
-    tauri::async_runtime::spawn(async move {
-        match tauri_plugin_xdg_portal::global_shortcuts::listen_for_shortcut(
-            "emoji-nook-toggle",
-            "Toggle Emoji Nook",
-            Some(&trigger),
-            move || {
-                present_picker(&handle, "wayland-shortcut");
-            },
-        )
-        .await
-        {
-            Ok(shortcut_handle) => {
-                info!("wayland global shortcut registered");
-                // Leak the handle to keep the session alive for the lifetime of the app.
-                // It will be cleaned up when the process exits.
-                std::mem::forget(shortcut_handle);
-            }
-            Err(e) => {
-                log::error!("failed to register Wayland global shortcut: {e}");
-                log::error!("the picker will not respond to keyboard shortcuts");
-            }
-        }
+    app.update_shortcut(&shortcut, move || {
+        present_picker(&handle, "shortcut");
     });
-}
-
-/// Register the global shortcut via tauri-plugin-global-shortcut (X11 path).
-fn register_x11_shortcut(app: &AppHandle, shortcut: &str) {
-    use tauri_plugin_global_shortcut::GlobalShortcutExt;
-
-    info!("registering global shortcut via X11 (tauri-plugin-global-shortcut)");
-    let handle = app.clone();
-    let result = app
-        .global_shortcut()
-        .on_shortcut(shortcut, move |_app, _shortcut, event| {
-            if event.state == tauri_plugin_global_shortcut::ShortcutState::Pressed {
-                present_picker(&handle, "x11-shortcut");
-            }
-        });
-
-    match result {
-        Ok(()) => info!("X11 global shortcut registered: {shortcut}"),
-        Err(e) => {
-            log::error!("failed to register X11 global shortcut: {e}");
-            log::error!("the picker will not respond to keyboard shortcuts");
-        }
-    }
 }
 
 /// Creates the system tray icon with a context menu.
@@ -324,11 +258,11 @@ pub fn run() {
             let shortcut = load_saved_shortcut(&handle);
             info!("using shortcut from settings: {shortcut}");
 
-            if is_wayland() {
-                register_wayland_shortcut(handle, &shortcut);
-            } else {
-                register_x11_shortcut(&handle, &shortcut);
-            }
+            let handle_for_shortcut = handle.clone();
+            handle.register_shortcut(&shortcut, move || {
+                present_picker(&handle_for_shortcut, "shortcut");
+            });
+
             Ok(())
         })
         .build(tauri::generate_context!())

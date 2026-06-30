@@ -295,18 +295,6 @@
       "type": "string",
       "oneOf": [
         {
-          "description": "Enables the bind_global_shortcut command without any pre-configured scope.",
-          "type": "string",
-          "const": "allow-bind-global-shortcut",
-          "markdownDescription": "Enables the bind_global_shortcut command without any pre-configured scope."
-        },
-        {
-          "description": "Denies the bind_global_shortcut command without any pre-configured scope.",
-          "type": "string",
-          "const": "deny-bind-global-shortcut",
-          "markdownDescription": "Denies the bind_global_shortcut command without any pre-configured scope."
-        },
-        {
           "description": "Enables the check_availability command without any pre-configured scope.",
           "type": "string",
           "const": "allow-check-availability",
@@ -319,30 +307,6 @@
           "markdownDescription": "Denies the check_availability command without any pre-configured scope."
         },
         {
-          "description": "Enables the close_remote_desktop_session command without any pre-configured scope.",
-          "type": "string",
-          "const": "allow-close-remote-desktop-session",
-          "markdownDescription": "Enables the close_remote_desktop_session command without any pre-configured scope."
-        },
-        {
-          "description": "Denies the close_remote_desktop_session command without any pre-configured scope.",
-          "type": "string",
-          "const": "deny-close-remote-desktop-session",
-          "markdownDescription": "Denies the close_remote_desktop_session command without any pre-configured scope."
-        },
-        {
-          "description": "Enables the create_remote_desktop_session command without any pre-configured scope.",
-          "type": "string",
-          "const": "allow-create-remote-desktop-session",
-          "markdownDescription": "Enables the create_remote_desktop_session command without any pre-configured scope."
-        },
-        {
-          "description": "Denies the create_remote_desktop_session command without any pre-configured scope.",
-          "type": "string",
-          "const": "deny-create-remote-desktop-session",
-          "markdownDescription": "Denies the create_remote_desktop_session command without any pre-configured scope."
-        },
-        {
           "description": "Enables the get_theme_info command without any pre-configured scope.",
           "type": "string",
           "const": "allow-get-theme-info",
@@ -353,30 +317,6 @@
           "type": "string",
           "const": "deny-get-theme-info",
           "markdownDescription": "Denies the get_theme_info command without any pre-configured scope."
-        },
-        {
-          "description": "Enables the inject_text command without any pre-configured scope.",
-          "type": "string",
-          "const": "allow-inject-text",
-          "markdownDescription": "Enables the inject_text command without any pre-configured scope."
-        },
-        {
-          "description": "Denies the inject_text command without any pre-configured scope.",
-          "type": "string",
-          "const": "deny-inject-text",
-          "markdownDescription": "Denies the inject_text command without any pre-configured scope."
-        },
-        {
-          "description": "Enables the unbind_global_shortcut command without any pre-configured scope.",
-          "type": "string",
-          "const": "allow-unbind-global-shortcut",
-          "markdownDescription": "Enables the unbind_global_shortcut command without any pre-configured scope."
-        },
-        {
-          "description": "Denies the unbind_global_shortcut command without any pre-configured scope.",
-          "type": "string",
-          "const": "deny-unbind-global-shortcut",
-          "markdownDescription": "Denies the unbind_global_shortcut command without any pre-configured scope."
         },
         {
           "description": "Default permissions for the xdg-portal plugin\n#### This default permission set includes:\n\n- `allow-check-availability`\n- `allow-get-theme-info`",
