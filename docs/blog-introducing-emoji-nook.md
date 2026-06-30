@@ -93,10 +93,10 @@ If the original clipboard had non-text content (an image, a file), we leave it a
 
 Linux doesn't have one input system — it has two, and the app needs to handle both. On startup, the Rust backend checks for `WAYLAND_DISPLAY`:
 
-- **Wayland present** → global shortcuts route through the xdg-portal plugin's GlobalShortcuts session; emoji injection uses the clipboard shuffle with `ydotool`/`wtype`
-- **X11** → global shortcuts use `tauri-plugin-global-shortcut`; injection uses `xdotool`
+- **Wayland present** → global shortcuts route through the xdg-portal plugin's GlobalShortcuts session
+- **X11** → global shortcuts use `tauri-plugin-global-shortcut`
 
-This routing is explicit and happens once at startup. No runtime guessing, no fallback chains that mask failures.
+This routing is explicit and happens once at startup. Emoji injection is the same on both display servers: the clipboard shuffle cascades through `ydotool` → `wtype` → `xdotool` in priority order, falling back to the next tool if the previous one is unavailable.
 
 <!-- TODO: Add the theme detection flow diagram (docs/images/theme_detection_flow.svg) -->
 
@@ -109,7 +109,7 @@ This routing is explicit and happens once at startup. No runtime guessing, no fa
 5. **Click or press Enter** — the picker vanishes, focus returns to your previous app, and the emoji appears in your text field.
 6. **Keep going** — if you disable "close on select" in settings, the picker sticks around for rapid-fire emoji entry.
 
-The settings panel (accessible via the gear icon) lets you reconfigure the shortcut, choose a default skin tone, toggle close-on-select, and enable autostart. On X11, shortcut changes take effect immediately. On Wayland, a restart is needed because portal sessions can't be dynamically re-bound — the settings panel tells you this.
+The settings panel (accessible via the gear icon) lets you reconfigure the shortcut, choose a default skin tone, toggle close-on-select, and enable autostart. On X11, shortcut changes take effect immediately. On Wayland, a restart is needed because portal sessions can't be dynamically re-bound.
 
 <!-- TODO: Add screenshot of the settings panel -->
 
@@ -142,7 +142,7 @@ The frontend never touches the clipboard or the display server directly. It send
 
 **The frontend** is a single-page React 19 app rendered inside a Tauri webview (WebKitGTK on Linux). It wraps Frimousse's headless emoji picker with custom components: a search bar, skin tone selector, category navigation bar, emoji grid, and a settings panel. Two custom hooks — `useTheme` and `useSettings` — manage the bridge between the frontend and the Rust backend via Tauri's IPC.
 
-**The IPC layer** exposes four commands: `insert_emoji` (sends the selected emoji to the backend for injection), `show_picker` / `hide_picker` (window lifecycle), and `update_shortcut` (re-registers the global hotkey). The frontend also listens for a `picker-shown` event emitted by the backend so it can reset its state — clear the search, scroll to top, and autofocus the input.
+**The IPC layer** exposes four commands: `insert_emoji` (sends the selected emoji to the backend for injection), `show_picker` / `hide_picker` (window lifecycle), and `update_shortcut` (re-registers the global hotkey). The frontend also listens for a `picker-shown` event emitted by the backend so it can restore the picker view and autofocus the search input.
 
 **The Rust backend** (`lib.rs`) is the orchestrator. On startup it reads the saved shortcut from `tauri-plugin-store`, detects the display server, registers the global shortcut through the appropriate path (portal or X11 plugin), and sets up the system tray. When an emoji is selected, the backend hides the window and spawns a background thread for the clipboard shuffle — keeping the IPC handler responsive while the injection sleeps through its timing windows.
 
@@ -212,7 +212,7 @@ let activated_stream = portal.receive_activated().await?;
 // Listen for activations in a spawned task...
 ```
 
-The session handle is intentionally leaked (`std::mem::forget`) to keep it alive for the lifetime of the process — dropping it would tear down the portal session and the shortcut would stop working. This also means Wayland shortcut changes require an app restart, because a portal session can't be dynamically re-bound. The settings panel communicates this to the user.
+The session handle is intentionally leaked (`std::mem::forget`) to keep it alive for the lifetime of the process — dropping it would tear down the portal session and the shortcut would stop working. This also means Wayland shortcut changes require an app restart, because a portal session can't be dynamically re-bound.
 
 There's also retry logic: the portal may reject `bind_shortcuts` if the app isn't fully initialised yet or if a previous session is still active. We retry once after a one-second delay before giving up.
 
@@ -240,7 +240,7 @@ The paste simulation cascades through three tools in priority order:
 
 3. **`xdotool`** — X11 protocol. Works on X11 and XWayland apps but can't reach native Wayland windows.
 
-If all three fail, the emoji is still on the clipboard — the user can paste manually. The app logs which tool succeeded or failed for debugging.
+If all three fail, the paste is silently skipped and the clipboard is restored to its prior state. The app logs which tool succeeded or failed for debugging.
 
 ### Clipboard Ownership on Wayland
 
@@ -255,7 +255,7 @@ If the clipboard originally held non-text content (an image, a file path), we ca
 `tauri-plugin-xdg-portal` isn't just glue code — it's a proper Tauri v2 plugin with:
 
 - **Rust source** — `commands.rs` (IPC handlers), `linux.rs` (ashpd D-Bus queries), `global_shortcuts.rs` (portal session management), `models.rs` (serialisable types like `ThemeInfo`, `ColourScheme`, `AccentColour`)
-- **TypeScript guest bindings** — auto-generated API so the frontend can call `portal.getThemeInfo()` directly
+- **TypeScript guest bindings** — hand-written typed wrappers so the frontend can call `portal.getThemeInfo()` directly
 - **Permission manifests** — Tauri v2's capability system requires explicit grants for each command. The plugin's `default.toml` declares `allow-check-availability` and `allow-get-theme-info`; the app's capability file opts in.
 - **A stub for RemoteDesktop** — the portal also offers input injection via `org.freedesktop.portal.RemoteDesktop`, which would let us inject keystrokes without external tools. This is deferred but architecturally planned.
 

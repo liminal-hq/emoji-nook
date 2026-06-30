@@ -26,7 +26,7 @@ When the custom portal plugin's permission system broke (Tauri v2's autogenerate
 
 ### Reading Unfamiliar Source Code
 
-Frimousse is a headless React emoji picker — it gives you unstyled components and lets you build the UI yourself. That's great for flexibility, but it means the library's internal behaviour isn't always documented. When we needed to understand how focus and keyboard navigation worked inside the emoji grid, Claude read Frimousse's minified source code and identified the internal model: `onFocusCapture` on the list element, a `data-focused` attribute on the active emoji, and `document.addEventListener` for arrow key handling. That understanding informed how we built the category navigation bar and why we needed to suppress certain focus outlines.
+Frimousse is a headless React emoji picker — it gives you unstyled components and lets you build the UI yourself. That's great for flexibility, but it means the library's internal behaviour isn't always documented. When we needed to understand how focus and keyboard navigation worked inside the emoji grid, Claude read Frimousse's minified source code and identified the internal model: `onFocusCapture` on the list element, a `data-active` attribute on the active emoji, and `document.addEventListener` for arrow key handling. That understanding informed how we built the category navigation bar and why we needed to suppress certain focus outlines.
 
 ### Debugging From Screenshots
 

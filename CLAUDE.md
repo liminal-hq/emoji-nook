@@ -11,7 +11,7 @@ Emoji Nook is a native Linux emoji picker built with Tauri v2 + React 19. It run
 `AGENTS.md` is the authoritative source for repository conventions and **takes precedence** when this file is silent. Key non-obvious rules:
 
 - **Canadian English** spelling in all code, UI strings, comments, commits, and docs (`colour`, `centre`, `licence` noun / `license` verb).
-- **Licence header** required as the first content of every authored source file (`.rs`, `.ts`, `.tsx`, `.css`, authored `.svg`) — see `AGENTS.md` for the exact block. Generated/config/doc files are exempt.
+- **Licence header** required as the first content of every authored source file (`.rs`, `.ts`, `.tsx`, `.js`, `.css`, `.scss`, authored `.svg`) — see `AGENTS.md` for the exact block. Generated/config/doc files are exempt.
 - **Conventional Commits** for commit messages; `test:` for test changes (reserve `fix:` for app-code fixes). PR titles are human-readable summaries with **no** Conventional Commit prefix.
 - For commit bodies with backticks/`$()`/shell-sensitive chars, write to a file and `git commit -F <file>`.
 

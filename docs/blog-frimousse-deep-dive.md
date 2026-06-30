@@ -125,7 +125,7 @@ Headless components give you freedom, but freedom means you're responsible for t
 
 ### Focus Management and Keyboard Navigation
 
-Frimousse ties keyboard navigation to focus. It uses `onFocusCapture` on the root element and tracks a `data-focused` attribute internally. Arrow keys are handled via a `document.addEventListener` — they work when the search input or viewport has focus, but not otherwise.
+Frimousse ties keyboard navigation to focus. It uses `onFocusCapture` on the root element and tracks a `data-active` attribute internally. Arrow keys are handled via a `document.addEventListener` — they work when the search input or viewport has focus, but not otherwise.
 
 This is invisible when you're testing in a browser where the search input is always focused. But in a Tauri webview, users might click the category bar or the skin tone selector, moving focus outside the root's capture zone. Suddenly arrow keys stop working and there's no visible indication why.
 

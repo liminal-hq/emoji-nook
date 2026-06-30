@@ -86,7 +86,7 @@ rust-checks:
       password: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-**Rust checks** runs `cargo fmt --check` and `cargo clippy --workspace --all-targets -- -D warnings`. Clippy runs with `-D warnings` so any warning is a hard failure — no silent degradation.
+**Rust checks** runs `cargo fmt --all -- --check` and `cargo clippy --workspace --all-targets -- -D warnings`. Clippy runs with `-D warnings` so any warning is a hard failure — no silent degradation.
 
 **Rust tests** uses `cargo nextest` for the test runner, which provides structured JUnit output and better test isolation than the default `cargo test`:
 
@@ -150,7 +150,7 @@ Emoji Nook uses a single release version for the whole workspace, but that versi
 | `plugins/xdg-portal/Cargo.toml` | TOML | Rust plugin crate |
 | `plugins/xdg-portal/guest-js/package.json` | JSON | Plugin TypeScript bindings |
 
-If any of these get out of sync, the built artefacts carry mismatched version metadata. A `.deb` package might report one version while the Tauri about dialog shows another. Catching this at release time is too late.
+If any of these get out of sync, the built artefacts carry mismatched version metadata. A `.deb` package might report one version while the Tauri about dialogue shows another. Catching this at release time is too late.
 
 ### The Check Script
 
@@ -294,7 +294,7 @@ The publish job downloads artefacts from both architecture builds, merges them, 
 
 ```yaml
 - name: Download Linux release assets
-  uses: actions/download-artifact@v5
+  uses: actions/download-artifact@v7
   with:
     pattern: linux-release-assets-*
     path: release-assets/linux
