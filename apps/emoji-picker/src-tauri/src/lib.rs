@@ -71,11 +71,6 @@ fn close_picker_window(app: &AppHandle) {
             let _ = window.close();
         }
     }
-
-    if let Some(window) = app.get_webview_window("main") {
-        let _ = window.close();
-    }
-
     set_current_picker_label(app, None);
 }
 
@@ -203,6 +198,14 @@ fn update_shortcut(app: AppHandle, shortcut: String) {
     });
 }
 
+/// Returns true once the portal BindShortcuts call has completed successfully.
+/// Exposed so the frontend can recover from the race where the shortcut-binding-result
+/// event fires before the webview listener is registered.
+#[tauri::command]
+fn check_shortcut_binding_complete(app: AppHandle) -> bool {
+    app.is_shortcut_binding_complete()
+}
+
 /// Creates the system tray icon with a context menu.
 fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let show = MenuItemBuilder::with_id("show", "Show Picker").build(app)?;
@@ -248,7 +251,8 @@ pub fn run() {
             insert_emoji,
             show_picker,
             hide_picker,
-            update_shortcut
+            update_shortcut,
+            check_shortcut_binding_complete
         ])
         .setup(|app| {
             let handle = app.handle().clone();
