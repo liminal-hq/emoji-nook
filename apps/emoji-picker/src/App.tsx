@@ -19,13 +19,15 @@ import './App.css';
 function App() {
 	useTheme();
 	const { settings, update } = useSettings();
-	const initialView =
-		(new URLSearchParams(window.location.search).get('view') as
-			| 'picker'
-			| 'settings'
-			| 'shortcut-setup'
-			| null) ?? 'picker';
+	const rawView = new URLSearchParams(window.location.search).get('view');
+	const initialView: 'picker' | 'settings' | 'shortcut-setup' =
+		rawView === 'shortcut-setup'
+			? 'shortcut-setup'
+			: rawView === 'settings'
+				? 'settings'
+				: 'picker';
 	const [view, setView] = useState<'picker' | 'settings' | 'shortcut-setup'>(initialView);
+	const [bindError, setBindError] = useState<string | null>(null);
 	const searchRef = useRef<HTMLInputElement>(null);
 	const isDraggingRef = useRef(false);
 
@@ -54,37 +56,52 @@ function App() {
 	// On Wayland, wait for portal shortcut binding to complete before showing picker.
 	useEffect(() => {
 		if (view !== 'shortcut-setup') return;
-		const unlisten = listen<{ success: boolean; error?: string }>(
+		let cancelled = false;
+		const unlistenPromise = listen<{ success: boolean; error: string | null }>(
 			'shortcut-binding-result',
 			({ payload }) => {
 				if (payload.success) {
 					setView('picker');
+				} else {
+					setBindError(payload.error ?? 'Could not bind the global shortcut.');
 				}
-				// On failure the view stays as shortcut-setup; the user sees no spinner
-				// change — future work: show an error message.
 			},
-		);
+		).then((fn) => {
+			// Listener is now registered. Guard against the race where the backend
+			// emitted shortcut-binding-result before this webview subscribed.
+			if (!cancelled) {
+				invoke<boolean>('check_shortcut_binding_complete')
+					.then((complete) => {
+						if (!cancelled && complete) setView('picker');
+					})
+					.catch(() => {});
+			}
+			return fn;
+		});
 		return () => {
-			unlisten.then((fn) => fn());
+			cancelled = true;
+			unlistenPromise.then((fn) => fn());
 		};
 	}, [view]);
 
 	// Esc key hides the picker (or closes settings). Blocked during shortcut-setup
-	// so the window stays open for the portal dialog.
+	// while waiting for portal approval; allowed once an error is shown.
 	useEffect(() => {
 		function handleKeyDown(e: KeyboardEvent) {
 			if (e.key === 'Escape') {
 				e.preventDefault();
 				if (view === 'settings') {
 					setView('picker');
-				} else if (view !== 'shortcut-setup') {
+				} else if (view === 'shortcut-setup' && bindError === null) {
+					// Suppress — portal dialog is open, dismissing would strand the user.
+				} else {
 					invoke('hide_picker').catch((err) => console.error('hide_picker IPC failed:', err));
 				}
 			}
 		}
 		document.addEventListener('keydown', handleKeyDown);
 		return () => document.removeEventListener('keydown', handleKeyDown);
-	}, [view]);
+	}, [view, bindError]);
 
 	// On Wayland the compositor consumes all mouse events during an interactive
 	// move, so mouseup never fires inside the webview.  Instead, we arm a
@@ -143,23 +160,41 @@ function App() {
 	// Suppressed while settings or shortcut-setup is open — native dropdowns, shortcut
 	// capture, and the portal dialog all trigger blur events that would dismiss the window.
 	// isDraggingRef guards against blur fired by the compositor during window move.
+	// Once a bind error is shown, blur-dismiss is re-enabled so the window can be dismissed.
 	useEffect(() => {
-		if (view === 'settings' || view === 'shortcut-setup') return;
+		if (view === 'settings') return;
+		if (view === 'shortcut-setup' && bindError === null) return;
 
 		const appWindow = getCurrentWebviewWindow();
-		const unlisten = appWindow.onFocusChanged(({ payload: focused }) => {
-			if (!focused && !isDraggingRef.current) {
+
+		const hide = () => {
+			if (!isDraggingRef.current) {
 				invoke('hide_picker').catch((err) => console.error('hide_picker IPC failed:', err));
 			}
+		};
+
+		const unlisten = appWindow.onFocusChanged(({ payload: focused }) => {
+			if (!focused) hide();
 		});
+
+		// onFocusChanged is edge-triggered. If the window is already unfocused when
+		// this effect runs (e.g. compositor did not restore focus after portal dialog),
+		// no event fires and the picker would stay open forever without this check.
+		appWindow
+			.isFocused()
+			.then((focused) => {
+				if (!focused) hide();
+			})
+			.catch(() => {});
+
 		return () => {
 			unlisten.then((fn) => fn());
 		};
-	}, [view]);
+	}, [view, bindError]);
 
 	const handleSettingsSave = useCallback(
-		(next: Settings) => {
-			update(next);
+		async (next: Settings) => {
+			await update(next).catch((err) => console.error('settings save failed:', err));
 			setView('picker');
 		},
 		[update],
@@ -170,10 +205,32 @@ function App() {
 			<PickerShell>
 				{view === 'shortcut-setup' ? (
 					<div className="shortcut-setup">
-						<p className="shortcut-setup__message">Setting up keyboard shortcut…</p>
-						<p className="shortcut-setup__hint">
-							Approve the permission request from your desktop to enable the global shortcut.
-						</p>
+						{bindError === null ? (
+							<>
+								<p className="shortcut-setup__message">Setting up keyboard shortcut…</p>
+								<p className="shortcut-setup__hint">
+									Approve the permission request from your desktop to enable the global
+									shortcut.
+								</p>
+							</>
+						) : (
+							<>
+								<p className="shortcut-setup__message shortcut-setup__message--error">
+									Shortcut setup failed
+								</p>
+								<p className="shortcut-setup__hint">{bindError}</p>
+								<button
+									className="shortcut-setup__dismiss"
+									onClick={() =>
+										invoke('hide_picker').catch((err) =>
+											console.error('hide_picker IPC failed:', err),
+										)
+									}
+								>
+									Dismiss
+								</button>
+							</>
+						)}
 					</div>
 				) : view === 'picker' ? (
 					<EmojiPickerPanel

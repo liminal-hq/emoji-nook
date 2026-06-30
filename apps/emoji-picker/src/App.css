@@ -128,7 +128,7 @@ body {
 	font-family: var(--font-family);
 	font-size: var(--font-size-base);
 	outline: none;
-	transition: border-colour 0.15s;
+	transition: border-color 0.15s;
 }
 
 .picker-search:focus {
@@ -386,6 +386,25 @@ body {
 	color: var(--text-secondary);
 	margin: 0;
 	line-height: 1.5;
+}
+
+.shortcut-setup__message--error {
+	color: var(--error, #e53e3e);
+}
+
+.shortcut-setup__dismiss {
+	margin-top: 4px;
+	padding: 6px 16px;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-sm);
+	background: var(--bg-secondary);
+	color: var(--text-primary);
+	font-size: 13px;
+	cursor: pointer;
+}
+
+.shortcut-setup__dismiss:hover {
+	background: var(--bg-hover);
 }
 
 /* Settings panel — replaces the picker when open */
