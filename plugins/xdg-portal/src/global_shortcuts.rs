@@ -20,7 +20,17 @@ fn to_xdg_trigger(shortcut: &str) -> String {
             "Shift" => result.push_str("<Shift>"),
             "Ctrl" | "Control" => result.push_str("<Ctrl>"),
             "Super" | "Meta" => result.push_str("<Super>"),
-            other => key = other.to_lowercase(),
+            // XKB keysym names are case-sensitive: single-character keys use lowercase,
+            // "space" is lowercase, but named keys (Tab, Return, F1, Left, …) must
+            // preserve their original casing.
+            "Space" => key = "space".to_string(),
+            other => {
+                key = if other.len() == 1 {
+                    other.to_lowercase()
+                } else {
+                    other.to_string()
+                };
+            }
         }
     }
 
@@ -87,7 +97,14 @@ where
 
         // Wait for the window identifier before binding.
         let window_id = tokio::select! {
-            Ok(id) = window_rx => id.unwrap_or_default(),
+            result = window_rx => match result {
+                Ok(id) => id.unwrap_or_default(),
+                // Sender dropped without a send (e.g. plugin teardown before first window).
+                Err(_) => {
+                    tracing::warn!("shortcut window sender dropped; aborting portal binding");
+                    return;
+                }
+            },
             _ = &mut cancel_rx => return,
         };
 
@@ -98,6 +115,16 @@ where
         match bind_result {
             Ok(request) => match request.response() {
                 Ok(resp) => {
+                    if resp.shortcuts().is_empty() {
+                        tracing::warn!(
+                            "portal bind succeeded but returned no shortcuts — \
+                             the key combination may already be claimed"
+                        );
+                        on_binding_result(Err(
+                            "compositor returned no bound shortcuts".to_string()
+                        ));
+                        return;
+                    }
                     info!(
                         "global shortcuts bound: {:?}",
                         resp.shortcuts().iter().map(|s| s.id()).collect::<Vec<_>>()
@@ -120,10 +147,21 @@ where
         tokio::pin!(activated_stream);
         loop {
             tokio::select! {
-                Some(event) = activated_stream.next() => {
-                    if event.shortcut_id() == sid {
-                        info!("global shortcut activated: {}", sid);
-                        on_activated();
+                event = activated_stream.next() => {
+                    match event {
+                        Some(event) => {
+                            if event.shortcut_id() == sid {
+                                info!("global shortcut activated: {}", sid);
+                                on_activated();
+                            }
+                        }
+                        // Stream closed (compositor crash, D-Bus drop) — exit cleanly.
+                        None => {
+                            tracing::warn!(
+                                "global shortcut activation stream ended for: {}", sid
+                            );
+                            break;
+                        }
                     }
                 }
                 _ = &mut cancel_rx => {
@@ -147,9 +185,18 @@ mod tests {
     use super::to_xdg_trigger;
 
     #[test]
-    fn translates_tauri_shortcut_to_xdg_format() {
+    fn translates_single_char_keys_to_lowercase() {
         assert_eq!(to_xdg_trigger("Alt+Shift+E"), "<Alt><Shift>e");
         assert_eq!(to_xdg_trigger("Ctrl+Space"), "<Ctrl>space");
-        assert_eq!(to_xdg_trigger("Super+Period"), "<Super>period");
+        assert_eq!(to_xdg_trigger("Super+."), "<Super>.");
+    }
+
+    #[test]
+    fn preserves_named_key_case() {
+        assert_eq!(to_xdg_trigger("Alt+Tab"), "<Alt>Tab");
+        assert_eq!(to_xdg_trigger("Ctrl+Return"), "<Ctrl>Return");
+        assert_eq!(to_xdg_trigger("Alt+F1"), "<Alt>F1");
+        assert_eq!(to_xdg_trigger("Ctrl+Left"), "<Ctrl>Left");
+        assert_eq!(to_xdg_trigger("Shift+BackSpace"), "<Shift>BackSpace");
     }
 }
