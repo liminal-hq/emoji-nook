@@ -35,6 +35,13 @@ pub struct ShortcutState {
     /// Set true once the portal BindShortcuts call reports success.
     /// Always true on X11 (shortcuts are synchronously bound).
     pub binding_complete: AtomicBool,
+    /// Owns the Wayland portal session and activation listener for process lifetime.
+    /// Dropping it cancels the listener — must NOT be std::mem::forgot.
+    pub wayland_handle:
+        Mutex<Option<tauri_plugin_xdg_portal::global_shortcuts::ShortcutHandle>>,
+    /// The shortcut string currently active on X11, used to restore it if an
+    /// update to a new shortcut fails.
+    pub current_x11_shortcut: Mutex<Option<String>>,
 }
 
 impl Default for ShortcutState {
@@ -43,6 +50,8 @@ impl Default for ShortcutState {
             window_tx: Mutex::new(None),
             window_provided: AtomicBool::new(false),
             binding_complete: AtomicBool::new(false),
+            wayland_handle: Mutex::new(None),
+            current_x11_shortcut: Mutex::new(None),
         }
     }
 }
@@ -209,19 +218,58 @@ impl<R: Runtime> DesktopIntegrationExt<R> for AppHandle<R> {
         } else {
             use tauri_plugin_global_shortcut::GlobalShortcutExt;
 
-            let _ = self.global_shortcut().unregister_all();
+            let previous = self
+                .state::<ShortcutState>()
+                .current_x11_shortcut
+                .lock()
+                .ok()
+                .and_then(|g| g.clone());
+
             let on_activated = std::sync::Arc::new(on_activated);
+
+            let _ = self.global_shortcut().unregister_all();
+
+            let oa_new = on_activated.clone();
             let result =
                 self.global_shortcut()
                     .on_shortcut(shortcut, move |_app, _shortcut, event| {
                         if event.state == tauri_plugin_global_shortcut::ShortcutState::Pressed {
-                            on_activated();
+                            oa_new();
                         }
                     });
 
             match result {
-                Ok(()) => info!("X11 global shortcut updated to: {shortcut}"),
-                Err(e) => log::error!("failed to update X11 shortcut: {e}"),
+                Ok(()) => {
+                    info!("X11 global shortcut updated to: {shortcut}");
+                    if let Ok(mut g) = self.state::<ShortcutState>().current_x11_shortcut.lock() {
+                        *g = Some(shortcut.to_string());
+                    }
+                }
+                Err(e) => {
+                    log::error!("failed to update X11 shortcut to {shortcut}: {e}");
+                    // Attempt to restore the previous shortcut so the user isn't left
+                    // with no active shortcut for the rest of the session.
+                    if let Some(ref prev) = previous {
+                        let oa_rollback = on_activated.clone();
+                        let rollback = self.global_shortcut().on_shortcut(
+                            prev.as_str(),
+                            move |_app, _shortcut, event| {
+                                if event.state
+                                    == tauri_plugin_global_shortcut::ShortcutState::Pressed
+                                {
+                                    oa_rollback();
+                                }
+                            },
+                        );
+                        match rollback {
+                            Ok(()) => info!("X11 shortcut rolled back to: {prev}"),
+                            Err(e2) => log::error!(
+                                "failed to restore previous shortcut {prev}: {e2}; \
+                                 no shortcut active until app restart"
+                            ),
+                        }
+                    }
+                }
             }
         }
     }
@@ -293,8 +341,11 @@ impl<R: Runtime> DesktopIntegrationInternal<R> for AppHandle<R> {
             .await
             {
                 Ok(handle) => {
-                    // Leak the handle to keep the session alive for the process lifetime.
-                    std::mem::forget(handle);
+                    // Keep the handle alive so the portal session and activation
+                    // listener remain active.  Dropping it would cancel the shortcut.
+                    if let Ok(mut guard) = app.state::<ShortcutState>().wayland_handle.lock() {
+                        *guard = Some(handle);
+                    }
                 }
                 Err(e) => {
                     log::error!("failed to create Wayland shortcut session: {e}");
@@ -328,7 +379,12 @@ impl<R: Runtime> DesktopIntegrationInternal<R> for AppHandle<R> {
             });
 
         match result {
-            Ok(()) => info!("X11 global shortcut registered: {shortcut}"),
+            Ok(()) => {
+                info!("X11 global shortcut registered: {shortcut}");
+                if let Ok(mut g) = self.state::<ShortcutState>().current_x11_shortcut.lock() {
+                    *g = Some(shortcut.to_string());
+                }
+            }
             Err(e) => log::error!("failed to register X11 global shortcut: {e}"),
         }
     }
