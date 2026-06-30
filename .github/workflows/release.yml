@@ -46,7 +46,7 @@ jobs:
       release_url: ${{ steps.release.outputs.release_url }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -211,7 +211,7 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ needs.prepare-release.outputs.checkout_ref }}
 
@@ -325,7 +325,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Download Linux release assets
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v7
         with:
           pattern: linux-release-assets-*
           path: release-assets/linux
