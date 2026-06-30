@@ -77,8 +77,15 @@ function App() {
 		function onMouseDown(e: MouseEvent) {
 			if ((e.target as HTMLElement).closest('[data-tauri-drag-region]')) {
 				isDraggingRef.current = true;
-				if (armTimer) clearTimeout(armTimer);
+				if (armTimer) {
+					clearTimeout(armTimer);
+				} else {
+					// armTimer already fired — clear any orphaned one-shot listener so
+					// it cannot fire during the next drag before the compositor takes over.
+					document.removeEventListener('mousemove', clearDrag, true);
+				}
 				armTimer = setTimeout(() => {
+					armTimer = null;
 					document.addEventListener('mousemove', clearDrag, {
 						once: true,
 						capture: true,
@@ -88,7 +95,12 @@ function App() {
 		}
 
 		function onMouseUp() {
-			if (armTimer) clearTimeout(armTimer);
+			if (armTimer) {
+				clearTimeout(armTimer);
+				armTimer = null;
+			}
+			// Remove any one-shot listener the arm timer may have already registered.
+			document.removeEventListener('mousemove', clearDrag, true);
 			isDraggingRef.current = false;
 		}
 
