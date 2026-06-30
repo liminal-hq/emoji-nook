@@ -3,7 +3,7 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import type { SkinTone } from 'frimousse';
 import { invoke } from '@tauri-apps/api/core';
 import { isEnabled, enable, disable } from '@tauri-apps/plugin-autostart';
@@ -20,17 +20,25 @@ const SKIN_TONES: { value: SkinTone; label: string; preview: string }[] = [
 
 interface SettingsPanelProps {
 	settings: Settings;
-	onSave: (settings: Settings) => void;
+	onSave: (settings: Settings) => void | Promise<void>;
 	onCancel: () => void;
 }
+
+// W3C UI Events key names that differ from XKB/Tauri accelerator names.
+const W3C_TO_TAURI: Record<string, string> = {
+	Enter: 'Return',
+	Backspace: 'BackSpace',
+	ArrowLeft: 'Left',
+	ArrowRight: 'Right',
+	ArrowUp: 'Up',
+	ArrowDown: 'Down',
+	PageUp: 'Prior',
+	PageDown: 'Next',
+};
 
 export default function SettingsPanel({ settings, onSave, onCancel }: SettingsPanelProps) {
 	const [draft, setDraft] = useState<Settings>(settings);
 	const [capturing, setCapturing] = useState(false);
-
-	useEffect(() => {
-		setDraft(settings);
-	}, [settings]);
 
 	const handleShortcutCapture = useCallback(
 		(e: React.KeyboardEvent) => {
@@ -38,7 +46,13 @@ export default function SettingsPanel({ settings, onSave, onCancel }: SettingsPa
 			e.preventDefault();
 			e.stopPropagation();
 
-			// Ignore lone modifier presses
+			// Escape cancels capture without recording the key.
+			if (e.key === 'Escape') {
+				setCapturing(false);
+				return;
+			}
+
+			// Ignore lone modifier presses.
 			if (['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) return;
 
 			const parts: string[] = [];
@@ -47,8 +61,12 @@ export default function SettingsPanel({ settings, onSave, onCancel }: SettingsPa
 			if (e.shiftKey) parts.push('Shift');
 			if (e.metaKey) parts.push('Super');
 
-			// Normalise key name
-			let key = e.key;
+			// Require at least one modifier — bare keys would intercept system-wide
+			// input and are not useful as app shortcuts.
+			if (parts.length === 0) return;
+
+			// Translate W3C UI Events key names to XKB/Tauri accelerator names.
+			let key = W3C_TO_TAURI[e.key] ?? e.key;
 			if (key === ' ') key = 'Space';
 			else if (key.length === 1) key = key.toUpperCase();
 			parts.push(key);
@@ -79,7 +97,7 @@ export default function SettingsPanel({ settings, onSave, onCancel }: SettingsPa
 			);
 		}
 
-		onSave(draft);
+		await onSave(draft);
 	}, [draft, settings.shortcut, onSave]);
 
 	return (

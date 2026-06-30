@@ -18,7 +18,7 @@ import './App.css';
 
 function App() {
 	useTheme();
-	const { settings, update } = useSettings();
+	const { settings, loaded, update } = useSettings();
 	const rawView = new URLSearchParams(window.location.search).get('view');
 	const initialView: 'picker' | 'settings' | 'shortcut-setup' =
 		rawView === 'shortcut-setup'
@@ -240,13 +240,13 @@ function App() {
 						onEmojiSelect={handleSelect}
 						onOpenSettings={() => setView('settings')}
 					/>
-				) : (
+				) : loaded ? (
 					<SettingsPanel
 						settings={settings}
 						onSave={handleSettingsSave}
 						onCancel={() => setView('picker')}
 					/>
-				)}
+				) : null}
 			</PickerShell>
 		</main>
 	);
