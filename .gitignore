@@ -48,3 +48,4 @@ lerna-debug.log*
 *.sw?
 .DS_Store
 *.local
+.playwright-mcp/
