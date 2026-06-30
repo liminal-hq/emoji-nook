@@ -165,4 +165,4 @@ That's the tale: a background app that solves one small, persistent Linux annoya
 
 ---
 
-*(c) 2026 Liminal HQ, Scott Morris*
+_(c) 2026 Liminal HQ, Scott Morris_

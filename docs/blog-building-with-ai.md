@@ -70,7 +70,7 @@ Which bugs to fix now vs defer. What goes in the first PR vs the next branch. Wh
 
 ### The Tauri v2 Permission Format
 
-Tauri v2's plugin permission system uses auto-generated TOML files that must follow a specific format. Our plugin's `default.toml` used `[[permission]]` (an array of tables), but the framework expected `[default]` (a single table with an `identifier` field and a `permissions` array). The error messages didn't point to this difference. The documentation described the *concept* of capabilities but not the exact file format.
+Tauri v2's plugin permission system uses auto-generated TOML files that must follow a specific format. Our plugin's `default.toml` used `[[permission]]` (an array of tables), but the framework expected `[default]` (a single table with an `identifier` field and a `permissions` array). The error messages didn't point to this difference. The documentation described the _concept_ of capabilities but not the exact file format.
 
 The fix came from cross-referencing. Claude read the working plugin in `~/source/threshold`, compared the TOML structures line by line, identified the format discrepancy, and applied the correct structure. Without a working reference to compare against, this could have been hours of trial and error.
 
@@ -112,7 +112,7 @@ This isn't a replacement for human code review. Both AI reviewers missed things 
 
 ## Takeaways
 
-**AI dramatically accelerates implementation, but it doesn't replace design thinking.** The parts of Emoji Nook that make it feel like a native Linux tool — the theme token system, the compact overlay form factor, the philosophy of blending in — came from human design decisions. The parts that made it *ship* — the Tauri workspace wiring, the Rust/React IPC layer, the permission system debugging, the documentation — were dramatically accelerated by AI.
+**AI dramatically accelerates implementation, but it doesn't replace design thinking.** The parts of Emoji Nook that make it feel like a native Linux tool — the theme token system, the compact overlay form factor, the philosophy of blending in — came from human design decisions. The parts that made it _ship_ — the Tauri workspace wiring, the Rust/React IPC layer, the permission system debugging, the documentation — were dramatically accelerated by AI.
 
 **The conversational model works better than prompt-and-paste.** Context accumulates. By the middle of a session, Claude understood the codebase well enough to make implementation choices that were consistent with the project's patterns. That continuity matters more than raw code generation speed.
 
@@ -124,4 +124,4 @@ This isn't a replacement for human code review. Both AI reviewers missed things 
 
 ---
 
-*(c) 2026 Liminal HQ, Scott Morris*
+_(c) 2026 Liminal HQ, Scott Morris_

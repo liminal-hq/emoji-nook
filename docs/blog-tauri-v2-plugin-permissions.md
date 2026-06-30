@@ -75,7 +75,7 @@ This is valid TOML. It parses. The build completes without a single warning or e
 
 But the commands are denied anyway.
 
-The problem is that `[[permission]]` blocks define *individual* permission entries, but they don't get bundled into the `default` permission set that the app references with `xdg-portal:default`. They're orphaned declarations — the build system accepts them, the runtime ignores them when resolving the `default` grant, and you get a silent "permission denied".
+The problem is that `[[permission]]` blocks define _individual_ permission entries, but they don't get bundled into the `default` permission set that the app references with `xdg-portal:default`. They're orphaned declarations — the build system accepts them, the runtime ignores them when resolving the `default` grant, and you get a silent "permission denied".
 
 ## The Right Format
 
@@ -94,15 +94,15 @@ That's it. The auto-generated identifiers — `allow-check-availability`, `allow
 
 ```json
 {
-  "identifier": "default",
-  "description": "Capability for the main window",
-  "windows": ["main"],
-  "permissions": [
-    "core:default",
-    "xdg-portal:default",
-    "xdg-portal:allow-bind-global-shortcut",
-    "xdg-portal:allow-unbind-global-shortcut"
-  ]
+	"identifier": "default",
+	"description": "Capability for the main window",
+	"windows": ["main"],
+	"permissions": [
+		"core:default",
+		"xdg-portal:default",
+		"xdg-portal:allow-bind-global-shortcut",
+		"xdg-portal:allow-unbind-global-shortcut"
+	]
 }
 ```
 
@@ -146,4 +146,4 @@ If you're writing a custom Tauri v2 plugin and your commands are being denied at
 
 ---
 
-*(c) 2026 Liminal HQ, Scott Morris*
+_(c) 2026 Liminal HQ, Scott Morris_

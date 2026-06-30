@@ -19,18 +19,18 @@ Emoji Nook is a native Linux emoji picker built with Tauri v2 + React 19. It run
 
 All validation is driven from root `pnpm` scripts so local and CI stay aligned. Use these rather than invoking the underlying tools directly.
 
-| Task | Command |
-| --- | --- |
-| Install | `pnpm install` |
-| Run app (dev) | `pnpm tauri:dev` |
-| Build app | `pnpm tauri:build` |
-| Frontend dev server only | `pnpm dev` |
-| Lint TS / Rust | `pnpm lint` / `pnpm lint:rust` |
-| Typecheck | `pnpm typecheck` |
-| Format check TS / Rust | `pnpm format:check` / `pnpm format:rust:check` |
-| Test TS / Rust | `pnpm test` / `pnpm test:rust` |
-| Build TS / Rust | `pnpm build` / `pnpm build:rust` |
-| Full local gate | `pnpm validate` (alias `pnpm ci:all`) |
+| Task                     | Command                                        |
+| ------------------------ | ---------------------------------------------- |
+| Install                  | `pnpm install`                                 |
+| Run app (dev)            | `pnpm tauri:dev`                               |
+| Build app                | `pnpm tauri:build`                             |
+| Frontend dev server only | `pnpm dev`                                     |
+| Lint TS / Rust           | `pnpm lint` / `pnpm lint:rust`                 |
+| Typecheck                | `pnpm typecheck`                               |
+| Format check TS / Rust   | `pnpm format:check` / `pnpm format:rust:check` |
+| Test TS / Rust           | `pnpm test` / `pnpm test:rust`                 |
+| Build TS / Rust          | `pnpm build` / `pnpm build:rust`               |
+| Full local gate          | `pnpm validate` (alias `pnpm ci:all`)          |
 
 - `pnpm test:rust` uses **cargo-nextest** — it must be installed to run the shared Rust test command.
 - Run a single frontend test: `pnpm --filter @emoji-picker/emoji-picker test <path-or-name>` (Vitest).

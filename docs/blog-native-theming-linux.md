@@ -14,7 +14,7 @@ Linux has GNOME, KDE Plasma, XFCE, Cinnamon, MATE, and a constellation of tiling
 
 You might think `prefers-color-scheme` solves the dark/light distinction. It does not — at least not reliably. Tauri v2 on Linux renders through WebKitGTK, and WebKitGTK does not always reflect the portal's colour scheme preference in its `prefers-color-scheme` media query. On some setups it works. On others it returns `light` regardless of your desktop settings. You cannot depend on it as your only signal.
 
-We needed something more reliable and more expressive — not just dark-or-light, but *which flavour* of dark-or-light.
+We needed something more reliable and more expressive — not just dark-or-light, but _which flavour_ of dark-or-light.
 
 ## The Architecture: Portal to CSS
 
@@ -113,8 +113,8 @@ On the frontend, the `useTheme` hook calls `portal.getThemeInfo()` and selects a
 
 ```typescript
 function getTokens(de: DesktopEnvironment, isDark: boolean, accent?: string) {
-    if (de === 'kde') return breezeTokens(isDark, accent);
-    return adwaitaTokens(isDark, accent);
+	if (de === 'kde') return breezeTokens(isDark, accent);
+	return adwaitaTokens(isDark, accent);
 }
 ```
 
@@ -124,10 +124,10 @@ The selected tokens are written directly onto `document.documentElement` as inli
 
 ```typescript
 function applyTokens(tokens: Record<string, string>) {
-    const root = document.documentElement;
-    for (const [key, value] of Object.entries(tokens)) {
-        root.style.setProperty(key, value);
-    }
+	const root = document.documentElement;
+	for (const [key, value] of Object.entries(tokens)) {
+		root.style.setProperty(key, value);
+	}
 }
 ```
 
@@ -139,20 +139,20 @@ The two token sets encode the visual language of each desktop environment. Here 
 
 ### Adwaita (GNOME, Cinnamon, MATE, XFCE)
 
-| Property | Dark | Light |
-|----------|------|-------|
-| `--bg-primary` | `#242424` | `#fafafa` |
-| `--bg-surface` | `#303030` | `#ffffff` |
-| `--bg-hover` | `rgba(255,255,255,0.08)` | `rgba(0,0,0,0.06)` |
-| `--bg-active` | `rgba(255,255,255,0.14)` | `rgba(0,0,0,0.10)` |
-| `--text-primary` | `#f0f0f0` | `#1a1a1a` |
-| `--text-secondary` | `#aaaaaa` | `#666666` |
-| `--text-tertiary` | `#777777` | `#999999` |
-| `--accent` | `#62a0ea` (default) | `#3584e4` (default) |
-| `--border` | `rgba(255,255,255,0.10)` | `rgba(0,0,0,0.12)` |
-| `--radius-sm` | `8px` | `8px` |
-| `--radius-md` | `12px` | `12px` |
-| `--font-family` | `"Cantarell", "Noto Sans", system-ui, sans-serif` | same |
+| Property           | Dark                                              | Light               |
+| ------------------ | ------------------------------------------------- | ------------------- |
+| `--bg-primary`     | `#242424`                                         | `#fafafa`           |
+| `--bg-surface`     | `#303030`                                         | `#ffffff`           |
+| `--bg-hover`       | `rgba(255,255,255,0.08)`                          | `rgba(0,0,0,0.06)`  |
+| `--bg-active`      | `rgba(255,255,255,0.14)`                          | `rgba(0,0,0,0.10)`  |
+| `--text-primary`   | `#f0f0f0`                                         | `#1a1a1a`           |
+| `--text-secondary` | `#aaaaaa`                                         | `#666666`           |
+| `--text-tertiary`  | `#777777`                                         | `#999999`           |
+| `--accent`         | `#62a0ea` (default)                               | `#3584e4` (default) |
+| `--border`         | `rgba(255,255,255,0.10)`                          | `rgba(0,0,0,0.12)`  |
+| `--radius-sm`      | `8px`                                             | `8px`               |
+| `--radius-md`      | `12px`                                            | `12px`              |
+| `--font-family`    | `"Cantarell", "Noto Sans", system-ui, sans-serif` | same                |
 
 Shadows are softer: `0 2px 12px rgba(0,0,0,0.4)` in dark mode, `0 2px 8px rgba(0,0,0,0.12)` in light. Both include a subtle `0 0 0 1px` ring for definition.
 
@@ -160,20 +160,20 @@ Shadows are softer: `0 2px 12px rgba(0,0,0,0.4)` in dark mode, `0 2px 8px rgba(0
 
 ### Breeze (KDE Plasma)
 
-| Property | Dark | Light |
-|----------|------|-------|
-| `--bg-primary` | `#1b1e20` | `#eff0f1` |
-| `--bg-surface` | `#232629` | `#ffffff` |
-| `--bg-hover` | `rgba(255,255,255,0.07)` | `rgba(0,0,0,0.05)` |
-| `--bg-active` | `rgba(255,255,255,0.12)` | `rgba(0,0,0,0.09)` |
-| `--text-primary` | `#eff0f1` | `#232629` |
-| `--text-secondary` | `#bdc3c7` | `#7f8c8d` |
-| `--text-tertiary` | `#7f8c8d` | `#bdc3c7` |
-| `--accent` | `#63beff` (default) | `#2980b9` (default) |
-| `--border` | `rgba(255,255,255,0.08)` | `rgba(0,0,0,0.10)` |
-| `--radius-sm` | `4px` | `4px` |
-| `--radius-md` | `6px` | `6px` |
-| `--font-family` | `"Noto Sans", "Segoe UI", system-ui, sans-serif` | same |
+| Property           | Dark                                             | Light               |
+| ------------------ | ------------------------------------------------ | ------------------- |
+| `--bg-primary`     | `#1b1e20`                                        | `#eff0f1`           |
+| `--bg-surface`     | `#232629`                                        | `#ffffff`           |
+| `--bg-hover`       | `rgba(255,255,255,0.07)`                         | `rgba(0,0,0,0.05)`  |
+| `--bg-active`      | `rgba(255,255,255,0.12)`                         | `rgba(0,0,0,0.09)`  |
+| `--text-primary`   | `#eff0f1`                                        | `#232629`           |
+| `--text-secondary` | `#bdc3c7`                                        | `#7f8c8d`           |
+| `--text-tertiary`  | `#7f8c8d`                                        | `#bdc3c7`           |
+| `--accent`         | `#63beff` (default)                              | `#2980b9` (default) |
+| `--border`         | `rgba(255,255,255,0.08)`                         | `rgba(0,0,0,0.10)`  |
+| `--radius-sm`      | `4px`                                            | `4px`               |
+| `--radius-md`      | `6px`                                            | `6px`               |
+| `--font-family`    | `"Noto Sans", "Segoe UI", system-ui, sans-serif` | same                |
 
 Breeze shadows are crisper and tighter: `0 1px 6px` instead of `0 2px 12px`. The corner radii are noticeably smaller — 4px/6px vs 8px/12px — reflecting Plasma's more geometric aesthetic.
 
@@ -193,9 +193,9 @@ The fix was to use `window.matchMedia` as a secondary signal:
 
 ```typescript
 const isDark =
-    info.colourScheme === 'prefer-dark' ||
-    (info.colourScheme === 'no-preference' &&
-        window.matchMedia('(prefers-color-scheme: dark)').matches);
+	info.colourScheme === 'prefer-dark' ||
+	(info.colourScheme === 'no-preference' &&
+		window.matchMedia('(prefers-color-scheme: dark)').matches);
 ```
 
 If the portal says `prefer-dark`, trust it. If the portal says `no-preference`, ask WebKitGTK via `matchMedia`. It is not perfectly reliable (as mentioned earlier), but it is more likely to reflect the actual desktop state than a blind default to light. And if `matchMedia` also returns `light` on a dark desktop, the user at least gets a coherent light theme rather than a random mismatch.
@@ -209,18 +209,18 @@ Theme information is fetched twice: once on mount, and once every time the picke
 ```typescript
 // Fetch on mount
 useEffect(() => {
-    fetchAndApply();
+	fetchAndApply();
 }, [fetchAndApply]);
 
 // Re-fetch when the picker is shown — catches theme changes
 // between hide/show cycles without needing a live portal listener
 useEffect(() => {
-    const unlisten = listen('picker-shown', () => {
-        fetchAndApply();
-    });
-    return () => {
-        unlisten.then((fn) => fn());
-    };
+	const unlisten = listen('picker-shown', () => {
+		fetchAndApply();
+	});
+	return () => {
+		unlisten.then((fn) => fn());
+	};
 }, [fetchAndApply]);
 ```
 
@@ -246,41 +246,41 @@ The result without `color-scheme: dark` is a dark-themed app with bright white s
 
 The complete set of custom properties consumed by the app:
 
-| Property | Purpose | Example (Adwaita dark) |
-|----------|---------|----------------------|
-| `--bg-primary` | Page/panel background | `#242424` |
-| `--bg-surface` | Card/elevated surface background | `#303030` |
-| `--bg-hover` | Hover state overlay | `rgba(255,255,255,0.08)` |
-| `--bg-active` | Active/pressed state overlay | `rgba(255,255,255,0.14)` |
-| `--text-primary` | Body text | `#f0f0f0` |
-| `--text-secondary` | Secondary labels, descriptions | `#aaaaaa` |
-| `--text-tertiary` | Placeholders, disabled text | `#777777` |
-| `--accent` | Interactive elements, focus rings | `#62a0ea` |
-| `--border` | Borders, dividers | `rgba(255,255,255,0.10)` |
-| `--radius-sm` | Small element corners (buttons, inputs) | `8px` |
-| `--radius-md` | Larger element corners (panels, cards) | `12px` |
-| `--shadow` | Elevation shadow | `0 2px 12px rgba(0,0,0,0.4), ...` |
-| `--font-family` | Typeface stack | `"Cantarell", ...` |
+| Property           | Purpose                                 | Example (Adwaita dark)            |
+| ------------------ | --------------------------------------- | --------------------------------- |
+| `--bg-primary`     | Page/panel background                   | `#242424`                         |
+| `--bg-surface`     | Card/elevated surface background        | `#303030`                         |
+| `--bg-hover`       | Hover state overlay                     | `rgba(255,255,255,0.08)`          |
+| `--bg-active`      | Active/pressed state overlay            | `rgba(255,255,255,0.14)`          |
+| `--text-primary`   | Body text                               | `#f0f0f0`                         |
+| `--text-secondary` | Secondary labels, descriptions          | `#aaaaaa`                         |
+| `--text-tertiary`  | Placeholders, disabled text             | `#777777`                         |
+| `--accent`         | Interactive elements, focus rings       | `#62a0ea`                         |
+| `--border`         | Borders, dividers                       | `rgba(255,255,255,0.10)`          |
+| `--radius-sm`      | Small element corners (buttons, inputs) | `8px`                             |
+| `--radius-md`      | Larger element corners (panels, cards)  | `12px`                            |
+| `--shadow`         | Elevation shadow                        | `0 2px 12px rgba(0,0,0,0.4), ...` |
+| `--font-family`    | Typeface stack                          | `"Cantarell", ...`                |
 
 The CSS file (`App.css`) provides fallback values for every property using `:root` defaults and a `@media (prefers-color-scheme: dark)` block:
 
 ```css
 :root {
-    --bg-primary: #fafafa;
-    --bg-surface: #ffffff;
-    --text-primary: #1a1a1a;
-    --accent: #3584e4;
-    /* ... */
+	--bg-primary: #fafafa;
+	--bg-surface: #ffffff;
+	--text-primary: #1a1a1a;
+	--accent: #3584e4;
+	/* ... */
 }
 
 @media (prefers-color-scheme: dark) {
-    :root {
-        --bg-primary: #2d2d2d;
-        --bg-surface: #383838;
-        --text-primary: #f0f0f0;
-        --accent: #62a0ea;
-        /* ... */
-    }
+	:root {
+		--bg-primary: #2d2d2d;
+		--bg-surface: #383838;
+		--text-primary: #f0f0f0;
+		--accent: #62a0ea;
+		/* ... */
+	}
 }
 ```
 
@@ -305,4 +305,4 @@ The portal gives you the colour scheme. The environment variable gives you the v
 
 ---
 
-*(c) 2026 Liminal HQ, Scott Morris*
+_(c) 2026 Liminal HQ, Scott Morris_

@@ -34,15 +34,15 @@ It's a 370×380 pixel frameless overlay that appears, does its job, and disappea
 
 Emoji Nook is a **Tauri v2** app — Rust on the backend, React 19 on the frontend, with WebKitGTK rendering the UI. The full tech stack:
 
-| Layer | Technology | Why |
-|-------|-----------|-----|
-| Shell | Tauri v2 | Native window management, system tray, IPC — all without Electron's overhead |
-| Frontend | React 19 + TypeScript | Modern component model, hooks for state |
-| Emoji | Frimousse v0.3 | Headless React emoji picker — full styling freedom, ~12 kB emoji data on demand |
-| Portal | ashpd (via custom plugin) | D-Bus bridge to `xdg-desktop-portal` for theme, shortcuts, and input |
-| Clipboard | arboard | Cross-platform clipboard with Wayland serve-thread support |
-| Settings | tauri-plugin-store | Persistent JSON key-value store for user preferences |
-| Build | pnpm workspaces + Cargo workspace | Monorepo with the app and custom plugin side by side |
+| Layer     | Technology                        | Why                                                                             |
+| --------- | --------------------------------- | ------------------------------------------------------------------------------- |
+| Shell     | Tauri v2                          | Native window management, system tray, IPC — all without Electron's overhead    |
+| Frontend  | React 19 + TypeScript             | Modern component model, hooks for state                                         |
+| Emoji     | Frimousse v0.3                    | Headless React emoji picker — full styling freedom, ~12 kB emoji data on demand |
+| Portal    | ashpd (via custom plugin)         | D-Bus bridge to `xdg-desktop-portal` for theme, shortcuts, and input            |
+| Clipboard | arboard                           | Cross-platform clipboard with Wayland serve-thread support                      |
+| Settings  | tauri-plugin-store                | Persistent JSON key-value store for user preferences                            |
+| Build     | pnpm workspaces + Cargo workspace | Monorepo with the app and custom plugin side by side                            |
 
 The project is structured as a monorepo: the emoji picker app lives in `apps/emoji-picker/`, and the custom portal plugin lives in `plugins/xdg-portal/`. Both share a Cargo workspace so the Rust side compiles together, and pnpm manages the frontend and plugin guest bindings.
 
@@ -66,7 +66,7 @@ The plugin follows Tauri v2's permission system with auto-generated capability m
 
 Most cross-platform apps look the same everywhere. That's a feature for some tools, but for something you invoke dozens of times a day, visual friction matters. If the picker looks like it belongs on macOS while you're running KDE Plasma, it breaks the flow.
 
-Emoji Nook reads your actual desktop theme from the portal and injects matching CSS custom properties: background colours, surface colours, accent colour, border radii, shadows, and font family. On GNOME you get Cantarell with 12px rounded corners and soft shadows. On KDE you get Noto Sans with 6px radii and crisper edges. The picker doesn't just respect dark mode — it respects *your* dark mode.
+Emoji Nook reads your actual desktop theme from the portal and injects matching CSS custom properties: background colours, surface colours, accent colour, border radii, shadows, and font family. On GNOME you get Cantarell with 12px rounded corners and soft shadows. On KDE you get Noto Sans with 6px radii and crisper edges. The picker doesn't just respect dark mode — it respects _your_ dark mode.
 
 When the portal isn't available (maybe you're on a minimal WM without a portal daemon), it falls back to the browser's `prefers-color-scheme` media query. Graceful degradation, not a crash.
 
@@ -152,14 +152,14 @@ The frontend never touches the clipboard or the display server directly. It send
 
 The picker window is configured as a frameless, transparent, always-on-top overlay:
 
-| Property | Value | Purpose |
-|----------|-------|---------|
-| `decorations` | `false` | No title bar or window controls |
-| `transparent` | `true` | CSS provides the background — transparency enables rounded corners floating over the desktop |
-| `alwaysOnTop` | `true` | Stays above the target app |
-| `skipTaskbar` | `true` | Background process, tray-only — no taskbar clutter |
-| `visible` | `false` | Hidden on startup, shown on shortcut |
-| Size | 370 × 380 | Compact enough to not obscure the target app |
+| Property      | Value     | Purpose                                                                                      |
+| ------------- | --------- | -------------------------------------------------------------------------------------------- |
+| `decorations` | `false`   | No title bar or window controls                                                              |
+| `transparent` | `true`    | CSS provides the background — transparency enables rounded corners floating over the desktop |
+| `alwaysOnTop` | `true`    | Stays above the target app                                                                   |
+| `skipTaskbar` | `true`    | Background process, tray-only — no taskbar clutter                                           |
+| `visible`     | `false`   | Hidden on startup, shown on shortcut                                                         |
+| Size          | 370 × 380 | Compact enough to not obscure the target app                                                 |
 
 The window is created once at startup and never destroyed — only shown and hidden. This avoids re-creation cost and means the picker is ready instantly when the shortcut fires. The CSS uses `-webkit-app-region: drag` on the header and footer so the user can reposition the overlay, with interactive elements opting out via `no-drag`.
 
@@ -261,11 +261,11 @@ If the clipboard originally held non-text content (an image, a file path), we ca
 
 The plugin queries three portal settings over D-Bus:
 
-| Portal Setting | What It Returns | How We Use It |
-|---------------|----------------|---------------|
+| Portal Setting   | What It Returns                                   | How We Use It                                                               |
+| ---------------- | ------------------------------------------------- | --------------------------------------------------------------------------- |
 | `color_scheme()` | `prefer-dark`, `prefer-light`, or `no-preference` | Selects dark/light token set. Falls back to `matchMedia` on `no-preference` |
-| `accent_color()` | sRGB floats (r, g, b) | Converted to hex and injected as `--accent` CSS property |
-| `contrast()` | Normal or high | Reserved for future high-contrast token support |
+| `accent_color()` | sRGB floats (r, g, b)                             | Converted to hex and injected as `--accent` CSS property                    |
+| `contrast()`     | Normal or high                                    | Reserved for future high-contrast token support                             |
 
 Desktop environment detection (`XDG_CURRENT_DESKTOP`) selects between Adwaita tokens (GNOME, Cinnamon, MATE, XFCE) and Breeze tokens (KDE). Theme info is re-fetched every time the picker is shown, so if the user switches from light to dark mode while the picker is hidden, it'll pick up the change on the next invocation.
 
@@ -311,4 +311,4 @@ If you're on Linux and tired of hunting for emoji, give it a spin. Contributions
 
 ---
 
-*(c) 2026 Liminal HQ, Scott Morris*
+_(c) 2026 Liminal HQ, Scott Morris_

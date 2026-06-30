@@ -10,7 +10,7 @@
 
 The [project spec](../SPEC.md) originally listed emoji-mart as the emoji library. It's a reasonable default — battle-tested, full-featured, used everywhere. But once we started building a native-feeling Linux desktop app inside a Tauri v2 webview, emoji-mart's opinions became friction.
 
-The problem isn't that emoji-mart looks bad. It's that it looks like *itself*. It ships its own CSS, its own layout, its own search bar styling, its own category tabs. If you want the picker to look like GNOME's Adwaita or KDE's Breeze, you're fighting the library with CSS overrides, `!important` declarations, and specificity hacks. Every theme token has to punch through someone else's stylesheet.
+The problem isn't that emoji-mart looks bad. It's that it looks like _itself_. It ships its own CSS, its own layout, its own search bar styling, its own category tabs. If you want the picker to look like GNOME's Adwaita or KDE's Breeze, you're fighting the library with CSS overrides, `!important` declarations, and specificity hacks. Every theme token has to punch through someone else's stylesheet.
 
 We needed the opposite: a library that provides the hard parts (emoji data, search indexing, keyboard navigation across 1800+ items, skin tone variants) and stays completely silent about how any of it looks.
 
@@ -30,83 +30,87 @@ The core of Emoji Nook's frontend is `EmojiPickerPanel.tsx`, which composes Frim
 
 ```tsx
 <EmojiPicker.Root
-  onEmojiSelect={handleSelect}
-  skinTone={skinTone}
-  columns={9}
-  className="picker-root"
+	onEmojiSelect={handleSelect}
+	skinTone={skinTone}
+	columns={9}
+	className="picker-root"
 >
-  <div className="picker-header">
-    <EmojiPicker.Search
-      ref={searchRef}
-      placeholder="Search emoji…"
-      className="picker-search"
-      autoFocus
-    />
-    <EmojiPicker.SkinTone emoji="✋">
-      {({ skinToneVariations }) => (
-        <div className="skin-tone-selector" role="radiogroup" aria-label="Skin tone">
-          {skinToneVariations.map(({ skinTone: st, emoji }) => (
-            <button
-              key={st}
-              role="radio"
-              aria-checked={st === skinTone}
-              className={`skin-tone-btn${st === skinTone ? ' active' : ''}`}
-              onClick={() => onSkinToneChange(st)}
-            >
-              {emoji}
-            </button>
-          ))}
-        </div>
-      )}
-    </EmojiPicker.SkinTone>
-  </div>
+	<div className="picker-header">
+		<EmojiPicker.Search
+			ref={searchRef}
+			placeholder="Search emoji…"
+			className="picker-search"
+			autoFocus
+		/>
+		<EmojiPicker.SkinTone emoji="✋">
+			{({ skinToneVariations }) => (
+				<div className="skin-tone-selector" role="radiogroup" aria-label="Skin tone">
+					{skinToneVariations.map(({ skinTone: st, emoji }) => (
+						<button
+							key={st}
+							role="radio"
+							aria-checked={st === skinTone}
+							className={`skin-tone-btn${st === skinTone ? ' active' : ''}`}
+							onClick={() => onSkinToneChange(st)}
+						>
+							{emoji}
+						</button>
+					))}
+				</div>
+			)}
+		</EmojiPicker.SkinTone>
+	</div>
 
-  <CategoryBar viewportRef={viewportRef} />
+	<CategoryBar viewportRef={viewportRef} />
 
-  <EmojiPicker.Viewport ref={viewportRef} className="picker-viewport" tabIndex={0}>
-    <EmojiPicker.Loading>
-      <span className="picker-loading">Loading emoji…</span>
-    </EmojiPicker.Loading>
-    <EmojiPicker.Empty>
-      {({ search }) => (
-        <span className="picker-empty">No results for &ldquo;{search}&rdquo;</span>
-      )}
-    </EmojiPicker.Empty>
-    <EmojiPicker.List
-      components={{
-        CategoryHeader: ({ category, ...props }) => (
-          <div {...props} className="picker-category-header" data-category-id={slugify(category.label)}>
-            {category.label}
-          </div>
-        ),
-        Row: ({ children, ...props }) => (
-          <div {...props} className="picker-row">{children}</div>
-        ),
-        Emoji: ({ emoji, ...props }) => (
-          <button {...props} className="picker-emoji" title={emoji.label} aria-label={emoji.label}>
-            {emoji.emoji}
-          </button>
-        ),
-      }}
-    />
-  </EmojiPicker.Viewport>
+	<EmojiPicker.Viewport ref={viewportRef} className="picker-viewport" tabIndex={0}>
+		<EmojiPicker.Loading>
+			<span className="picker-loading">Loading emoji…</span>
+		</EmojiPicker.Loading>
+		<EmojiPicker.Empty>
+			{({ search }) => <span className="picker-empty">No results for &ldquo;{search}&rdquo;</span>}
+		</EmojiPicker.Empty>
+		<EmojiPicker.List
+			components={{
+				CategoryHeader: ({ category, ...props }) => (
+					<div
+						{...props}
+						className="picker-category-header"
+						data-category-id={slugify(category.label)}
+					>
+						{category.label}
+					</div>
+				),
+				Row: ({ children, ...props }) => (
+					<div {...props} className="picker-row">
+						{children}
+					</div>
+				),
+				Emoji: ({ emoji, ...props }) => (
+					<button {...props} className="picker-emoji" title={emoji.label} aria-label={emoji.label}>
+						{emoji.emoji}
+					</button>
+				),
+			}}
+		/>
+	</EmojiPicker.Viewport>
 
-  <div className="picker-footer">
-    <EmojiPicker.ActiveEmoji>
-      {({ emoji }) => (
-        <div className="picker-preview">
-          {emoji ? (
-            <>
-              <span className="preview-emoji">{emoji.emoji}</span>
-              <span className="preview-label">{emoji.label}</span>
-            </>
-          ) : (
-            <span className="preview-label">Pick an emoji…</span>
-          )}
-        </div>
-      )}
-    </EmojiPicker.ActiveEmoji>
-  </div>
+	<div className="picker-footer">
+		<EmojiPicker.ActiveEmoji>
+			{({ emoji }) => (
+				<div className="picker-preview">
+					{emoji ? (
+						<>
+							<span className="preview-emoji">{emoji.emoji}</span>
+							<span className="preview-label">{emoji.label}</span>
+						</>
+					) : (
+						<span className="preview-label">Pick an emoji…</span>
+					)}
+				</div>
+			)}
+		</EmojiPicker.ActiveEmoji>
+	</div>
 </EmojiPicker.Root>
 ```
 
@@ -147,7 +151,7 @@ We style the active state in CSS to make this visible:
 
 ```css
 .picker-emoji[data-active] {
-  background: var(--bg-hover);
+	background: var(--bg-hover);
 }
 ```
 
@@ -160,11 +164,11 @@ Since Frimousse already highlights the active emoji via `data-active`, the viewp
 ```css
 .picker-viewport:focus,
 .picker-viewport:focus-visible {
-  outline: none;
+	outline: none;
 }
 ```
 
-This is one of those cases where the fix is a single CSS rule, but finding out *why* the blue rectangle appeared — and convincing yourself it's safe to remove — takes longer than the fix itself.
+This is one of those cases where the fix is a single CSS rule, but finding out _why_ the blue rectangle appeared — and convincing yourself it's safe to remove — takes longer than the fix itself.
 
 <!-- TODO: before/after screenshot showing the focus rectangle on the viewport -->
 
@@ -197,15 +201,15 @@ The category bar needs to know which section is currently visible so it can high
 
 ```ts
 const io = new IntersectionObserver(
-  (entries) => {
-    for (const entry of entries) {
-      if (entry.isIntersecting) {
-        const id = (entry.target as HTMLElement).dataset.categoryId;
-        if (id) setActiveId(id);
-      }
-    }
-  },
-  { root: viewport, rootMargin: '0px 0px -85% 0px', threshold: 0 },
+	(entries) => {
+		for (const entry of entries) {
+			if (entry.isIntersecting) {
+				const id = (entry.target as HTMLElement).dataset.categoryId;
+				if (id) setActiveId(id);
+			}
+		}
+	},
+	{ root: viewport, rootMargin: '0px 0px -85% 0px', threshold: 0 },
 );
 ```
 
@@ -219,13 +223,13 @@ The fix was a `MutationObserver` that watches for new children being inserted in
 const observed = new Set<Element>();
 
 function observeHeaders() {
-  const headers = viewport.querySelectorAll('[data-category-id]');
-  headers.forEach((h) => {
-    if (!observed.has(h)) {
-      observed.add(h);
-      io.observe(h);
-    }
-  });
+	const headers = viewport.querySelectorAll('[data-category-id]');
+	headers.forEach((h) => {
+		if (!observed.has(h)) {
+			observed.add(h);
+			io.observe(h);
+		}
+	});
 }
 
 observeHeaders(); // catch any already rendered
@@ -246,35 +250,35 @@ Emoji Nook reads the user's desktop theme from `xdg-desktop-portal` — colour s
 
 ```css
 :root {
-  --bg-primary: #fafafa;
-  --bg-surface: #ffffff;
-  --bg-hover: rgba(0, 0, 0, 0.06);
-  --text-primary: #1a1a1a;
-  --text-secondary: #666666;
-  --accent: #3584e4;
-  --border: rgba(0, 0, 0, 0.12);
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --font-family: 'Cantarell', 'Noto Sans', system-ui, sans-serif;
-  --emoji-size: 1.625rem;
-  --row-height: 36px;
-  /* ... */
+	--bg-primary: #fafafa;
+	--bg-surface: #ffffff;
+	--bg-hover: rgba(0, 0, 0, 0.06);
+	--text-primary: #1a1a1a;
+	--text-secondary: #666666;
+	--accent: #3584e4;
+	--border: rgba(0, 0, 0, 0.12);
+	--radius-sm: 6px;
+	--radius-md: 10px;
+	--font-family: 'Cantarell', 'Noto Sans', system-ui, sans-serif;
+	--emoji-size: 1.625rem;
+	--row-height: 36px;
+	/* ... */
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --bg-primary: #2d2d2d;
-    --bg-surface: #383838;
-    --text-primary: #f0f0f0;
-    --accent: #62a0ea;
-    /* ... */
-  }
+	:root {
+		--bg-primary: #2d2d2d;
+		--bg-surface: #383838;
+		--text-primary: #f0f0f0;
+		--accent: #62a0ea;
+		/* ... */
+	}
 }
 ```
 
 Every component — the search bar, category tabs, emoji grid, skin tone selector, footer preview — references these tokens. The `useTheme` hook overrides them at runtime when the portal provides actual desktop values.
 
-With a batteries-included picker like emoji-mart, you'd need to override *its* tokens with yours, fighting specificity at every level. With Frimousse, there's no "its" — there's only yours. The search input is a plain `<input>` that you style. The emoji buttons are plain `<button>` elements that you style. The category headers are plain `<div>` elements that you style.
+With a batteries-included picker like emoji-mart, you'd need to override _its_ tokens with yours, fighting specificity at every level. With Frimousse, there's no "its" — there's only yours. The search input is a plain `<input>` that you style. The emoji buttons are plain `<button>` elements that you style. The category headers are plain `<div>` elements that you style.
 
 No `!important`. No specificity wars. No "why is the hover state the wrong colour because the library's CSS loaded after mine."
 
@@ -294,4 +298,4 @@ Frimousse let us build a picker that looks like it belongs on your desktop, what
 
 ---
 
-*(c) 2026 Liminal HQ, Scott Morris*
+_(c) 2026 Liminal HQ, Scott Morris_

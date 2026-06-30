@@ -104,15 +104,15 @@ The underlying command is `cargo nextest run --workspace --locked --config-file 
 
 None of the seven jobs depend on each other. They all start simultaneously:
 
-| Job | Runner | Container | System Deps Required |
-|-----|--------|-----------|---------------------|
-| Format | `ubuntu-24.04` | No | Node.js, Rust |
-| Lint | `ubuntu-24.04` | No | Node.js |
-| Typecheck | `ubuntu-24.04` | No | Node.js |
-| Frontend tests | `ubuntu-24.04` | No | Node.js |
-| Rust checks | `ubuntu-24.04` | `tauri-ci-desktop` | WebKitGTK, GTK3 |
-| Rust tests | `ubuntu-24.04` | `tauri-ci-desktop` | WebKitGTK, GTK3 |
-| Release metadata | `ubuntu-24.04` | No | Node.js |
+| Job              | Runner         | Container          | System Deps Required |
+| ---------------- | -------------- | ------------------ | -------------------- |
+| Format           | `ubuntu-24.04` | No                 | Node.js, Rust        |
+| Lint             | `ubuntu-24.04` | No                 | Node.js              |
+| Typecheck        | `ubuntu-24.04` | No                 | Node.js              |
+| Frontend tests   | `ubuntu-24.04` | No                 | Node.js              |
+| Rust checks      | `ubuntu-24.04` | `tauri-ci-desktop` | WebKitGTK, GTK3      |
+| Rust tests       | `ubuntu-24.04` | `tauri-ci-desktop` | WebKitGTK, GTK3      |
+| Release metadata | `ubuntu-24.04` | No                 | Node.js              |
 
 The frontend jobs finish in under a minute. The Rust jobs take longer due to compilation, but Rust caching (`swatinem/rust-cache@v2`) keeps incremental builds fast after the first run. Because nothing waits on anything else, the wall-clock time is determined by the slowest job, not the sum of all jobs.
 
@@ -141,14 +141,14 @@ The `if: always()` ensures summaries are written even on failure — that is whe
 
 Emoji Nook uses a single release version for the whole workspace, but that version lives in six different files across two package ecosystems:
 
-| File | Format | Ecosystem |
-|------|--------|-----------|
-| `package.json` | JSON | pnpm workspace root |
-| `apps/emoji-picker/package.json` | JSON | pnpm app package |
-| `apps/emoji-picker/src-tauri/tauri.conf.json` | JSON | Tauri bundler config |
-| `apps/emoji-picker/src-tauri/Cargo.toml` | TOML | Rust app crate |
-| `plugins/xdg-portal/Cargo.toml` | TOML | Rust plugin crate |
-| `plugins/xdg-portal/guest-js/package.json` | JSON | Plugin TypeScript bindings |
+| File                                          | Format | Ecosystem                  |
+| --------------------------------------------- | ------ | -------------------------- |
+| `package.json`                                | JSON   | pnpm workspace root        |
+| `apps/emoji-picker/package.json`              | JSON   | pnpm app package           |
+| `apps/emoji-picker/src-tauri/tauri.conf.json` | JSON   | Tauri bundler config       |
+| `apps/emoji-picker/src-tauri/Cargo.toml`      | TOML   | Rust app crate             |
+| `plugins/xdg-portal/Cargo.toml`               | TOML   | Rust plugin crate          |
+| `plugins/xdg-portal/guest-js/package.json`    | JSON   | Plugin TypeScript bindings |
 
 If any of these get out of sync, the built artefacts carry mismatched version metadata. A `.deb` package might report one version while the Tauri about dialogue shows another. Catching this at release time is too late.
 
@@ -327,6 +327,7 @@ The end-to-end release process follows a review-first model:
 3. **Merge** — Merge the pull request into `main`. Confirm the merged commit passes CI.
 
 4. **Tag** — Create and push an annotated tag from the merged commit:
+
    ```bash
    git tag -a v0.2.0 -m "Emoji Nook v0.2.0"
    git push origin v0.2.0
@@ -358,4 +359,4 @@ If you are building a Tauri v2 app and need CI that covers both the frontend and
 
 ---
 
-*(c) 2026 Liminal HQ, Scott Morris*
+_(c) 2026 Liminal HQ, Scott Morris_
