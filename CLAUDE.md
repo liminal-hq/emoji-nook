@@ -50,7 +50,7 @@ All validation is driven from root `pnpm` scripts so local and CI stay aligned. 
 
 - **Display-server split:** behaviour forks on `WAYLAND_DISPLAY`. Wayland uses the portal's GlobalShortcuts (bound once; shortcut changes need an app restart). X11 uses `tauri-plugin-global-shortcut` (can re-register live via `unregister_all` + `on_shortcut`). Keep this Wayland/X11 branching explicit.
 - **Emoji injection** is a clipboard shuffle (save → write emoji → Ctrl+V → restore), with paste simulated by `ydotool` → `wtype`/`xdotool` fallback. These are runtime system dependencies, not bundled.
-- **The picker window** is created once and only shown/hidden (never destroyed). It is a frameless, transparent, always-on-top overlay. Theme is re-fetched on each show via the `picker-shown` event.
+- **The picker window** is created fresh on each invocation and destroyed on hide/dismiss (not a persistent singleton). A monotonic counter produces unique labels (`picker-{n}`). It is a frameless, transparent, always-on-top overlay. Theme is re-fetched on each mount via `useTheme`. Click-outside-to-dismiss uses `onFocusChanged` blur → `hide_picker` (suppressed while settings is open).
 
 ### Tauri v2 / plugin specifics
 
