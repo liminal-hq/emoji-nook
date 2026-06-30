@@ -61,7 +61,6 @@ function App() {
 		return () => document.removeEventListener('keydown', handleKeyDown);
 	}, [view]);
 
-	// Suppress blur-dismiss while a window drag is in progress.
 	// On Wayland the compositor consumes all mouse events during an interactive
 	// move, so mouseup never fires inside the webview.  Instead, we arm a
 	// one-shot mousemove listener 100 ms after the drag starts — webview
@@ -104,10 +103,9 @@ function App() {
 		};
 	}, []);
 
-	// Click-outside (window blur) hides the picker.
 	// Suppressed while settings is open — native dropdowns and shortcut
 	// capture trigger blur events that would dismiss the window.
-	// Also suppressed while a window drag is in progress.
+	// isDraggingRef guards against blur fired by the compositor during window move.
 	useEffect(() => {
 		if (view === 'settings') return;
 
