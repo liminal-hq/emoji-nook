@@ -120,9 +120,9 @@ where
                             "portal bind succeeded but returned no shortcuts — \
                              the key combination may already be claimed"
                         );
-                        on_binding_result(Err(
-                            "compositor returned no bound shortcuts".to_string()
-                        ));
+                        on_binding_result(
+                            Err("compositor returned no bound shortcuts".to_string()),
+                        );
                         return;
                     }
                     info!(

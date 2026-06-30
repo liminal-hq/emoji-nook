@@ -209,8 +209,7 @@ function App() {
 							<>
 								<p className="shortcut-setup__message">Setting up keyboard shortcut…</p>
 								<p className="shortcut-setup__hint">
-									Approve the permission request from your desktop to enable the global
-									shortcut.
+									Approve the permission request from your desktop to enable the global shortcut.
 								</p>
 							</>
 						) : (

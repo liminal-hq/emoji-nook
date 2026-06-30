@@ -37,8 +37,7 @@ pub struct ShortcutState {
     pub binding_complete: AtomicBool,
     /// Owns the Wayland portal session and activation listener for process lifetime.
     /// Dropping it cancels the listener — must NOT be std::mem::forgot.
-    pub wayland_handle:
-        Mutex<Option<tauri_plugin_xdg_portal::global_shortcuts::ShortcutHandle>>,
+    pub wayland_handle: Mutex<Option<tauri_plugin_xdg_portal::global_shortcuts::ShortcutHandle>>,
     /// The shortcut string currently active on X11, used to restore it if an
     /// update to a new shortcut fails.
     pub current_x11_shortcut: Mutex<Option<String>>,
