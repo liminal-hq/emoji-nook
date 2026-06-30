@@ -62,7 +62,7 @@ export default function EmojiPickerPanel({
 			columns={9}
 			className="picker-root"
 		>
-			<div className="picker-header">
+			<div className="picker-header" data-tauri-drag-region>
 				<EmojiPicker.Search
 					ref={searchRef}
 					placeholder="Search emoji…"
@@ -130,10 +130,10 @@ export default function EmojiPickerPanel({
 				/>
 			</EmojiPicker.Viewport>
 
-			<div className="picker-footer">
+			<div className="picker-footer" data-tauri-drag-region>
 				<EmojiPicker.ActiveEmoji>
 					{({ emoji }) => (
-						<div className="picker-preview">
+						<div className="picker-preview" data-tauri-drag-region>
 							{emoji ? (
 								<>
 									<span className="preview-emoji">{emoji.emoji}</span>

@@ -21,6 +21,7 @@ function App() {
 	const { settings, update } = useSettings();
 	const [view, setView] = useState<'picker' | 'settings'>('picker');
 	const searchRef = useRef<HTMLInputElement>(null);
+	const isDraggingRef = useRef(false);
 
 	const handleSelect = useCallback(
 		(selection: EmojiSelection) => {
@@ -60,15 +61,57 @@ function App() {
 		return () => document.removeEventListener('keydown', handleKeyDown);
 	}, [view]);
 
-	// Click-outside (window blur) hides the picker.
+	// On Wayland the compositor consumes all mouse events during an interactive
+	// move, so mouseup never fires inside the webview.  Instead, we arm a
+	// one-shot mousemove listener 100 ms after the drag starts — webview
+	// mousemove events stop while the compositor owns the drag and resume the
+	// instant it ends, so the first post-drag mousemove clears the flag.
+	// mouseup still handles quick clicks on drag regions that don't move the window.
+	useEffect(() => {
+		let armTimer: ReturnType<typeof setTimeout> | null = null;
+
+		function clearDrag() {
+			isDraggingRef.current = false;
+		}
+
+		function onMouseDown(e: MouseEvent) {
+			if ((e.target as HTMLElement).closest('[data-tauri-drag-region]')) {
+				isDraggingRef.current = true;
+				if (armTimer) clearTimeout(armTimer);
+				armTimer = setTimeout(() => {
+					document.addEventListener('mousemove', clearDrag, {
+						once: true,
+						capture: true,
+					});
+				}, 100);
+			}
+		}
+
+		function onMouseUp() {
+			if (armTimer) clearTimeout(armTimer);
+			isDraggingRef.current = false;
+		}
+
+		document.addEventListener('mousedown', onMouseDown, true);
+		document.addEventListener('mouseup', onMouseUp, true);
+
+		return () => {
+			document.removeEventListener('mousedown', onMouseDown, true);
+			document.removeEventListener('mouseup', onMouseUp, true);
+			document.removeEventListener('mousemove', clearDrag, true);
+			if (armTimer) clearTimeout(armTimer);
+		};
+	}, []);
+
 	// Suppressed while settings is open — native dropdowns and shortcut
 	// capture trigger blur events that would dismiss the window.
+	// isDraggingRef guards against blur fired by the compositor during window move.
 	useEffect(() => {
 		if (view === 'settings') return;
 
 		const appWindow = getCurrentWebviewWindow();
 		const unlisten = appWindow.onFocusChanged(({ payload: focused }) => {
-			if (!focused) {
+			if (!focused && !isDraggingRef.current) {
 				invoke('hide_picker').catch((err) => console.error('hide_picker IPC failed:', err));
 			}
 		});
