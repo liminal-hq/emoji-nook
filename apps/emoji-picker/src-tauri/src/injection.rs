@@ -127,10 +127,97 @@ fn simulate_paste_ydotool() -> Result<(), String> {
     Ok(())
 }
 
+/// Returns the WM_CLASS class name and window name of the focused X11 window.
+/// Uses xdotool for the window ID and name, xprop for WM_CLASS (xdotool's
+/// getwindowclassname verb is absent in older builds on this system).
+fn focused_window_info() -> (Option<String>, Option<String>) {
+    let id_out = Command::new("xdotool").arg("getactivewindow").output();
+    let window_id = match &id_out {
+        Ok(o) if o.status.success() => String::from_utf8_lossy(&o.stdout).trim().to_string(),
+        Ok(o) => {
+            info!(
+                "xdotool getactivewindow failed ({}): {}",
+                o.status,
+                String::from_utf8_lossy(&o.stderr).trim()
+            );
+            return (None, None);
+        }
+        Err(e) => {
+            info!("xdotool getactivewindow error: {e}");
+            return (None, None);
+        }
+    };
+
+    // xprop output: WM_CLASS(STRING) = "instance", "ClassName"
+    // Splitting on '"' puts quoted values at odd indices: [before, inst, sep, class, after]
+    // We want index 3 (the class), i.e. the second odd-indexed token.
+    let class = Command::new("xprop")
+        .args(["-id", &window_id, "WM_CLASS"])
+        .output()
+        .ok()
+        .filter(|o| o.status.success())
+        .and_then(|o| {
+            let s = String::from_utf8_lossy(&o.stdout).to_string();
+            let after_eq = s.split('=').nth(1)?;
+            // Odd-indexed segments of a quote-split are the quoted values themselves.
+            after_eq
+                .split('"')
+                .enumerate()
+                .filter(|(i, _)| i % 2 == 1)
+                .nth(1)
+                .map(|(_, c)| c.to_lowercase())
+        });
+
+    let name = Command::new("xdotool")
+        .args(["getwindowname", &window_id])
+        .output()
+        .ok()
+        .filter(|o| o.status.success())
+        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string());
+
+    info!(
+        "target window id={window_id} class={:?} name={:?}",
+        class.as_deref().unwrap_or("unknown"),
+        name.as_deref().unwrap_or("unknown")
+    );
+
+    (class, name)
+}
+
+/// Terminal emulators intercept Ctrl+V (verbatim-next) and require
+/// Ctrl+Shift+V for paste instead.
+fn is_terminal_class(class: &str) -> bool {
+    matches!(
+        class,
+        "alacritty"
+            | "foot"
+            | "gnome-terminal"
+            | "kitty"
+            | "konsole"
+            | "org.wezfurlong.wezterm"
+            | "rxvt"
+            | "st"
+            | "terminator"
+            | "termite"
+            | "tilix"
+            | "urxvt"
+            | "wezterm-gui"
+            | "xfce4-terminal"
+            | "xterm"
+    )
+}
+
 /// Simulates Ctrl+V using `xdotool` (X11 / XWayland).
+/// Detects terminal emulators and uses Ctrl+Shift+V for those, since
+/// terminals intercept Ctrl+V as a control character rather than paste.
 fn simulate_paste_xdotool() -> Result<(), String> {
+    let (class, _name) = focused_window_info();
+    let is_terminal = class.as_deref().map(is_terminal_class).unwrap_or(false);
+    let key = if is_terminal { "ctrl+shift+v" } else { "ctrl+v" };
+    info!("xdotool paste: key={key} terminal={is_terminal}");
+
     let status = Command::new("xdotool")
-        .args(["key", "--clearmodifiers", "ctrl+v"])
+        .args(["key", "--clearmodifiers", key])
         .status()
         .map_err(|e| format!("`xdotool` not found: {e}"))?;
 
