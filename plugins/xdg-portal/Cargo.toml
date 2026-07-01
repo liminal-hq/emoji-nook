@@ -15,14 +15,14 @@ name = "tauri_plugin_xdg_portal"
 crate-type = ["rlib", "cdylib"]
 
 [dependencies]
-ashpd = { version = "0.9", default-features = false, features = ["tokio"] }
+ashpd = { version = "0.9", default-features = false, features = ["tokio", "wayland"] }
 futures-util = "0.3"
 serde = { workspace = true }
 serde_json = { workspace = true }
 tauri = { workspace = true }
 thiserror = { workspace = true }
 tokio = { version = "1", features = ["macros", "sync"] }
-tracing = { workspace = true }
+log = { workspace = true }
 
 [features]
 default = []

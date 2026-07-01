@@ -15,11 +15,17 @@ name = "tauri_plugin_desktop_integration"
 crate-type = ["rlib", "cdylib"]
 
 [dependencies]
+ashpd = { version = "0.9", default-features = false, features = ["tokio", "wayland"] }
 gdk = "0.18"
 gdkx11 = "0.18"
 gtk = "0.18"
 log = { workspace = true }
+raw-window-handle = "0.6"
+serde = { workspace = true }
 tauri = { workspace = true }
+tauri-plugin-global-shortcut = { workspace = true }
+tauri-plugin-xdg-portal = { path = "../xdg-portal" }
+tokio = { version = "1", features = ["sync"] }
 
 [build-dependencies]
 tauri-plugin = { version = "2", features = ["build"] }

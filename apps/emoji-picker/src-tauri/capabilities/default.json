@@ -12,8 +12,6 @@
 		"log:default",
 		"opener:default",
 		"store:default",
-		"xdg-portal:default",
-		"xdg-portal:allow-bind-global-shortcut",
-		"xdg-portal:allow-unbind-global-shortcut"
+		"xdg-portal:default"
 	]
 }

@@ -4,25 +4,78 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 use crate::error::PortalError;
+use ashpd::WindowIdentifier;
 use futures_util::StreamExt;
-use tracing::info;
+use log::{error, info, warn};
 
-/// Spawns a long-lived task that creates a GlobalShortcuts session, binds
-/// the given shortcut, and listens for activation signals. On each activation,
-/// the provided callback is invoked.
+/// Translates a Tauri-style shortcut string (e.g. `"Alt+Shift+E"`) into the
+/// GTK/libxkbcommon accelerator format expected by the portal (`"<Alt><Shift>e"`).
+fn to_xdg_trigger(shortcut: &str) -> String {
+    let mut result = String::new();
+    let mut key = String::new();
+
+    // Collect parts so we can distinguish a non-trailing empty token (which
+    // represents the "+" key itself, e.g. "Ctrl++" → ["Ctrl","",""]) from a
+    // trailing empty produced by split when the string ends with "+".
+    let parts: Vec<&str> = shortcut.split('+').collect();
+    let last = parts.len().saturating_sub(1);
+
+    for (i, part) in parts.iter().enumerate() {
+        match *part {
+            "Alt" => result.push_str("<Alt>"),
+            "Shift" => result.push_str("<Shift>"),
+            "Ctrl" | "Control" => result.push_str("<Ctrl>"),
+            "Super" | "Meta" => result.push_str("<Super>"),
+            // XKB keysym names are case-sensitive: single-character keys use lowercase,
+            // "space" is lowercase, but named keys (Tab, Return, F1, Left, …) must
+            // preserve their original casing.
+            "Space" => key = "space".to_string(),
+            "" if i < last => {
+                // Non-trailing empty token: the "+" character is the key.
+                key = "plus".to_string();
+            }
+            "" => {} // trailing empty after a final '+', skip
+            other => {
+                key = if other.len() == 1 {
+                    other.to_lowercase()
+                } else {
+                    other.to_string()
+                };
+            }
+        }
+    }
+
+    result.push_str(&key);
+    result
+}
+
+/// Creates a GlobalShortcuts portal session.
 ///
-/// Returns a handle that keeps the session alive; dropping it tears everything down.
-pub async fn listen_for_shortcut<F>(
+/// `window_rx` must deliver the `WindowIdentifier` for the parent window once
+/// it becomes available — the portal's `BindShortcuts` call is deferred until
+/// then.  Send `None` to bind without a parent window (portal dialog will be
+/// unanchored).
+///
+/// `on_binding_result` is called once binding completes (or fails).
+/// `on_activated` is called each time the shortcut fires.
+///
+/// Returns a `ShortcutHandle`; dropping it cancels the listener and closes the
+/// portal session.
+pub async fn create_session<F, B>(
     shortcut_id: &str,
     description: &str,
     preferred_trigger: Option<&str>,
     on_activated: F,
+    on_binding_result: B,
+    window_rx: tokio::sync::oneshot::Receiver<Option<WindowIdentifier>>,
 ) -> Result<ShortcutHandle, PortalError>
 where
-    F: Fn() + Send + 'static,
+    // Sync is required so Arc<F> is Send, allowing activation dispatch to an OS
+    // thread rather than blocking the Tokio worker during window creation.
+    F: Fn() + Send + Sync + 'static,
+    B: Fn(Result<(), String>) + Send + 'static,
 {
     use ashpd::desktop::global_shortcuts::{GlobalShortcuts, NewShortcut};
-    use ashpd::WindowIdentifier;
 
     let portal = GlobalShortcuts::new().await.map_err(|e| {
         PortalError::Internal(format!("failed to connect to GlobalShortcuts portal: {e}"))
@@ -32,69 +85,98 @@ where
         PortalError::Internal(format!("failed to create GlobalShortcuts session: {e}"))
     })?;
 
-    let make_shortcut = || {
+    let trigger_xdg = preferred_trigger.map(to_xdg_trigger);
+    let shortcut = {
         let s = NewShortcut::new(shortcut_id, description);
-        if let Some(trigger) = preferred_trigger {
-            s.preferred_trigger(trigger)
+        if let Some(ref t) = trigger_xdg {
+            s.preferred_trigger(t.as_str())
         } else {
             s
         }
     };
 
-    // The portal may reject bind_shortcuts if the app isn't fully initialised
-    // yet or if a previous session is still active. Retry once after a short delay.
-    let response = {
-        let request = portal
-            .bind_shortcuts(&session, &[make_shortcut()], &WindowIdentifier::default())
-            .await
-            .map_err(|e| PortalError::Internal(format!("failed to bind shortcuts: {e}")))?;
-
-        match request.response() {
-            Ok(r) => r,
-            Err(first_err) => {
-                info!("first bind_shortcuts attempt failed ({first_err}), retrying in 1s");
-                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-
-                let request2 = portal
-                    .bind_shortcuts(&session, &[make_shortcut()], &WindowIdentifier::default())
-                    .await
-                    .map_err(|e| {
-                        PortalError::Internal(format!("failed to bind shortcuts (retry): {e}"))
-                    })?;
-                request2.response().map_err(|e| {
-                    PortalError::Internal(format!("bind shortcuts failed after retry: {e}"))
-                })?
-            }
-        }
-    };
-
-    info!(
-        "global shortcuts bound: {:?}",
-        response
-            .shortcuts()
-            .iter()
-            .map(|s| s.id())
-            .collect::<Vec<_>>()
-    );
-
     let activated_stream = portal
         .receive_activated()
         .await
-        .map_err(|e| PortalError::Internal(format!("failed to listen for activations: {e}")))?;
+        .map_err(|e| PortalError::Internal(format!("failed to subscribe to activations: {e}")))?;
 
-    let sid = shortcut_id.to_string();
     let (cancel_tx, mut cancel_rx) = tokio::sync::oneshot::channel::<()>();
+    let sid = shortcut_id.to_string();
+    // Wrap in Arc so we can clone into each per-activation OS thread without
+    // moving or blocking the Tokio worker during WebviewWindowBuilder::build().
+    let on_activated = std::sync::Arc::new(on_activated);
 
     tokio::spawn(async move {
-        // Keep session alive for the lifetime of this task
+        // Keep portal and session alive for the lifetime of this task.
+        let _portal = portal;
         let _session = session;
+
+        // Wait for the window identifier before binding.
+        let window_id = tokio::select! {
+            result = window_rx => match result {
+                Ok(id) => id.unwrap_or_default(),
+                // Sender dropped without a send (e.g. plugin teardown before first window).
+                Err(_) => {
+                    warn!("shortcut window sender dropped; aborting portal binding");
+                    return;
+                }
+            },
+            _ = &mut cancel_rx => return,
+        };
+
+        let bind_result = _portal
+            .bind_shortcuts(&_session, &[shortcut], &window_id)
+            .await;
+
+        match bind_result {
+            Ok(request) => match request.response() {
+                Ok(resp) => {
+                    if resp.shortcuts().is_empty() {
+                        warn!(
+                            "portal bind succeeded but returned no shortcuts — \
+                             the key combination may already be claimed"
+                        );
+                        on_binding_result(
+                            Err("compositor returned no bound shortcuts".to_string()),
+                        );
+                        return;
+                    }
+                    info!(
+                        "global shortcuts bound: {:?}",
+                        resp.shortcuts().iter().map(|s| s.id()).collect::<Vec<_>>()
+                    );
+                    on_binding_result(Ok(()));
+                }
+                Err(e) => {
+                    error!("bind_shortcuts portal response error: {e}");
+                    on_binding_result(Err(e.to_string()));
+                    return;
+                }
+            },
+            Err(e) => {
+                error!("bind_shortcuts D-Bus call failed: {e}");
+                on_binding_result(Err(e.to_string()));
+                return;
+            }
+        }
+
         tokio::pin!(activated_stream);
         loop {
             tokio::select! {
-                Some(event) = activated_stream.next() => {
-                    if event.shortcut_id() == sid {
-                        info!("global shortcut activated: {}", sid);
-                        on_activated();
+                event = activated_stream.next() => {
+                    match event {
+                        Some(event) => {
+                            if event.shortcut_id() == sid {
+                                info!("global shortcut activated: {}", sid);
+                                let f = std::sync::Arc::clone(&on_activated);
+                                std::thread::spawn(move || f());
+                            }
+                        }
+                        // Stream closed (compositor crash, D-Bus drop) — exit cleanly.
+                        None => {
+                            warn!("global shortcut activation stream ended for: {}", sid);
+                            break;
+                        }
                     }
                 }
                 _ = &mut cancel_rx => {
@@ -111,4 +193,32 @@ where
 /// Dropping this handle cancels the shortcut listener and closes the portal session.
 pub struct ShortcutHandle {
     _cancel: tokio::sync::oneshot::Sender<()>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::to_xdg_trigger;
+
+    #[test]
+    fn translates_single_char_keys_to_lowercase() {
+        assert_eq!(to_xdg_trigger("Alt+Shift+E"), "<Alt><Shift>e");
+        assert_eq!(to_xdg_trigger("Ctrl+Space"), "<Ctrl>space");
+        assert_eq!(to_xdg_trigger("Super+."), "<Super>.");
+    }
+
+    #[test]
+    fn handles_plus_key_in_shortcut() {
+        assert_eq!(to_xdg_trigger("Ctrl++"), "<Ctrl>plus");
+        assert_eq!(to_xdg_trigger("Ctrl+Shift++"), "<Ctrl><Shift>plus");
+        assert_eq!(to_xdg_trigger("+"), "plus");
+    }
+
+    #[test]
+    fn preserves_named_key_case() {
+        assert_eq!(to_xdg_trigger("Alt+Tab"), "<Alt>Tab");
+        assert_eq!(to_xdg_trigger("Ctrl+Return"), "<Ctrl>Return");
+        assert_eq!(to_xdg_trigger("Alt+F1"), "<Alt>F1");
+        assert_eq!(to_xdg_trigger("Ctrl+Left"), "<Ctrl>Left");
+        assert_eq!(to_xdg_trigger("Shift+BackSpace"), "<Shift>BackSpace");
+    }
 }

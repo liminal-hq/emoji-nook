@@ -128,7 +128,7 @@ body {
 	font-family: var(--font-family);
 	font-size: var(--font-size-base);
 	outline: none;
-	transition: border-colour 0.15s;
+	transition: border-color 0.15s;
 }
 
 .picker-search:focus {
@@ -359,6 +359,52 @@ body {
 .settings-gear:hover {
 	background: var(--bg-hover);
 	color: var(--text-primary);
+}
+
+/* Shortcut-setup view — shown on first Wayland launch until portal binding completes */
+.shortcut-setup {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	height: 100%;
+	gap: 12px;
+	padding: 24px;
+	text-align: center;
+	-webkit-app-region: no-drag;
+}
+
+.shortcut-setup__message {
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--text-primary);
+	margin: 0;
+}
+
+.shortcut-setup__hint {
+	font-size: 12px;
+	color: var(--text-secondary);
+	margin: 0;
+	line-height: 1.5;
+}
+
+.shortcut-setup__message--error {
+	color: var(--error, #e53e3e);
+}
+
+.shortcut-setup__dismiss {
+	margin-top: 4px;
+	padding: 6px 16px;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-sm);
+	background: var(--bg-secondary);
+	color: var(--text-primary);
+	font-size: 13px;
+	cursor: pointer;
+}
+
+.shortcut-setup__dismiss:hover {
+	background: var(--bg-hover);
 }
 
 /* Settings panel — replaces the picker when open */

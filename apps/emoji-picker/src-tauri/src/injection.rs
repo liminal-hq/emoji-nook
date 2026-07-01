@@ -28,13 +28,18 @@ pub fn clipboard_shuffle(emoji: &str) {
         }
     };
 
-    // 1. Save current clipboard text. If the clipboard holds non-text
-    //    content (images, files), `get_text()` returns Err — we record
-    //    that so we can skip the clear step and leave the original
-    //    content intact rather than destroying it.
+    // 1. Save current clipboard text.  arboard returns Err for both an empty
+    //    clipboard and a clipboard holding non-text content (images, files).
+    //    We treat a non-content error (ClipboardOccupied, Unknown) as "had
+    //    non-text" so we skip the clear step; everything else (including an
+    //    empty clipboard) gets cleared after the paste to avoid leaving the
+    //    emoji sitting in the clipboard for accidental future pastes.
     let (saved, had_non_text) = match clipboard.get_text() {
         Ok(text) => (Some(text), false),
-        Err(_) => (None, true),
+        Err(arboard::Error::ClipboardOccupied) | Err(arboard::Error::Unknown { .. }) => {
+            (None, true)
+        }
+        Err(_) => (None, false),
     };
 
     // 2. Write emoji to clipboard — no `wait_until` here because we keep

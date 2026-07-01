@@ -18,6 +18,7 @@ vi.mock('@tauri-apps/api/event', () => ({
 vi.mock('@tauri-apps/api/webviewWindow', () => ({
 	getCurrentWebviewWindow: () => ({
 		onFocusChanged: vi.fn(() => Promise.resolve(() => {})),
+		isFocused: vi.fn(() => Promise.resolve(true)),
 	}),
 }));
 
