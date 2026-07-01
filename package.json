@@ -26,7 +26,9 @@
 		"validate": "pnpm format:check && pnpm format:rust:check && pnpm lint && pnpm lint:rust && pnpm typecheck && pnpm test && pnpm test:rust && pnpm build && pnpm build:rust",
 		"ci:all": "pnpm validate",
 		"tauri:dev": "pnpm --filter @emoji-picker/emoji-picker tauri dev",
-		"tauri:build": "pnpm --filter @emoji-picker/emoji-picker tauri build"
+		"tauri:build": "pnpm --filter @emoji-picker/emoji-picker tauri build",
+		"desktop:install": "./scripts/dev-desktop-install.sh",
+		"desktop:uninstall": "./scripts/dev-desktop-uninstall.sh"
 	},
 	"devDependencies": {
 		"prettier": "^3.8.1"

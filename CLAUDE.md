@@ -31,7 +31,10 @@ All validation is driven from root `pnpm` scripts so local and CI stay aligned. 
 | Test TS / Rust           | `pnpm test` / `pnpm test:rust`                 |
 | Build TS / Rust          | `pnpm build` / `pnpm build:rust`               |
 | Full local gate          | `pnpm validate` (alias `pnpm ci:all`)          |
+| Install dev .desktop     | `pnpm desktop:install`                         |
+| Remove dev .desktop      | `pnpm desktop:uninstall`                       |
 
+- `pnpm desktop:install` installs a dev `.desktop` file pointing at `target/debug/emoji-picker` so `xdg-desktop-portal` can identify the app by its bundle ID (`ca.liminalhq.emoji-nook`). **Required on Wayland to test global shortcut registration.** Run once after cloning; re-run if the repo moves. Undo with `pnpm desktop:uninstall`.
 - `pnpm test:rust` uses **cargo-nextest** — it must be installed to run the shared Rust test command.
 - Run a single frontend test: `pnpm --filter @emoji-picker/emoji-picker test <path-or-name>` (Vitest).
 - Run a single Rust test: `cargo nextest run -p <crate> <test_name>` (`emoji-picker` or `tauri-plugin-xdg-portal`).
