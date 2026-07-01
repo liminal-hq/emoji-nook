@@ -198,7 +198,6 @@ fn update_shortcut(app: AppHandle, shortcut: String) {
     });
 }
 
-
 /// Creates the system tray icon with a context menu.
 fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let show = MenuItemBuilder::with_id("show", "Show Picker").build(app)?;
