@@ -28,7 +28,7 @@ Exec=${BINARY}
 Icon=${ICON}
 Type=Application
 Categories=Utility;
-NoDisplay=true
+NoDisplay=false
 StartupNotify=false
 EOF
 
