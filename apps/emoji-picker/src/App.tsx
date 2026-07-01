@@ -186,6 +186,7 @@ function App() {
 		if (view === 'settings') return;
 		if (view === 'shortcut-setup' && bindError === null) return;
 
+		let active = true;
 		const appWindow = getCurrentWebviewWindow();
 
 		const hide = () => {
@@ -201,14 +202,17 @@ function App() {
 		// onFocusChanged is edge-triggered. If the window is already unfocused when
 		// this effect runs (e.g. compositor did not restore focus after portal dialog),
 		// no event fires and the picker would stay open forever without this check.
+		// Guard with `active` so a stale promise from a previous effect run cannot
+		// call hide() after this effect has cleaned up.
 		appWindow
 			.isFocused()
 			.then((focused) => {
-				if (!focused) hide();
+				if (active && !focused) hide();
 			})
 			.catch(() => {});
 
 		return () => {
+			active = false;
 			unlisten.then((fn) => fn());
 		};
 	}, [view, bindError]);

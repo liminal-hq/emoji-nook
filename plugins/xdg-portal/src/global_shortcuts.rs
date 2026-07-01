@@ -14,8 +14,14 @@ fn to_xdg_trigger(shortcut: &str) -> String {
     let mut result = String::new();
     let mut key = String::new();
 
-    for part in shortcut.split('+') {
-        match part {
+    // Collect parts so we can distinguish a non-trailing empty token (which
+    // represents the "+" key itself, e.g. "Ctrl++" → ["Ctrl","",""]) from a
+    // trailing empty produced by split when the string ends with "+".
+    let parts: Vec<&str> = shortcut.split('+').collect();
+    let last = parts.len().saturating_sub(1);
+
+    for (i, part) in parts.iter().enumerate() {
+        match *part {
             "Alt" => result.push_str("<Alt>"),
             "Shift" => result.push_str("<Shift>"),
             "Ctrl" | "Control" => result.push_str("<Ctrl>"),
@@ -24,6 +30,11 @@ fn to_xdg_trigger(shortcut: &str) -> String {
             // "space" is lowercase, but named keys (Tab, Return, F1, Left, …) must
             // preserve their original casing.
             "Space" => key = "space".to_string(),
+            "" if i < last => {
+                // Non-trailing empty token: the "+" character is the key.
+                key = "plus".to_string();
+            }
+            "" => {} // trailing empty after a final '+', skip
             other => {
                 key = if other.len() == 1 {
                     other.to_lowercase()
@@ -59,7 +70,9 @@ pub async fn create_session<F, B>(
     window_rx: tokio::sync::oneshot::Receiver<Option<WindowIdentifier>>,
 ) -> Result<ShortcutHandle, PortalError>
 where
-    F: Fn() + Send + 'static,
+    // Sync is required so Arc<F> is Send, allowing activation dispatch to an OS
+    // thread rather than blocking the Tokio worker during window creation.
+    F: Fn() + Send + Sync + 'static,
     B: Fn(Result<(), String>) + Send + 'static,
 {
     use ashpd::desktop::global_shortcuts::{GlobalShortcuts, NewShortcut};
@@ -89,6 +102,9 @@ where
 
     let (cancel_tx, mut cancel_rx) = tokio::sync::oneshot::channel::<()>();
     let sid = shortcut_id.to_string();
+    // Wrap in Arc so we can clone into each per-activation OS thread without
+    // moving or blocking the Tokio worker during WebviewWindowBuilder::build().
+    let on_activated = std::sync::Arc::new(on_activated);
 
     tokio::spawn(async move {
         // Keep portal and session alive for the lifetime of this task.
@@ -152,7 +168,8 @@ where
                         Some(event) => {
                             if event.shortcut_id() == sid {
                                 info!("global shortcut activated: {}", sid);
-                                on_activated();
+                                let f = std::sync::Arc::clone(&on_activated);
+                                std::thread::spawn(move || f());
                             }
                         }
                         // Stream closed (compositor crash, D-Bus drop) — exit cleanly.
@@ -187,6 +204,13 @@ mod tests {
         assert_eq!(to_xdg_trigger("Alt+Shift+E"), "<Alt><Shift>e");
         assert_eq!(to_xdg_trigger("Ctrl+Space"), "<Ctrl>space");
         assert_eq!(to_xdg_trigger("Super+."), "<Super>.");
+    }
+
+    #[test]
+    fn handles_plus_key_in_shortcut() {
+        assert_eq!(to_xdg_trigger("Ctrl++"), "<Ctrl>plus");
+        assert_eq!(to_xdg_trigger("Ctrl+Shift++"), "<Ctrl><Shift>plus");
+        assert_eq!(to_xdg_trigger("+"), "plus");
     }
 
     #[test]
