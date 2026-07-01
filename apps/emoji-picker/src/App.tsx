@@ -17,6 +17,19 @@ import { useSettings } from './hooks/useSettings';
 import type { Settings } from './hooks/useSettings';
 import './App.css';
 
+function formatBindError(err: string): { headline: string; hint: string } {
+	// ashpd PortalError::Other means the portal rejected the request — on GNOME this
+	// happens when the process cgroup doesn't match the app bundle ID, which occurs
+	// when the app is launched from a terminal instead of an application launcher.
+	if (err.includes('Portal request')) {
+		return {
+			headline: 'The desktop portal rejected the shortcut request.',
+			hint: 'Launch the app from your Activities launcher (not a terminal) so the desktop can identify it by its bundle ID.',
+		};
+	}
+	return { headline: err, hint: '' };
+}
+
 function App() {
 	useTheme();
 	const { settings, loaded, update } = useSettings();
@@ -225,7 +238,15 @@ function App() {
 								<p className="shortcut-setup__message shortcut-setup__message--error">
 									Shortcut setup failed
 								</p>
-								<p className="shortcut-setup__hint">{bindError}</p>
+								{(() => {
+									const { headline, hint } = formatBindError(bindError);
+									return (
+										<>
+											<p className="shortcut-setup__hint">{headline}</p>
+											{hint && <p className="shortcut-setup__hint">{hint}</p>}
+										</>
+									);
+								})()}
 								<button
 									className="shortcut-setup__dismiss"
 									onClick={() =>
