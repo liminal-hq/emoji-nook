@@ -8,7 +8,7 @@ use gtk::prelude::*;
 use log::info;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
-    Mutex,
+    Arc, Mutex,
 };
 use tauri::{
     plugin::{Builder, TauriPlugin},
@@ -44,6 +44,10 @@ pub struct ShortcutState {
     /// Non-None once BindShortcuts has returned a failure. Used by the frontend
     /// race guard to detect a missed shortcut-binding-result error event.
     pub binding_error: Mutex<Option<String>>,
+    /// Stored shortcut string for retry after failure.
+    pub wayland_bind_shortcut: Mutex<Option<String>>,
+    /// Stored activation callback for retry after failure.
+    pub wayland_bind_on_activated: Mutex<Option<Arc<dyn Fn() + Send + Sync>>>,
 }
 
 impl Default for ShortcutState {
@@ -55,6 +59,8 @@ impl Default for ShortcutState {
             wayland_handle: Mutex::new(None),
             current_x11_shortcut: Mutex::new(None),
             binding_error: Mutex::new(None),
+            wayland_bind_shortcut: Mutex::new(None),
+            wayland_bind_on_activated: Mutex::new(None),
         }
     }
 }
@@ -108,9 +114,7 @@ pub trait DesktopIntegrationExt<R: Runtime> {
 /// emitted shortcut-binding-result before the webview listener was registered.
 #[tauri::command]
 fn check_shortcut_binding_complete<R: Runtime>(app: tauri::AppHandle<R>) -> bool {
-    app.state::<ShortcutState>()
-        .binding_complete
-        .load(Ordering::SeqCst)
+    app.is_shortcut_binding_complete()
 }
 
 /// Returns the binding error message if BindShortcuts failed, or null if still
@@ -118,11 +122,7 @@ fn check_shortcut_binding_complete<R: Runtime>(app: tauri::AppHandle<R>) -> bool
 /// race where the failure event fires before the webview listener is registered.
 #[tauri::command]
 fn check_shortcut_binding_error<R: Runtime>(app: tauri::AppHandle<R>) -> Option<String> {
-    app.state::<ShortcutState>()
-        .binding_error
-        .lock()
-        .ok()
-        .and_then(|g| g.clone())
+    app.shortcut_binding_error()
 }
 
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
@@ -210,7 +210,7 @@ impl<R: Runtime> DesktopIntegrationExt<R> for AppHandle<R> {
     where
         F: Fn() + Send + Sync + 'static,
     {
-        let on_activated = std::sync::Arc::new(on_activated);
+        let on_activated = Arc::new(on_activated);
 
         if is_wayland() {
             self.register_wayland_shortcut(shortcut, on_activated);
@@ -259,7 +259,7 @@ impl<R: Runtime> DesktopIntegrationExt<R> for AppHandle<R> {
                 .ok()
                 .and_then(|g| g.clone());
 
-            let on_activated = std::sync::Arc::new(on_activated);
+            let on_activated = Arc::new(on_activated);
 
             let _ = self.global_shortcut().unregister_all();
 
@@ -325,93 +325,112 @@ impl<R: Runtime> DesktopIntegrationExt<R> for AppHandle<R> {
 
 /// Internal helpers — not part of the public trait.
 trait DesktopIntegrationInternal<R: Runtime> {
-    fn register_wayland_shortcut(
-        &self,
-        shortcut: &str,
-        on_activated: std::sync::Arc<dyn Fn() + Send + Sync>,
-    );
+    fn register_wayland_shortcut(&self, shortcut: &str, on_activated: Arc<dyn Fn() + Send + Sync>);
 
-    fn register_x11_shortcut(
-        &self,
-        shortcut: &str,
-        on_activated: std::sync::Arc<dyn Fn() + Send + Sync>,
-    );
+    fn register_x11_shortcut(&self, shortcut: &str, on_activated: Arc<dyn Fn() + Send + Sync>);
+
+    /// Reset state and spawn a fresh binding task so the next `set_shortcut_window`
+    /// call retries the portal BindShortcuts. No-op if retry params were never stored.
+    fn schedule_wayland_bind_retry(&self);
+}
+
+/// Spawns the async task that drives the Wayland portal binding.
+///
+/// Creates a fresh oneshot channel, stores the sender in `ShortcutState`, resets
+/// `window_provided` to false, then spawns the portal task with the receiver.
+/// Called on first registration and after each binding failure to set up for retry.
+fn spawn_wayland_bind_task<R: Runtime>(
+    app: AppHandle<R>,
+    shortcut: String,
+    on_activated: Arc<dyn Fn() + Send + Sync>,
+) {
+    let (window_tx, window_rx) = tokio::sync::oneshot::channel();
+
+    let state = app.state::<ShortcutState>();
+    state.window_provided.store(false, Ordering::SeqCst);
+    if let Ok(mut guard) = state.window_tx.lock() {
+        *guard = Some(window_tx);
+    }
+
+    let app_for_result = app.clone();
+    let on_binding_result = move |result: Result<(), String>| {
+        let success = result.is_ok();
+        let state = app_for_result.state::<ShortcutState>();
+        if success {
+            state.binding_complete.store(true, Ordering::SeqCst);
+        } else if let Some(msg) = result.as_ref().err() {
+            if let Ok(mut g) = state.binding_error.lock() {
+                *g = Some(msg.clone());
+            }
+            // Reset for retry: next set_shortcut_window will trigger a new attempt.
+            app_for_result.schedule_wayland_bind_retry();
+        }
+        let payload = ShortcutBindingResult {
+            success,
+            error: result.err(),
+        };
+        app_for_result.emit("shortcut-binding-result", payload).ok();
+    };
+
+    tauri::async_runtime::spawn(async move {
+        match tauri_plugin_xdg_portal::global_shortcuts::create_session(
+            "emoji-nook-toggle",
+            "Toggle Emoji Nook",
+            Some(&shortcut),
+            move || on_activated(),
+            on_binding_result,
+            window_rx,
+        )
+        .await
+        {
+            Ok(handle) => {
+                // Keep the handle alive so the portal session and activation
+                // listener remain active.  Dropping it would cancel the shortcut.
+                if let Ok(mut guard) = app.state::<ShortcutState>().wayland_handle.lock() {
+                    *guard = Some(handle);
+                }
+            }
+            Err(e) => {
+                log::error!("failed to create Wayland shortcut session: {e}");
+                let error_str = e.to_string();
+                if let Ok(mut g) = app.state::<ShortcutState>().binding_error.lock() {
+                    *g = Some(error_str.clone());
+                }
+                // Set up for retry before emitting so the race guard sees the error.
+                app.schedule_wayland_bind_retry();
+                app.emit(
+                    "shortcut-binding-result",
+                    ShortcutBindingResult {
+                        success: false,
+                        error: Some(error_str),
+                    },
+                )
+                .ok();
+            }
+        }
+    });
 }
 
 impl<R: Runtime> DesktopIntegrationInternal<R> for AppHandle<R> {
-    fn register_wayland_shortcut(
-        &self,
-        shortcut: &str,
-        on_activated: std::sync::Arc<dyn Fn() + Send + Sync>,
-    ) {
-        let (window_tx, window_rx) = tokio::sync::oneshot::channel();
-
-        // Store the sender so set_shortcut_window can complete the binding.
-        if let Ok(mut guard) = self.state::<ShortcutState>().window_tx.lock() {
-            *guard = Some(window_tx);
-        }
-
-        let app = self.clone();
+    fn register_wayland_shortcut(&self, shortcut: &str, on_activated: Arc<dyn Fn() + Send + Sync>) {
         let shortcut = shortcut.to_string();
 
-        let on_binding_result = {
-            let app = app.clone();
-            move |result: Result<(), String>| {
-                let success = result.is_ok();
-                let state = app.state::<ShortcutState>();
-                if success {
-                    state.binding_complete.store(true, Ordering::SeqCst);
-                } else if let Some(msg) = result.as_ref().err() {
-                    if let Ok(mut g) = state.binding_error.lock() {
-                        *g = Some(msg.clone());
-                    }
-                }
-                let payload = ShortcutBindingResult {
-                    success,
-                    error: result.err(),
-                };
-                app.emit("shortcut-binding-result", payload).ok();
-            }
-        };
+        // Store for use by schedule_wayland_bind_retry after a failure.
+        if let Ok(mut g) = self.state::<ShortcutState>().wayland_bind_shortcut.lock() {
+            *g = Some(shortcut.clone());
+        }
+        if let Ok(mut g) = self
+            .state::<ShortcutState>()
+            .wayland_bind_on_activated
+            .lock()
+        {
+            *g = Some(Arc::clone(&on_activated));
+        }
 
-        tauri::async_runtime::spawn(async move {
-            match tauri_plugin_xdg_portal::global_shortcuts::create_session(
-                "emoji-nook-toggle",
-                "Toggle Emoji Nook",
-                Some(&shortcut),
-                move || on_activated(),
-                on_binding_result,
-                window_rx,
-            )
-            .await
-            {
-                Ok(handle) => {
-                    // Keep the handle alive so the portal session and activation
-                    // listener remain active.  Dropping it would cancel the shortcut.
-                    if let Ok(mut guard) = app.state::<ShortcutState>().wayland_handle.lock() {
-                        *guard = Some(handle);
-                    }
-                }
-                Err(e) => {
-                    log::error!("failed to create Wayland shortcut session: {e}");
-                    app.emit(
-                        "shortcut-binding-result",
-                        ShortcutBindingResult {
-                            success: false,
-                            error: Some(e.to_string()),
-                        },
-                    )
-                    .ok();
-                }
-            }
-        });
+        spawn_wayland_bind_task(self.clone(), shortcut, on_activated);
     }
 
-    fn register_x11_shortcut(
-        &self,
-        shortcut: &str,
-        on_activated: std::sync::Arc<dyn Fn() + Send + Sync>,
-    ) {
+    fn register_x11_shortcut(&self, shortcut: &str, on_activated: Arc<dyn Fn() + Send + Sync>) {
         use tauri_plugin_global_shortcut::GlobalShortcutExt;
 
         info!("registering global shortcut via X11: {shortcut}");
@@ -431,6 +450,23 @@ impl<R: Runtime> DesktopIntegrationInternal<R> for AppHandle<R> {
                 }
             }
             Err(e) => log::error!("failed to register X11 global shortcut: {e}"),
+        }
+    }
+
+    fn schedule_wayland_bind_retry(&self) {
+        let state = self.state::<ShortcutState>();
+        let shortcut = state
+            .wayland_bind_shortcut
+            .lock()
+            .ok()
+            .and_then(|g| g.clone());
+        let on_activated = state
+            .wayland_bind_on_activated
+            .lock()
+            .ok()
+            .and_then(|g| g.clone());
+        if let (Some(shortcut), Some(on_activated)) = (shortcut, on_activated) {
+            spawn_wayland_bind_task(self.clone(), shortcut, on_activated);
         }
     }
 }

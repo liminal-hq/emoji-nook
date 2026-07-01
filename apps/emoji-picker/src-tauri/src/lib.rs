@@ -128,7 +128,12 @@ fn present_picker(app: &AppHandle, source: &'static str) {
     let label = format!("picker-{picker_id}");
 
     // On Wayland, show the shortcut-setup view until the portal binding completes.
-    let view = if is_wayland() && !app.is_shortcut_binding_complete() {
+    // If binding has already failed (error is set), go straight to the picker so
+    // the app remains usable — the retry fires silently in the background.
+    let view = if is_wayland()
+        && !app.is_shortcut_binding_complete()
+        && app.shortcut_binding_error().is_none()
+    {
         "shortcut-setup"
     } else {
         ""
