@@ -347,9 +347,12 @@ fn spawn_wayland_bind_task<R: Runtime>(
     let (window_tx, window_rx) = tokio::sync::oneshot::channel();
 
     let state = app.state::<ShortcutState>();
-    state.window_provided.store(false, Ordering::SeqCst);
+    // Store the sender before resetting window_provided so a concurrent
+    // set_shortcut_window that observes window_provided=false is guaranteed
+    // to find a valid tx in the mutex.
     if let Ok(mut guard) = state.window_tx.lock() {
         *guard = Some(window_tx);
+        state.window_provided.store(false, Ordering::SeqCst);
     }
 
     let app_for_result = app.clone();
@@ -358,6 +361,11 @@ fn spawn_wayland_bind_task<R: Runtime>(
         let state = app_for_result.state::<ShortcutState>();
         if success {
             state.binding_complete.store(true, Ordering::SeqCst);
+            // Clear any previous failure message so shortcut_binding_error() reflects
+            // the current successful state after a retry.
+            if let Ok(mut g) = state.binding_error.lock() {
+                *g = None;
+            }
         } else if let Some(msg) = result.as_ref().err() {
             if let Ok(mut g) = state.binding_error.lock() {
                 *g = Some(msg.clone());
