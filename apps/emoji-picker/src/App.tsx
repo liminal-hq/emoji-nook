@@ -5,6 +5,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { desktopIntegration } from 'tauri-plugin-desktop-integration';
 import { listen } from '@tauri-apps/api/event';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import PickerShell from './components/PickerShell';
@@ -67,12 +68,19 @@ function App() {
 				}
 			},
 		).then((fn) => {
-			// Listener is now registered. Guard against the race where the backend
-			// emitted shortcut-binding-result before this webview subscribed.
+			// Guard against the race where the backend emitted shortcut-binding-result
+			// before this webview subscribed — check both success and failure states.
 			if (!cancelled) {
-				invoke<boolean>('check_shortcut_binding_complete')
+				desktopIntegration
+					.checkShortcutBindingComplete()
 					.then((complete) => {
 						if (!cancelled && complete) setView('picker');
+					})
+					.catch(() => {});
+				desktopIntegration
+					.checkShortcutBindingError()
+					.then((err) => {
+						if (!cancelled && err) setBindError(err);
 					})
 					.catch(() => {});
 			}

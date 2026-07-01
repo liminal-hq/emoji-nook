@@ -22,7 +22,7 @@ serde_json = { workspace = true }
 tauri = { workspace = true }
 thiserror = { workspace = true }
 tokio = { version = "1", features = ["macros", "sync"] }
-tracing = { workspace = true }
+log = { workspace = true }
 
 [features]
 default = []

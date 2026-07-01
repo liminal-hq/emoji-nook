@@ -295,10 +295,34 @@
       "type": "string",
       "oneOf": [
         {
-          "description": "Default permissions for the desktop-integration plugin",
+          "description": "Enables the check_shortcut_binding_complete command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-check-shortcut-binding-complete",
+          "markdownDescription": "Enables the check_shortcut_binding_complete command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the check_shortcut_binding_complete command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-check-shortcut-binding-complete",
+          "markdownDescription": "Denies the check_shortcut_binding_complete command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the check_shortcut_binding_error command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-check-shortcut-binding-error",
+          "markdownDescription": "Enables the check_shortcut_binding_error command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the check_shortcut_binding_error command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-check-shortcut-binding-error",
+          "markdownDescription": "Denies the check_shortcut_binding_error command without any pre-configured scope."
+        },
+        {
+          "description": "Default permissions for the desktop-integration plugin\n#### This default permission set includes:\n\n- `allow-check-shortcut-binding-complete`\n- `allow-check-shortcut-binding-error`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "Default permissions for the desktop-integration plugin"
+          "markdownDescription": "Default permissions for the desktop-integration plugin\n#### This default permission set includes:\n\n- `allow-check-shortcut-binding-complete`\n- `allow-check-shortcut-binding-error`"
         }
       ]
     }

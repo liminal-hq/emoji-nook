@@ -24,6 +24,7 @@
 		"frimousse": "^0.3.0",
 		"react": "^19.1.0",
 		"react-dom": "^19.1.0",
+		"tauri-plugin-desktop-integration": "workspace:*",
 		"tauri-plugin-xdg-portal": "workspace:*"
 	},
 	"devDependencies": {

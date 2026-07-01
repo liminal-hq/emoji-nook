@@ -4275,13 +4275,13 @@ version = "0.2.0"
 dependencies = [
  "ashpd",
  "futures-util",
+ "log",
  "serde",
  "serde_json",
  "tauri",
  "tauri-plugin",
  "thiserror 2.0.18",
  "tokio",
- "tracing",
 ]
 
 [[package]]

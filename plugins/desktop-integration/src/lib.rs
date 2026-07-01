@@ -41,6 +41,9 @@ pub struct ShortcutState {
     /// The shortcut string currently active on X11, used to restore it if an
     /// update to a new shortcut fails.
     pub current_x11_shortcut: Mutex<Option<String>>,
+    /// Non-None once BindShortcuts has returned a failure. Used by the frontend
+    /// race guard to detect a missed shortcut-binding-result error event.
+    pub binding_error: Mutex<Option<String>>,
 }
 
 impl Default for ShortcutState {
@@ -51,6 +54,7 @@ impl Default for ShortcutState {
             binding_complete: AtomicBool::new(false),
             wayland_handle: Mutex::new(None),
             current_x11_shortcut: Mutex::new(None),
+            binding_error: Mutex::new(None),
         }
     }
 }
@@ -92,10 +96,41 @@ pub trait DesktopIntegrationExt<R: Runtime> {
     /// Always true on X11. On Wayland, true only after the portal BindShortcuts
     /// call succeeds.
     fn is_shortcut_binding_complete(&self) -> bool;
+
+    /// Returns the binding error message if BindShortcuts failed, or None if
+    /// still pending or successful. Used by the frontend race guard to detect a
+    /// missed shortcut-binding-result error event.
+    fn shortcut_binding_error(&self) -> Option<String>;
+}
+
+/// Returns true once the portal BindShortcuts call has completed successfully.
+/// Exposed to the frontend so it can recover from the race where the backend
+/// emitted shortcut-binding-result before the webview listener was registered.
+#[tauri::command]
+fn check_shortcut_binding_complete<R: Runtime>(app: tauri::AppHandle<R>) -> bool {
+    app.state::<ShortcutState>()
+        .binding_complete
+        .load(Ordering::SeqCst)
+}
+
+/// Returns the binding error message if BindShortcuts failed, or null if still
+/// pending or successful. Complements check_shortcut_binding_complete for the
+/// race where the failure event fires before the webview listener is registered.
+#[tauri::command]
+fn check_shortcut_binding_error<R: Runtime>(app: tauri::AppHandle<R>) -> Option<String> {
+    app.state::<ShortcutState>()
+        .binding_error
+        .lock()
+        .ok()
+        .and_then(|g| g.clone())
 }
 
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
     Builder::new("desktop-integration")
+        .invoke_handler(tauri::generate_handler![
+            check_shortcut_binding_complete,
+            check_shortcut_binding_error,
+        ])
         .setup(|app, _api| {
             app.manage(ShortcutState::default());
             Ok(())
@@ -278,6 +313,14 @@ impl<R: Runtime> DesktopIntegrationExt<R> for AppHandle<R> {
             .binding_complete
             .load(Ordering::SeqCst)
     }
+
+    fn shortcut_binding_error(&self) -> Option<String> {
+        self.state::<ShortcutState>()
+            .binding_error
+            .lock()
+            .ok()
+            .and_then(|g| g.clone())
+    }
 }
 
 /// Internal helpers — not part of the public trait.
@@ -315,10 +358,13 @@ impl<R: Runtime> DesktopIntegrationInternal<R> for AppHandle<R> {
             let app = app.clone();
             move |result: Result<(), String>| {
                 let success = result.is_ok();
+                let state = app.state::<ShortcutState>();
                 if success {
-                    app.state::<ShortcutState>()
-                        .binding_complete
-                        .store(true, Ordering::SeqCst);
+                    state.binding_complete.store(true, Ordering::SeqCst);
+                } else if let Some(msg) = result.as_ref().err() {
+                    if let Ok(mut g) = state.binding_error.lock() {
+                        *g = Some(msg.clone());
+                    }
                 }
                 let payload = ShortcutBindingResult {
                     success,

@@ -1,16 +1,28 @@
-// Exposes guest-side metadata for the desktop-integration plugin package
+// Exposes guest-side bindings for the desktop-integration plugin
 //
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-export const pluginName = 'desktop-integration';
+import { invoke } from '@tauri-apps/api/core';
 
-/**
- * The desktop-integration plugin is currently backend-only.
- *
- * The guest package exists so the workspace keeps a standard Tauri plugin
- * layout and has a stable place for future guest-side helpers.
- */
-export const desktopIntegration = Object.freeze({
-	pluginName,
-});
+const PREFIX = 'plugin:desktop-integration|';
+
+function cmd<T>(name: string, args?: Record<string, unknown>): Promise<T> {
+	return invoke<T>(`${PREFIX}${name}`, args);
+}
+
+export const desktopIntegration = {
+	/**
+	 * Returns true once the portal BindShortcuts call has completed successfully.
+	 * On X11 this is always true immediately after startup.
+	 * Use this as a race guard after registering the shortcut-binding-result listener.
+	 */
+	checkShortcutBindingComplete: () => cmd<boolean>('check_shortcut_binding_complete'),
+
+	/**
+	 * Returns the error message if BindShortcuts failed, or null if still pending
+	 * or successful. Use this as a race guard after registering the
+	 * shortcut-binding-result listener — complements checkShortcutBindingComplete.
+	 */
+	checkShortcutBindingError: () => cmd<string | null>('check_shortcut_binding_error'),
+};

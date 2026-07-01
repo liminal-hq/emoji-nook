@@ -24,8 +24,8 @@ cat > "${DESKTOP_FILE}" <<EOF
 [Desktop Entry]
 Name=Emoji Nook (dev)
 Comment=Native Linux emoji picker — development build
-Exec="${BINARY}"
-Icon="${ICON}"
+Exec=${BINARY}
+Icon=${ICON}
 Type=Application
 Categories=Utility;
 NoDisplay=true

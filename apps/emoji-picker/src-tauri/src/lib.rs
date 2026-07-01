@@ -198,13 +198,6 @@ fn update_shortcut(app: AppHandle, shortcut: String) {
     });
 }
 
-/// Returns true once the portal BindShortcuts call has completed successfully.
-/// Exposed so the frontend can recover from the race where the shortcut-binding-result
-/// event fires before the webview listener is registered.
-#[tauri::command]
-fn check_shortcut_binding_complete(app: AppHandle) -> bool {
-    app.is_shortcut_binding_complete()
-}
 
 /// Creates the system tray icon with a context menu.
 fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
@@ -238,7 +231,16 @@ pub fn run() {
     let app = tauri::Builder::default()
         .manage(LifecycleState::default())
         .plugin(tauri_plugin_desktop_integration::init())
-        .plugin(tauri_plugin_log::Builder::new().build())
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .level(if cfg!(debug_assertions) {
+                    log::LevelFilter::Debug
+                } else {
+                    log::LevelFilter::Info
+                })
+                .level_for("tao", log::LevelFilter::Warn)
+                .build(),
+        )
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_xdg_portal::init())
@@ -251,8 +253,7 @@ pub fn run() {
             insert_emoji,
             show_picker,
             hide_picker,
-            update_shortcut,
-            check_shortcut_binding_complete
+            update_shortcut
         ])
         .setup(|app| {
             let handle = app.handle().clone();
@@ -266,6 +267,18 @@ pub fn run() {
             handle.register_shortcut(&shortcut, move || {
                 present_picker(&handle_for_shortcut, "shortcut");
             });
+
+            // On Wayland the portal BindShortcuts call is deferred until the first
+            // picker window is shown (so the dialog has a parent). Auto-show the
+            // shortcut-setup window at startup to kick off that binding — otherwise
+            // the user has no way to trigger it until the tray works.
+            if is_wayland() && !handle.is_shortcut_binding_complete() {
+                let h = handle.clone();
+                std::thread::spawn(move || {
+                    std::thread::sleep(std::time::Duration::from_millis(300));
+                    present_picker(&h, "startup-wayland-bind");
+                });
+            }
 
             Ok(())
         })

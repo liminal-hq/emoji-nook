@@ -6,7 +6,7 @@
 use crate::error::PortalError;
 use ashpd::WindowIdentifier;
 use futures_util::StreamExt;
-use tracing::info;
+use log::{error, info, warn};
 
 /// Translates a Tauri-style shortcut string (e.g. `"Alt+Shift+E"`) into the
 /// GTK/libxkbcommon accelerator format expected by the portal (`"<Alt><Shift>e"`).
@@ -101,7 +101,7 @@ where
                 Ok(id) => id.unwrap_or_default(),
                 // Sender dropped without a send (e.g. plugin teardown before first window).
                 Err(_) => {
-                    tracing::warn!("shortcut window sender dropped; aborting portal binding");
+                    warn!("shortcut window sender dropped; aborting portal binding");
                     return;
                 }
             },
@@ -116,7 +116,7 @@ where
             Ok(request) => match request.response() {
                 Ok(resp) => {
                     if resp.shortcuts().is_empty() {
-                        tracing::warn!(
+                        warn!(
                             "portal bind succeeded but returned no shortcuts — \
                              the key combination may already be claimed"
                         );
@@ -132,13 +132,13 @@ where
                     on_binding_result(Ok(()));
                 }
                 Err(e) => {
-                    tracing::error!("bind_shortcuts portal response error: {e}");
+                    error!("bind_shortcuts portal response error: {e}");
                     on_binding_result(Err(e.to_string()));
                     return;
                 }
             },
             Err(e) => {
-                tracing::error!("bind_shortcuts D-Bus call failed: {e}");
+                error!("bind_shortcuts D-Bus call failed: {e}");
                 on_binding_result(Err(e.to_string()));
                 return;
             }
@@ -157,9 +157,7 @@ where
                         }
                         // Stream closed (compositor crash, D-Bus drop) — exit cleanly.
                         None => {
-                            tracing::warn!(
-                                "global shortcut activation stream ended for: {}", sid
-                            );
+                            warn!("global shortcut activation stream ended for: {}", sid);
                             break;
                         }
                     }

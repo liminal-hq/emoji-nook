@@ -38,6 +38,9 @@ importers:
       react-dom:
         specifier: ^19.1.0
         version: 19.2.4(react@19.2.4)
+      tauri-plugin-desktop-integration:
+        specifier: workspace:*
+        version: link:../../plugins/desktop-integration/guest-js
       tauri-plugin-xdg-portal:
         specifier: workspace:*
         version: link:../../plugins/xdg-portal/guest-js
@@ -87,6 +90,12 @@ importers:
       vitest:
         specifier: ^4.1.0
         version: 4.1.0(jsdom@28.1.0)(vite@7.3.1)
+
+  plugins/desktop-integration/guest-js:
+    dependencies:
+      '@tauri-apps/api':
+        specifier: ^2.0.0
+        version: 2.10.1
 
   plugins/xdg-portal/guest-js:
     dependencies:
