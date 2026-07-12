@@ -4,9 +4,9 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 import { useEffect, useState, useCallback } from 'react';
-import { portal } from 'tauri-plugin-xdg-portal';
+import { portal } from '@liminal-hq/plugin-xdg-portal';
 import { listen } from '@tauri-apps/api/event';
-import type { ThemeInfo, DesktopEnvironment } from 'tauri-plugin-xdg-portal';
+import type { ThemeInfo, DesktopEnvironment } from '@liminal-hq/plugin-xdg-portal';
 
 /** Convert 0.0–1.0 sRGB to hex colour string. */
 function rgbToHex(r: number, g: number, b: number): string {
