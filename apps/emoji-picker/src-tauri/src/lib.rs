@@ -21,6 +21,8 @@ fn has_wayland_display(value: Option<&OsStr>) -> bool {
 }
 
 const DEFAULT_SHORTCUT: &str = "Alt+Shift+E";
+const SHORTCUT_SESSION_ID: &str = "emoji-nook-toggle";
+const SHORTCUT_SESSION_DESCRIPTION: &str = "Toggle Emoji Nook";
 
 #[derive(Default)]
 struct LifecycleState {
@@ -268,9 +270,14 @@ pub fn run() {
             info!("using shortcut from settings: {shortcut}");
 
             let handle_for_shortcut = handle.clone();
-            handle.register_shortcut(&shortcut, move || {
-                present_picker(&handle_for_shortcut, "shortcut");
-            });
+            handle.register_shortcut(
+                SHORTCUT_SESSION_ID,
+                SHORTCUT_SESSION_DESCRIPTION,
+                &shortcut,
+                move || {
+                    present_picker(&handle_for_shortcut, "shortcut");
+                },
+            );
 
             // On Wayland the portal BindShortcuts call is deferred until the first
             // picker window is shown (so the dialog has a parent). Auto-show the

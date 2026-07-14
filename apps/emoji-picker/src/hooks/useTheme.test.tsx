@@ -4,10 +4,10 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 import { render, waitFor } from '@testing-library/react';
-import { portal } from 'tauri-plugin-xdg-portal';
+import { portal } from '@liminal-hq/plugin-xdg-portal';
 import { useTheme } from './useTheme';
 
-vi.mock('tauri-plugin-xdg-portal', () => ({
+vi.mock('@liminal-hq/plugin-xdg-portal', () => ({
 	portal: {
 		getThemeInfo: vi.fn(),
 	},

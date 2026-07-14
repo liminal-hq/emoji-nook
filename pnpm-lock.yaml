@@ -14,6 +14,12 @@ importers:
 
   apps/emoji-picker:
     dependencies:
+      '@liminal-hq/plugin-desktop-integration':
+        specifier: ^0.1.0
+        version: 0.1.0
+      '@liminal-hq/plugin-xdg-portal':
+        specifier: ^0.1.0
+        version: 0.1.0
       '@tauri-apps/api':
         specifier: ^2
         version: 2.10.1
@@ -38,12 +44,6 @@ importers:
       react-dom:
         specifier: ^19.1.0
         version: 19.2.4(react@19.2.4)
-      tauri-plugin-desktop-integration:
-        specifier: workspace:*
-        version: link:../../plugins/desktop-integration/guest-js
-      tauri-plugin-xdg-portal:
-        specifier: workspace:*
-        version: link:../../plugins/xdg-portal/guest-js
     devDependencies:
       '@eslint/js':
         specifier: ^10.0.1
@@ -483,6 +483,12 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
+
+  '@liminal-hq/plugin-desktop-integration@0.1.0':
+    resolution: {integrity: sha512-qd2/4g8vBN5tyZ0e/rWFIR3RQhXpq0tXyC5wahNNEyfs0Ip4YNi5z2vhmB/3OpdsxmYN2cjwm+Zoh4KXHqKomg==}
+
+  '@liminal-hq/plugin-xdg-portal@0.1.0':
+    resolution: {integrity: sha512-msbmzJNegAKvJSjuRwoyWIwXU/P5J9Ytjmt/sVNjHqsaszgx+L5imSlfvQwXCI1iHbRBxOXJbGyArGkaupO0fw==}
 
   '@rolldown/pluginutils@1.0.0-beta.27':
     resolution: {integrity: sha512-+d0F4MKMCbeVUJwG96uQ4SgAznZNSq93I3V+9NHA4OpvqG8mRCpGdKmK8l/dl02h2CCDHwW2FqilnTyDcAnqjA==}
@@ -1868,6 +1874,14 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  '@liminal-hq/plugin-desktop-integration@0.1.0':
+    dependencies:
+      '@tauri-apps/api': 2.10.1
+
+  '@liminal-hq/plugin-xdg-portal@0.1.0':
+    dependencies:
+      '@tauri-apps/api': 2.10.1
 
   '@rolldown/pluginutils@1.0.0-beta.27': {}
 

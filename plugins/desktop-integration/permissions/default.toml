@@ -1,6 +1,0 @@
-[default]
-description = "Default permissions for the desktop-integration plugin"
-permissions = [
-  "allow-check-shortcut-binding-complete",
-  "allow-check-shortcut-binding-error",
-]

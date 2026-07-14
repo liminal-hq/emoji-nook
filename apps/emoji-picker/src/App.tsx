@@ -5,7 +5,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { desktopIntegration } from 'tauri-plugin-desktop-integration';
+import { desktopIntegration } from '@liminal-hq/plugin-desktop-integration';
 import { listen } from '@tauri-apps/api/event';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import PickerShell from './components/PickerShell';

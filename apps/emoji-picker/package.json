@@ -24,8 +24,8 @@
 		"frimousse": "^0.3.0",
 		"react": "^19.1.0",
 		"react-dom": "^19.1.0",
-		"tauri-plugin-desktop-integration": "workspace:*",
-		"tauri-plugin-xdg-portal": "workspace:*"
+		"@liminal-hq/plugin-desktop-integration": "^0.1.0",
+		"@liminal-hq/plugin-xdg-portal": "^0.1.0"
 	},
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",
