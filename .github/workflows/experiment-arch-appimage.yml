@@ -82,7 +82,7 @@ jobs:
       - name: Install app-specific dependencies
         run: |
           set -eu
-          pacman -Syu --noconfirm webkit2gtk-4.1 gtk3 libayatana-appindicator
+          pacman -S --noconfirm --needed webkit2gtk-4.1 gtk3 libayatana-appindicator patchelf
           get-debloated-pkgs --add-common --prefer-nano
 
       - name: Assemble AppDir and build the AppImage
