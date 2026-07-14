@@ -1,0 +1,109 @@
+name: Experiment - Arch quick-sharun AppImage
+
+# Pilot for the Route B proposal in liminal-hq/.github:
+# docs/proposals/arch-experimental-ci-image.md
+#
+# Validates whether packaging the AppImage via quick-sharun on a pinned Arch
+# container fixes the "Could not create default EGL display: EGL_BAD_PARAMETER"
+# crash seen from the current Ubuntu + Tauri experimental-branch bundler.
+#
+# This workflow is scoped to this experiment only: it does not create a GitHub
+# Release and does not touch the real release.yml pipeline.
+
+on:
+  push:
+    branches:
+      - experiment/arch-quick-sharun-appimage
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-deb:
+    name: Build .deb (existing ci-desktop image)
+    runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/liminal-hq/tauri-ci-desktop:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Trust the GitHub workspace
+        run: git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust
+        uses: swatinem/rust-cache@v2
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build .deb bundle (stable tauri-cli, no experimental branch)
+        run: pnpm --filter @emoji-picker/emoji-picker tauri build --bundles deb
+
+      - name: Upload .deb artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: emoji-nook-deb
+          path: apps/emoji-picker/src-tauri/target/release/bundle/deb/*.deb
+          if-no-files-found: error
+
+  package-appimage:
+    name: Package AppImage via quick-sharun (Arch, pinned)
+    needs: build-deb
+    runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/pkgforge-dev/archlinux@sha256:f6fc7e14b0612a355d7ab50efb3cc40010ba28e4766860bd238d313b308f190b
+    steps:
+      - name: Download .deb artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: emoji-nook-deb
+          path: ./deb-input
+
+      - name: Prepare container (Anylinux tools)
+        uses: pkgforge-dev/anylinux-setup-action@8872fabe63f9a00b35e25b2f46da62a05afc9a7d # v1
+
+      - name: Install app-specific dependencies
+        run: |
+          set -eu
+          pacman -Syu --noconfirm webkit2gtk-4.1 gtk3
+          get-debloated-pkgs --add-common --prefer-nano
+          make-aur-package libappindicator-gtk3
+
+      - name: Assemble AppDir and build the AppImage
+        run: |
+          set -eu
+          mkdir -p work
+          cd work
+          cp ../deb-input/*.deb ./app.deb
+          ar xv ./app.deb
+          tar xf ./data.tar.*
+          mv usr AppDir
+          cp AppDir/share/applications/*.desktop AppDir/
+          cp AppDir/share/icons/hicolor/*/apps/*.png AppDir/
+          quick-sharun ./AppDir/bin/*
+          quick-sharun --make-appimage
+          quick-sharun --test ./dist/*.AppImage
+
+      - name: Upload AppImage artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: emoji-nook-arch-appimage
+          path: work/dist/*.AppImage
+          if-no-files-found: error
