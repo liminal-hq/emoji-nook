@@ -86,6 +86,8 @@ jobs:
           get-debloated-pkgs --add-common --prefer-nano
 
       - name: Assemble AppDir and build the AppImage
+        env:
+          OUTPATH: ./dist
         run: |
           set -eu
           mkdir -p work
