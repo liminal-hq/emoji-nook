@@ -241,9 +241,7 @@ jobs:
 
       - name: Build Linux release bundles
         id: build_tauri
-        env:
-          TAURI_BUNDLER_NEW_APPIMAGE_FORMAT: 'true'
-        run: pnpm --filter @emoji-picker/emoji-picker tauri build --bundles appimage,deb,rpm
+        run: pnpm --filter @emoji-picker/emoji-picker tauri build --bundles deb,rpm
 
       - name: Collect release assets and checksums
         id: collect_assets
@@ -259,7 +257,7 @@ jobs:
             exit 1
           fi
 
-          mapfile -t bundle_files < <(find "${bundle_dir}" -type f \( -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" \) | sort)
+          mapfile -t bundle_files < <(find "${bundle_dir}" -type f \( -name "*.deb" -o -name "*.rpm" \) | sort)
 
           if [[ "${#bundle_files[@]}" -eq 0 ]]; then
             echo "No Linux release artefacts found in ${bundle_dir}" >&2
@@ -317,11 +315,32 @@ jobs:
             fi
           } >> "${GITHUB_STEP_SUMMARY}"
 
+  package-appimage:
+    name: Package AppImage
+    needs:
+      - prepare-release
+      - build-linux
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            deb-artifact: linux-release-assets-x64
+          - runner: ubuntu-24.04-arm
+            deb-artifact: linux-release-assets-arm64
+    uses: liminal-hq/.github/.github/workflows/package-arch-appimage.yml@main
+    with:
+      runs-on: ${{ matrix.runner }}
+      deb-artifact-name: ${{ matrix.deb-artifact }}
+      app-version: ${{ needs.prepare-release.outputs.release_version }}
+    secrets: inherit
+
   publish-release:
     name: Publish GitHub Release assets
     needs:
       - prepare-release
       - build-linux
+      - package-appimage
     runs-on: ubuntu-24.04
     steps:
       - name: Download Linux release assets
@@ -330,6 +349,23 @@ jobs:
           pattern: linux-release-assets-*
           path: release-assets/linux
           merge-multiple: true
+
+      - name: Download AppImage assets
+        uses: actions/download-artifact@v7
+        with:
+          pattern: appimage-*
+          path: release-assets/linux
+          merge-multiple: true
+
+      - name: Recompute checksums
+        # build-linux's own SHA256SUMS only covers the deb/rpm files present
+        # at that point - the AppImage doesn't exist yet in that job. Regenerate
+        # over the fully merged directory now that everything has converged.
+        run: |
+          set -euo pipefail
+          cd release-assets/linux
+          rm -f SHA256SUMS
+          sha256sum ./* | sed 's# \./#  #' > SHA256SUMS
 
       - name: Upload assets to GitHub Release
         id: upload_release_assets
