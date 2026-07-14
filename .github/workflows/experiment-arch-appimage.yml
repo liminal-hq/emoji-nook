@@ -95,7 +95,8 @@ jobs:
           tar xf ./data.tar.*
           mv usr AppDir
           cp AppDir/share/applications/*.desktop AppDir/
-          cp AppDir/share/icons/hicolor/*/apps/*.png AppDir/
+          icon="$(find AppDir/share/icons/hicolor -name '*.png' | sort -V | tail -1)"
+          if [ -n "$icon" ]; then cp "$icon" AppDir/; fi
           quick-sharun ./AppDir/bin/*
           quick-sharun --make-appimage
           quick-sharun --test ./dist/*.AppImage
