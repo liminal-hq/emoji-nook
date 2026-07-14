@@ -341,10 +341,6 @@ jobs:
       - prepare-release
       - build-linux
       - package-appimage
-    # AppImage packaging (especially the arm64 leg, unvalidated end-to-end as of
-    # this writing) can fail without blocking the deb/rpm assets that already
-    # succeeded - only prepare-release and build-linux are hard requirements.
-    if: ${{ !cancelled() && needs.prepare-release.result == 'success' && needs.build-linux.result == 'success' }}
     runs-on: ubuntu-24.04
     steps:
       - name: Download Linux release assets
@@ -355,10 +351,6 @@ jobs:
           merge-multiple: true
 
       - name: Download AppImage assets
-        # Non-fatal: package-appimage may have partially or fully failed (see
-        # the if: above) - a missing AppImage shouldn't block the assets that
-        # did build successfully.
-        continue-on-error: true
         uses: actions/download-artifact@v7
         with:
           pattern: appimage-*
