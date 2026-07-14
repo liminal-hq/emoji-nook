@@ -328,9 +328,7 @@ jobs:
             deb-artifact: linux-release-assets-x64
           - runner: ubuntu-24.04-arm
             deb-artifact: linux-release-assets-arm64
-    # TODO: switch to @main once liminal-hq/.github#13 merges - this branch ref
-    # will break once that PR's branch is deleted post-merge.
-    uses: liminal-hq/.github/.github/workflows/package-arch-appimage.yml@docs/arch-experimental-ci-image-proposal
+    uses: liminal-hq/.github/.github/workflows/package-arch-appimage.yml@main
     with:
       runs-on: ${{ matrix.runner }}
       deb-artifact-name: ${{ matrix.deb-artifact }}
