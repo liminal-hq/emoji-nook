@@ -213,7 +213,11 @@ fn is_terminal_class(class: &str) -> bool {
 fn simulate_paste_xdotool() -> Result<(), String> {
     let (class, _name) = focused_window_info();
     let is_terminal = class.as_deref().map(is_terminal_class).unwrap_or(false);
-    let key = if is_terminal { "ctrl+shift+v" } else { "ctrl+v" };
+    let key = if is_terminal {
+        "ctrl+shift+v"
+    } else {
+        "ctrl+v"
+    };
     info!("xdotool paste: key={key} terminal={is_terminal}");
 
     let status = Command::new("xdotool")
