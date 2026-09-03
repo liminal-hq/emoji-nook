@@ -71,22 +71,24 @@ sudo apt install wtype
 
 Works on X11 sessions. On Wayland, it only reaches XWayland clients (e.g., Firefox, Electron apps) — not native Wayland apps like GNOME Terminal.
 
+Also requires `xprop`, used to read the focused window's `WM_CLASS` so terminal emulators get Ctrl+Shift+V instead of Ctrl+V (which they intercept as a control character). Without it, paste into a terminal silently sends the wrong key combo.
+
 **Arch Linux:**
 
 ```bash
-sudo pacman -S xdotool
+sudo pacman -S xdotool xorg-xprop
 ```
 
 **Ubuntu/Debian:**
 
 ```bash
-sudo apt install xdotool
+sudo apt install xdotool x11-utils
 ```
 
 **Fedora:**
 
 ```bash
-sudo dnf install xdotool
+sudo dnf install xdotool xorg-x11-utils
 ```
 
 ### Alternative: IBus Input Method
@@ -119,7 +121,7 @@ If you want to remove the tools installed for Emoji Nook:
 
 ```bash
 # Remove packages
-sudo pacman -Rs ydotool wtype xdotool
+sudo pacman -Rs ydotool wtype xdotool xorg-xprop
 
 # Stop and disable the ydotool service
 systemctl --user disable --now ydotool
@@ -131,7 +133,7 @@ sudo gpasswd -d $USER input
 ### Ubuntu/Debian
 
 ```bash
-sudo apt remove --purge ydotool wtype xdotool
+sudo apt remove --purge ydotool wtype xdotool x11-utils
 systemctl --user disable --now ydotool
 sudo gpasswd -d $USER input
 ```
@@ -139,7 +141,7 @@ sudo gpasswd -d $USER input
 ### Fedora
 
 ```bash
-sudo dnf remove ydotool xdotool
+sudo dnf remove ydotool xdotool xorg-x11-utils
 systemctl --user disable --now ydotool
 sudo gpasswd -d $USER input
 ```
@@ -178,3 +180,12 @@ Your compositor (likely GNOME) doesn't support `wl_virtual_keyboard`. Use `ydoto
 ### `xdotool` triggers a "Remote Desktop" permission prompt on Wayland
 
 This is expected — `xdotool` goes through XWayland which triggers the portal prompt. Use `ydotool` instead to avoid this.
+
+### Paste sends Ctrl+V instead of Ctrl+Shift+V in a terminal
+
+Emoji Nook detects the focused window to know when to send Ctrl+Shift+V instead of Ctrl+V (terminal emulators treat Ctrl+V as a control character rather than paste). Detection depends on your session:
+
+- **X11**: works automatically via `xdotool`/`xprop` (see [above](#3-xdotool-x11--xwayland-only)).
+- **Hyprland / Sway** (and other compositors implementing the sway IPC): works automatically via `hyprctl`/`swaymsg`.
+- **KDE Plasma Wayland**: install [`kdotool`](https://github.com/jinliu/kdotool) (not packaged by default) for detection via KWin's scripting API.
+- **GNOME Wayland**: not currently supported — there's no equivalent CLI without a GNOME Shell extension. Paste always sends plain Ctrl+V; run `Ctrl+Shift+V` manually if the terminal doesn't accept it.

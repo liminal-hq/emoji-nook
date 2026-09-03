@@ -54,6 +54,16 @@ remove_pkg() {
     esac
 }
 
+# xprop's package name differs from xdotool's across distros.
+xprop_pkg() {
+    case "$PM" in
+        pacman) echo "xorg-xprop" ;;
+        apt)    echo "x11-utils" ;;
+        dnf)    echo "xorg-x11-utils" ;;
+        *)      echo "" ;;
+    esac
+}
+
 # ---------------------------------------------------------------------------
 # Install
 # ---------------------------------------------------------------------------
@@ -83,6 +93,15 @@ do_install() {
     info "Installing xdotool (X11/XWayland fallback)..."
     install_pkg xdotool
 
+    # xprop — used alongside xdotool to read WM_CLASS for terminal detection
+    xprop_pkg_name=$(xprop_pkg)
+    if [ -n "$xprop_pkg_name" ]; then
+        info "Installing xprop (window class detection for the xdotool fallback)..."
+        install_pkg "$xprop_pkg_name"
+    else
+        warn "Install xprop manually (part of your distro's X11 utils package)."
+    fi
+
     echo
 
     # wtype — fallback for non-GNOME Wayland compositors
@@ -97,6 +116,7 @@ do_install() {
     info "Done! Summary:"
     echo "  - ydotool: $(command -v ydotool 2>/dev/null && echo 'installed' || echo 'not found')"
     echo "  - xdotool: $(command -v xdotool 2>/dev/null && echo 'installed' || echo 'not found')"
+    echo "  - xprop:   $(command -v xprop 2>/dev/null && echo 'installed' || echo 'not found')"
     echo "  - wtype:   $(command -v wtype 2>/dev/null && echo 'installed' || echo 'not found')"
     echo
     echo "  ydotool service: $(systemctl --user is-active ydotool 2>/dev/null || echo 'inactive')"
@@ -117,7 +137,12 @@ do_uninstall() {
     systemctl --user disable --now ydotool 2>/dev/null || true
 
     info "Removing packages..."
-    remove_pkg ydotool xdotool wtype
+    xprop_pkg_name=$(xprop_pkg)
+    if [ -n "$xprop_pkg_name" ]; then
+        remove_pkg ydotool xdotool wtype "$xprop_pkg_name"
+    else
+        remove_pkg ydotool xdotool wtype
+    fi
 
     echo
     info "Optionally remove yourself from the input group:"
