@@ -10,6 +10,14 @@ Emoji Nook runs in the background and pops up on a global shortcut, letting you 
 
 > **Status:** Early development — the picker UI, theme detection, global shortcuts, emoji injection, settings persistence, and system tray are functional. CI and release automation are checked in, and the first live tagged release is the next milestone.
 
+## Screenshots
+
+<p align="center">
+  <img src="docs/images/screenshot-picker.png" alt="The Emoji Nook picker overlay, showing the search bar, skin tone selector, category tabs, and emoji grid" width="45%">
+  &nbsp;&nbsp;
+  <img src="docs/images/screenshot-settings.png" alt="The Emoji Nook settings view, showing the shortcut, skin tone, close-after-selection, and start-on-login options" width="45%">
+</p>
+
 ## Architecture
 
 This repository is a `pnpm` + Cargo workspace monorepo.
