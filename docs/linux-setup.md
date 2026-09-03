@@ -71,22 +71,24 @@ sudo apt install wtype
 
 Works on X11 sessions. On Wayland, it only reaches XWayland clients (e.g., Firefox, Electron apps) — not native Wayland apps like GNOME Terminal.
 
+Also requires `xprop`, used to read the focused window's `WM_CLASS` so terminal emulators get Ctrl+Shift+V instead of Ctrl+V (which they intercept as a control character). Without it, paste into a terminal silently sends the wrong key combo.
+
 **Arch Linux:**
 
 ```bash
-sudo pacman -S xdotool
+sudo pacman -S xdotool xorg-xprop
 ```
 
 **Ubuntu/Debian:**
 
 ```bash
-sudo apt install xdotool
+sudo apt install xdotool x11-utils
 ```
 
 **Fedora:**
 
 ```bash
-sudo dnf install xdotool
+sudo dnf install xdotool xorg-x11-utils
 ```
 
 ### Alternative: IBus Input Method
@@ -119,7 +121,7 @@ If you want to remove the tools installed for Emoji Nook:
 
 ```bash
 # Remove packages
-sudo pacman -Rs ydotool wtype xdotool
+sudo pacman -Rs ydotool wtype xdotool xorg-xprop
 
 # Stop and disable the ydotool service
 systemctl --user disable --now ydotool
@@ -131,7 +133,7 @@ sudo gpasswd -d $USER input
 ### Ubuntu/Debian
 
 ```bash
-sudo apt remove --purge ydotool wtype xdotool
+sudo apt remove --purge ydotool wtype xdotool x11-utils
 systemctl --user disable --now ydotool
 sudo gpasswd -d $USER input
 ```
@@ -139,7 +141,7 @@ sudo gpasswd -d $USER input
 ### Fedora
 
 ```bash
-sudo dnf remove ydotool xdotool
+sudo dnf remove ydotool xdotool xorg-x11-utils
 systemctl --user disable --now ydotool
 sudo gpasswd -d $USER input
 ```
