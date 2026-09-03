@@ -7,6 +7,7 @@ use arboard::Clipboard;
 #[cfg(target_os = "linux")]
 use arboard::SetExtLinux;
 use log::{info, warn};
+use serde_json::Value;
 use std::process::Command;
 use std::time::{Duration, Instant};
 
@@ -54,17 +55,22 @@ pub fn clipboard_shuffle(emoji: &str) {
     // 3. Wait for focus to settle on target app
     std::thread::sleep(Duration::from_millis(100));
 
-    // 4. Simulate Ctrl+V
+    // 4. Simulate Ctrl+V (Ctrl+Shift+V for terminal emulators, which
+    //    intercept Ctrl+V as a control character rather than paste).
     //    Try in order: `ydotool` (kernel uinput, works everywhere),
     //    `wtype` (native Wayland), `xdotool` (X11/XWayland)
-    let paste_result = simulate_paste_ydotool()
+    let is_terminal = focused_window_class()
+        .as_deref()
+        .map(is_terminal_class)
+        .unwrap_or(false);
+    let paste_result = simulate_paste_ydotool(is_terminal)
         .or_else(|e| {
             info!("{e}, trying `wtype`");
-            simulate_paste_wtype()
+            simulate_paste_wtype(is_terminal)
         })
         .or_else(|e| {
             info!("{e}, trying `xdotool`");
-            simulate_paste_xdotool()
+            simulate_paste_xdotool(is_terminal)
         });
     if let Err(e) = paste_result {
         warn!("failed to simulate paste: {e}");
@@ -111,13 +117,22 @@ pub fn clipboard_shuffle(emoji: &str) {
     }
 }
 
-/// Simulates Ctrl+V using `ydotool` (kernel uinput — works on X11, Wayland,
-/// GNOME, KDE, Sway, etc.). Requires `ydotoold` running.
-fn simulate_paste_ydotool() -> Result<(), String> {
-    // ydotool key: 29 = KEY_LEFTCTRL, 47 = KEY_V
-    // Format: <keycode>:<press=1/release=0>
+/// ydotool key codes: <keycode>:<press=1/release=0>. 29 = KEY_LEFTCTRL,
+/// 42 = KEY_LEFTSHIFT, 47 = KEY_V.
+fn ydotool_key_args(is_terminal: bool) -> &'static [&'static str] {
+    if is_terminal {
+        &["key", "29:1", "42:1", "47:1", "47:0", "42:0", "29:0"]
+    } else {
+        &["key", "29:1", "47:1", "47:0", "29:0"]
+    }
+}
+
+/// Simulates Ctrl+V (or Ctrl+Shift+V for terminal emulators) using `ydotool`
+/// (kernel uinput — works on X11, Wayland, GNOME, KDE, Sway, etc.). Requires
+/// `ydotoold` running.
+fn simulate_paste_ydotool(is_terminal: bool) -> Result<(), String> {
     let status = Command::new("ydotool")
-        .args(["key", "29:1", "47:1", "47:0", "29:0"])
+        .args(ydotool_key_args(is_terminal))
         .status()
         .map_err(|e| format!("`ydotool` not found: {e}"))?;
 
@@ -127,10 +142,74 @@ fn simulate_paste_ydotool() -> Result<(), String> {
     Ok(())
 }
 
-/// Returns the WM_CLASS class name and window name of the focused X11 window.
-/// Uses xdotool for the window ID and name, xprop for WM_CLASS (xdotool's
-/// getwindowclassname verb is absent in older builds on this system).
-fn focused_window_info() -> (Option<String>, Option<String>) {
+/// Returns the class/app_id of the focused window, used to detect terminal
+/// emulators (which need Ctrl+Shift+V instead of Ctrl+V). No single tool
+/// covers every compositor, so backends are tried in order:
+///   1. `hyprctl` (Hyprland)
+///   2. `swaymsg` (Sway and other compositors implementing its IPC)
+///   3. `xdotool` + `xprop` (X11 / XWayland)
+fn focused_window_class() -> Option<String> {
+    focused_window_class_hyprland()
+        .or_else(focused_window_class_sway)
+        .or_else(focused_window_class_x11)
+}
+
+/// Returns the focused window's class via `hyprctl activewindow -j`.
+/// Hyprland reports the `class` field for both native and XWayland clients.
+fn focused_window_class_hyprland() -> Option<String> {
+    let output = Command::new("hyprctl")
+        .args(["activewindow", "-j"])
+        .output()
+        .ok()
+        .filter(|o| o.status.success())?;
+    let window: Value = serde_json::from_slice(&output.stdout).ok()?;
+    window
+        .get("class")
+        .and_then(Value::as_str)
+        .map(str::to_lowercase)
+}
+
+/// Returns the focused window's class via `swaymsg -t get_tree`.
+fn focused_window_class_sway() -> Option<String> {
+    let output = Command::new("swaymsg")
+        .args(["-t", "get_tree"])
+        .output()
+        .ok()
+        .filter(|o| o.status.success())?;
+    let tree: Value = serde_json::from_slice(&output.stdout).ok()?;
+    find_focused_class(&tree)
+}
+
+/// Recursively walks a sway/i3-IPC tree node for the focused window,
+/// returning its `app_id` (native Wayland client) or `window_properties.class`
+/// (XWayland client), lowercased.
+fn find_focused_class(node: &Value) -> Option<String> {
+    if node.get("focused").and_then(Value::as_bool) == Some(true) {
+        let class = node
+            .get("app_id")
+            .and_then(Value::as_str)
+            .or_else(|| {
+                node.get("window_properties")
+                    .and_then(|p| p.get("class"))
+                    .and_then(Value::as_str)
+            })
+            .map(str::to_lowercase);
+        if class.is_some() {
+            return class;
+        }
+    }
+    ["nodes", "floating_nodes"]
+        .iter()
+        .filter_map(|key| node.get(key))
+        .filter_map(Value::as_array)
+        .flatten()
+        .find_map(find_focused_class)
+}
+
+/// Returns the focused window's WM_CLASS via `xdotool` + `xprop` (X11 /
+/// XWayland). Uses `xprop -id <wid> WM_CLASS` rather than `xdotool
+/// getwindowclassname` since the latter verb is absent in older builds.
+fn focused_window_class_x11() -> Option<String> {
     let id_out = Command::new("xdotool").arg("getactivewindow").output();
     let window_id = match &id_out {
         Ok(o) if o.status.success() => String::from_utf8_lossy(&o.stdout).trim().to_string(),
@@ -140,11 +219,11 @@ fn focused_window_info() -> (Option<String>, Option<String>) {
                 o.status,
                 String::from_utf8_lossy(&o.stderr).trim()
             );
-            return (None, None);
+            return None;
         }
         Err(e) => {
             info!("xdotool getactivewindow error: {e}");
-            return (None, None);
+            return None;
         }
     };
 
@@ -168,24 +247,18 @@ fn focused_window_info() -> (Option<String>, Option<String>) {
                 .map(|(_, c)| c.to_lowercase())
         });
 
-    let name = Command::new("xdotool")
-        .args(["getwindowname", &window_id])
-        .output()
-        .ok()
-        .filter(|o| o.status.success())
-        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string());
-
     info!(
-        "target window id={window_id} class={:?} name={:?}",
-        class.as_deref().unwrap_or("unknown"),
-        name.as_deref().unwrap_or("unknown")
+        "target window id={window_id} class={:?}",
+        class.as_deref().unwrap_or("unknown")
     );
 
-    (class, name)
+    class
 }
 
 /// Terminal emulators intercept Ctrl+V (verbatim-next) and require
-/// Ctrl+Shift+V for paste instead.
+/// Ctrl+Shift+V for paste instead. Includes both X11 WM_CLASS values and
+/// the differing Wayland app_id some of these report (e.g. GNOME Terminal,
+/// Konsole).
 fn is_terminal_class(class: &str) -> bool {
     matches!(
         class,
@@ -194,6 +267,8 @@ fn is_terminal_class(class: &str) -> bool {
             | "gnome-terminal"
             | "kitty"
             | "konsole"
+            | "org.gnome.terminal"
+            | "org.kde.konsole"
             | "org.wezfurlong.wezterm"
             | "rxvt"
             | "st"
@@ -207,12 +282,9 @@ fn is_terminal_class(class: &str) -> bool {
     )
 }
 
-/// Simulates Ctrl+V using `xdotool` (X11 / XWayland).
-/// Detects terminal emulators and uses Ctrl+Shift+V for those, since
-/// terminals intercept Ctrl+V as a control character rather than paste.
-fn simulate_paste_xdotool() -> Result<(), String> {
-    let (class, _name) = focused_window_info();
-    let is_terminal = class.as_deref().map(is_terminal_class).unwrap_or(false);
+/// Simulates Ctrl+V (or Ctrl+Shift+V for terminal emulators) using `xdotool`
+/// (X11 / XWayland).
+fn simulate_paste_xdotool(is_terminal: bool) -> Result<(), String> {
     let key = if is_terminal {
         "ctrl+shift+v"
     } else {
@@ -231,10 +303,22 @@ fn simulate_paste_xdotool() -> Result<(), String> {
     Ok(())
 }
 
-/// Simulates Ctrl+V using `wtype` (native Wayland, needs compositor support).
-fn simulate_paste_wtype() -> Result<(), String> {
+/// wtype modifier/key sequence for Ctrl+V, or Ctrl+Shift+V for terminals.
+fn wtype_key_args(is_terminal: bool) -> &'static [&'static str] {
+    if is_terminal {
+        &[
+            "-M", "ctrl", "-M", "shift", "-P", "v", "-p", "v", "-m", "shift", "-m", "ctrl",
+        ]
+    } else {
+        &["-M", "ctrl", "-P", "v", "-p", "v", "-m", "ctrl"]
+    }
+}
+
+/// Simulates Ctrl+V (or Ctrl+Shift+V for terminal emulators) using `wtype`
+/// (native Wayland, needs compositor support).
+fn simulate_paste_wtype(is_terminal: bool) -> Result<(), String> {
     let status = Command::new("wtype")
-        .args(["-M", "ctrl", "-P", "v", "-p", "v", "-m", "ctrl"])
+        .args(wtype_key_args(is_terminal))
         .status()
         .map_err(|e| format!("`wtype` not found: {e}"))?;
 
@@ -242,4 +326,104 @@ fn simulate_paste_wtype() -> Result<(), String> {
         return Err(format!("`wtype` exited with: {status}"));
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn is_terminal_class_matches_x11_and_wayland_forms() {
+        assert!(is_terminal_class("kitty"));
+        assert!(is_terminal_class("gnome-terminal"));
+        assert!(is_terminal_class("org.gnome.terminal"));
+        assert!(is_terminal_class("konsole"));
+        assert!(is_terminal_class("org.kde.konsole"));
+        assert!(!is_terminal_class("firefox"));
+        assert!(!is_terminal_class("code"));
+    }
+
+    #[test]
+    fn ydotool_key_args_add_shift_for_terminals() {
+        assert_eq!(
+            ydotool_key_args(false),
+            &["key", "29:1", "47:1", "47:0", "29:0"]
+        );
+        assert_eq!(
+            ydotool_key_args(true),
+            &["key", "29:1", "42:1", "47:1", "47:0", "42:0", "29:0"]
+        );
+    }
+
+    #[test]
+    fn wtype_key_args_add_shift_for_terminals() {
+        assert_eq!(
+            wtype_key_args(false),
+            &["-M", "ctrl", "-P", "v", "-p", "v", "-m", "ctrl"]
+        );
+        assert_eq!(
+            wtype_key_args(true),
+            &["-M", "ctrl", "-M", "shift", "-P", "v", "-p", "v", "-m", "shift", "-m", "ctrl",]
+        );
+    }
+
+    #[test]
+    fn find_focused_class_reads_native_app_id() {
+        let tree = json!({
+            "nodes": [{
+                "focused": false,
+                "app_id": "firefox",
+                "nodes": [],
+                "floating_nodes": []
+            }, {
+                "focused": true,
+                "app_id": "foot",
+                "nodes": [],
+                "floating_nodes": []
+            }]
+        });
+        assert_eq!(find_focused_class(&tree), Some("foot".to_string()));
+    }
+
+    #[test]
+    fn find_focused_class_falls_back_to_xwayland_window_properties() {
+        let tree = json!({
+            "nodes": [{
+                "focused": true,
+                "app_id": null,
+                "window_properties": { "class": "Xterm" },
+                "nodes": [],
+                "floating_nodes": []
+            }]
+        });
+        assert_eq!(find_focused_class(&tree), Some("xterm".to_string()));
+    }
+
+    #[test]
+    fn find_focused_class_searches_floating_nodes() {
+        let tree = json!({
+            "nodes": [],
+            "floating_nodes": [{
+                "focused": true,
+                "app_id": "kitty",
+                "nodes": [],
+                "floating_nodes": []
+            }]
+        });
+        assert_eq!(find_focused_class(&tree), Some("kitty".to_string()));
+    }
+
+    #[test]
+    fn find_focused_class_returns_none_when_nothing_focused() {
+        let tree = json!({
+            "nodes": [{
+                "focused": false,
+                "app_id": "firefox",
+                "nodes": [],
+                "floating_nodes": []
+            }]
+        });
+        assert_eq!(find_focused_class(&tree), None);
+    }
 }
