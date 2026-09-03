@@ -227,9 +227,6 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
       - name: Cache Rust
         uses: swatinem/rust-cache@v2
 
