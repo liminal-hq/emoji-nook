@@ -180,3 +180,12 @@ Your compositor (likely GNOME) doesn't support `wl_virtual_keyboard`. Use `ydoto
 ### `xdotool` triggers a "Remote Desktop" permission prompt on Wayland
 
 This is expected — `xdotool` goes through XWayland which triggers the portal prompt. Use `ydotool` instead to avoid this.
+
+### Paste sends Ctrl+V instead of Ctrl+Shift+V in a terminal
+
+Emoji Nook detects the focused window to know when to send Ctrl+Shift+V instead of Ctrl+V (terminal emulators treat Ctrl+V as a control character rather than paste). Detection depends on your session:
+
+- **X11**: works automatically via `xdotool`/`xprop` (see [above](#3-xdotool-x11--xwayland-only)).
+- **Hyprland / Sway** (and other compositors implementing the sway IPC): works automatically via `hyprctl`/`swaymsg`.
+- **KDE Plasma Wayland**: install [`kdotool`](https://github.com/jinliu/kdotool) (not packaged by default) for detection via KWin's scripting API.
+- **GNOME Wayland**: not currently supported — there's no equivalent CLI without a GNOME Shell extension. Paste always sends plain Ctrl+V; run `Ctrl+Shift+V` manually if the terminal doesn't accept it.

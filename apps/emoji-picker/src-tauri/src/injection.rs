@@ -143,15 +143,52 @@ fn simulate_paste_ydotool(is_terminal: bool) -> Result<(), String> {
 }
 
 /// Returns the class/app_id of the focused window, used to detect terminal
-/// emulators (which need Ctrl+Shift+V instead of Ctrl+V). No single tool
-/// covers every compositor, so backends are tried in order:
+/// emulators (which need Ctrl+Shift+V instead of Ctrl+V).
+///
+/// On Wayland, `xdotool`/`xprop` is deliberately *not* used as a fallback:
+/// it only sees XWayland's notion of focus, which can be stale or point at
+/// an unrelated XWayland window while a native Wayland app (e.g. GNOME
+/// Terminal) actually has focus — misdetecting the target is worse than not
+/// detecting it, since it can send Ctrl+Shift+V into an app that wasn't
+/// expecting it. No single tool covers every compositor, so the
+/// Wayland-native backends are tried in order:
 ///   1. `hyprctl` (Hyprland)
 ///   2. `swaymsg` (Sway and other compositors implementing its IPC)
-///   3. `xdotool` + `xprop` (X11 / XWayland)
+///   3. `kdotool` (KDE Plasma, via KWin scripting)
+///
+/// GNOME Wayland has no supported detection path here — there's no
+/// equivalent CLI without installing a GNOME Shell extension — so it falls
+/// through to the default Ctrl+V.
 fn focused_window_class() -> Option<String> {
-    focused_window_class_hyprland()
-        .or_else(focused_window_class_sway)
-        .or_else(focused_window_class_x11)
+    if std::env::var_os("WAYLAND_DISPLAY").is_some() {
+        focused_window_class_hyprland()
+            .or_else(focused_window_class_sway)
+            .or_else(focused_window_class_kde)
+    } else {
+        focused_window_class_x11()
+    }
+}
+
+/// Returns the focused window's class via `kdotool` (KDE Plasma, using
+/// KWin's scripting API — works on both X11 and Wayland Plasma sessions).
+fn focused_window_class_kde() -> Option<String> {
+    let id_out = Command::new("kdotool")
+        .arg("getactivewindow")
+        .output()
+        .ok()
+        .filter(|o| o.status.success())?;
+    let window_id = String::from_utf8_lossy(&id_out.stdout).trim().to_string();
+
+    let class_out = Command::new("kdotool")
+        .args(["getwindowclassname", &window_id])
+        .output()
+        .ok()
+        .filter(|o| o.status.success())?;
+    Some(
+        String::from_utf8_lossy(&class_out.stdout)
+            .trim()
+            .to_lowercase(),
+    )
 }
 
 /// Returns the focused window's class via `hyprctl activewindow -j`.
