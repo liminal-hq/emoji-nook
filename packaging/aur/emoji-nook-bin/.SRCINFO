@@ -1,0 +1,27 @@
+pkgbase = emoji-nook-bin
+	pkgdesc = A native Linux emoji picker that blends with your desktop
+	pkgver = 0.3.2
+	pkgrel = 1
+	url = https://github.com/liminal-hq/emoji-nook
+	arch = x86_64
+	arch = aarch64
+	license = Apache-2.0
+	license = MIT
+	depends = gtk3
+	depends = webkit2gtk-4.1
+	depends = libayatana-appindicator
+	optdepends = ydotool: primary emoji injection via kernel uinput (recommended, works everywhere)
+	optdepends = wtype: Wayland fallback emoji injection (Sway, Hyprland — not GNOME)
+	optdepends = xdotool: X11/XWayland fallback emoji injection
+	provides = emoji-nook
+	conflicts = emoji-nook
+	source = LICENSE-APACHE::https://raw.githubusercontent.com/liminal-hq/emoji-nook/v0.3.2/LICENSE-APACHE
+	source = LICENSE-MIT::https://raw.githubusercontent.com/liminal-hq/emoji-nook/v0.3.2/LICENSE-MIT
+	sha256sums = bc89642e9291dcc22326b905cde5edd36742c172181e5b0e9fe34c99ba7c825b
+	sha256sums = 6ee93439eff25f28a98402a1e629ef73c4ab90d359f663d4dddcf62a3bf13f21
+	source_x86_64 = emoji-nook-0.3.2-amd64.deb::https://github.com/liminal-hq/emoji-nook/releases/download/v0.3.2/Emoji.Nook_0.3.2_amd64.deb
+	sha256sums_x86_64 = f3dc4978638a5cacbcde5133ca366d3e27e9a4bdae95839f513312e7782a20d1
+	source_aarch64 = emoji-nook-0.3.2-arm64.deb::https://github.com/liminal-hq/emoji-nook/releases/download/v0.3.2/Emoji.Nook_0.3.2_arm64.deb
+	sha256sums_aarch64 = d96ac435468ec5109c0f16c3f8a9d8d8f55ff0d3a1bada1328d754df492c23de
+
+pkgname = emoji-nook-bin
