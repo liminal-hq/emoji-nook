@@ -3,7 +3,7 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import type { SkinTone } from 'frimousse';
 import { invoke } from '@tauri-apps/api/core';
 import { isEnabled, enable, disable } from '@tauri-apps/plugin-autostart';
@@ -39,6 +39,19 @@ const W3C_TO_TAURI: Record<string, string> = {
 export default function SettingsPanel({ settings, onSave, onCancel }: SettingsPanelProps) {
 	const [draft, setDraft] = useState<Settings>(settings);
 	const [capturing, setCapturing] = useState(false);
+	const lastSyncedShortcut = useRef(settings.shortcut);
+
+	// Re-sync the displayed shortcut if it changes externally while this dialog is
+	// open — the compositor's own settings UI can rebind it independently of this
+	// app (see App.tsx's shortcut-changed listener). Only applies when the draft
+	// still matches what was last synced, so an external rebind can't clobber a
+	// shortcut the user is in the middle of capturing here.
+	useEffect(() => {
+		if (settings.shortcut === lastSyncedShortcut.current) return;
+		const previousSynced = lastSyncedShortcut.current;
+		lastSyncedShortcut.current = settings.shortcut;
+		setDraft((d) => (d.shortcut === previousSynced ? { ...d, shortcut: settings.shortcut } : d));
+	}, [settings.shortcut]);
 
 	const handleShortcutCapture = useCallback(
 		(e: React.KeyboardEvent) => {

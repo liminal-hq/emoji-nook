@@ -6,6 +6,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { desktopIntegration } from '@liminal-hq/plugin-desktop-integration';
+import type { ShortcutChangedPayload } from '@liminal-hq/plugin-desktop-integration';
 import { listen } from '@tauri-apps/api/event';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import PickerShell from './components/PickerShell';
@@ -16,6 +17,92 @@ import { useTheme } from './hooks/useTheme';
 import { useSettings } from './hooks/useSettings';
 import type { Settings } from './hooks/useSettings';
 import './App.css';
+
+// Process-lifetime (not persisted) bookkeeping for the Wayland external-rebind sync
+// below — backed by Rust-side app state that survives a picker webview being
+// recreated on every show, but resets on every app restart, unlike the settings
+// store, so a stale value from a previous run can't suppress reconciliation with a
+// freshly created portal session.
+function getLastSyncedExternalTrigger(): Promise<string | null> {
+	return invoke<string | null>('get_last_synced_external_trigger');
+}
+
+function setLastSyncedExternalTrigger(trigger: string): Promise<void> {
+	return invoke('set_last_synced_external_trigger', { trigger });
+}
+
+const XDG_MODIFIER_TO_TAURI: Record<string, string> = {
+	Ctrl: 'Ctrl',
+	Alt: 'Alt',
+	Shift: 'Shift',
+	Super: 'Super',
+};
+
+/**
+ * Best-effort parse of the GTK/XKB accelerator syntax embedded in the
+ * GlobalShortcuts portal's trigger_description, back into this app's own
+ * accelerator format ("Alt+Shift+E"). trigger_description is documented as
+ * user-readable text describing *how to trigger* the shortcut, not a bare
+ * machine-parseable value — confirmed live on GNOME, it's literally
+ * "Press <Super>e" (an instructional phrase with the same syntax
+ * `to_xdg_trigger`, tauri-plugin-xdg-portal, produces going the other
+ * direction, embedded in it), not just "<Super>e" alone. Searches for that
+ * embedded syntax anywhere in the string rather than assuming the whole
+ * string is one, since the surrounding wording isn't guaranteed (a different
+ * compositor, or a different system language, could phrase it differently).
+ * The key token matches either a run of two or more letters/digits/underscores
+ * (named keysyms — Return, BackSpace, F1, space, plus, and underscored
+ * multi-word names like KP_Add or ISO_Left_Tab) or exactly one arbitrary
+ * character (single-character keysyms, which this app's own shortcut capture
+ * allows to be any key including punctuation, e.g. "Alt+."). Preferring the
+ * longer run first means a single-character key followed by trailing prose
+ * punctuation (e.g. a closing parenthesis or full stop) stops at that one
+ * character instead of folding the punctuation into the key, while a single
+ * punctuation character on its own is still accepted as a real key.
+ * Returns null rather than guessing when no such substring is found — the
+ * caller must not persist a value that fails to parse as this app's own
+ * `shortcut` setting, since that also gets fed back into re-registration on
+ * next launch. The outer match captures *any* `<word>` tag run (not just
+ * recognised modifiers), and every tag in it is then validated below —
+ * rejecting the whole accelerator if any single tag isn't one of
+ * Ctrl/Alt/Shift/Super, in any position. A narrower match that only matched
+ * recognised modifiers would still find a match starting after an
+ * unsupported one (e.g. GTK's portable "<Primary>", or "<Hyper>", neither
+ * representable in this app's own accelerator format), silently dropping it
+ * instead of rejecting the accelerator; a trailing or embedded unsupported
+ * modifier is worse still, since it isn't matched as a tag at all and its
+ * leading `<` gets read as the key itself.
+ */
+function parseXdgTrigger(trigger: string): string | null {
+	const accelerator = trigger.match(/(?:<\w+>)+(?:[A-Za-z0-9_]{2,}|\S)/);
+	if (!accelerator) return null;
+
+	const tagPattern = /<(\w+)>/g;
+	const parts: string[] = [];
+	let rest = accelerator[0];
+	let consumed = 0;
+	for (let match = tagPattern.exec(rest); match; match = tagPattern.exec(rest)) {
+		const modifier = XDG_MODIFIER_TO_TAURI[match[1]];
+		if (!modifier) return null;
+		parts.push(modifier);
+		consumed = tagPattern.lastIndex;
+	}
+	rest = rest.slice(consumed);
+	if (parts.length === 0 || rest.length === 0) return null;
+	// A leftover bare "<" or ">" means the accelerator was truncated or malformed
+	// (e.g. an unclosed tag) rather than a real key — reject instead of persisting
+	// the stray bracket itself as the key.
+	if (rest === '<' || rest === '>') return null;
+
+	let key = rest;
+	if (key === 'space') key = 'Space';
+	else if (key === 'plus') key = '+';
+	else if (key.length === 1) key = key.toUpperCase();
+	// else: preserve named-key casing as-is (Tab, Return, F1, Left, BackSpace, …)
+
+	parts.push(key);
+	return parts.join('+');
+}
 
 function formatBindError(err: string): { headline: string; hint: string } {
 	// ashpd PortalError::Other means the portal rejected the request — on GNOME this
@@ -44,6 +131,10 @@ function App() {
 	const [bindError, setBindError] = useState<string | null>(null);
 	const searchRef = useRef<HTMLInputElement>(null);
 	const isDraggingRef = useRef(false);
+	const settingsRef = useRef(settings);
+	useEffect(() => {
+		settingsRef.current = settings;
+	}, [settings]);
 
 	const handleSelect = useCallback(
 		(selection: EmojiSelection) => {
@@ -104,6 +195,90 @@ function App() {
 			unlistenPromise.then((fn) => fn());
 		};
 	}, [view]);
+
+	// Wayland only: keep the stored shortcut in sync if the compositor's own settings
+	// UI rebinds it externally (e.g. GNOME Settings → Apps → Emoji Nook → Global
+	// Shortcuts) instead of through this app's own Settings dialog. Confirmed live on
+	// GNOME: the portal's trigger_description is instructional text with GTK/XKB
+	// accelerator syntax embedded in it (e.g. "Press <Alt><Shift>e"), not the nicely
+	// formatted text GNOME Settings' own UI shows for the same shortcut —
+	// parseXdgTrigger extracts and translates the embedded syntax back to this app's
+	// own format, or returns null (leaving the stored value untouched) if it can't
+	// find any.
+	//
+	// Gated on `loaded`: until the real persisted settings have finished loading,
+	// `settings` is still the DEFAULTS placeholder, and persisting `{ ...settings,
+	// shortcut }` at that point would overwrite the user's actual skin tone,
+	// close-on-select, and autostart preferences with those defaults.
+	//
+	// Depends only on `loaded`/`update` (not `settings`) so it attaches exactly once
+	// per mount, reading `settingsRef.current` for the latest values instead.
+	//
+	// `lastSyncedExternalTrigger` — a raw-trigger-string value held in Rust-side
+	// app state for this process's lifetime, not React state or the settings
+	// store — records what the missed-event catch-up check below has already acted
+	// on, so it can tell a genuinely new external rebind apart from the same stale
+	// plugin-cache value that keeps coming back on every fresh picker mount (the
+	// picker window, and this whole component tree, is recreated on every show;
+	// the plugin never clears its cache once read). Scoped to the process, not
+	// persisted to disk, so a stale value from a previous run can't suppress
+	// reconciliation with a freshly created portal session after an app restart.
+	// Deliberately applied ONLY to the catch-up path, not the live listener: a live
+	// `shortcut-changed` event always represents a rebind that just happened, even
+	// if its raw text happens to match an earlier catch-up value (e.g. the user
+	// rebound to A, edited locally to B, then rebound externally back to A) —
+	// deduplicating that against history would wrongly discard it and leave the
+	// stale local edit in place.
+	useEffect(() => {
+		if (!loaded) return;
+		let cancelled = false;
+
+		// Marks the trigger consumed only *after* the shortcut save succeeds — the
+		// reverse order would risk the marker persisting while the shortcut never
+		// actually got saved (the picker window closing mid-chain, or the save
+		// itself failing), which would then permanently skip that trigger on every
+		// future catch-up check even though the real shortcut was never updated.
+		function applyTrigger(trigger: string) {
+			const shortcut = parseXdgTrigger(trigger);
+			if (!shortcut) {
+				console.warn('unrecognised external shortcut trigger:', trigger);
+				return Promise.resolve();
+			}
+			if (cancelled) return Promise.resolve();
+			return update({ ...settingsRef.current, shortcut }).then(() => {
+				if (cancelled) return;
+				return setLastSyncedExternalTrigger(trigger);
+			});
+		}
+
+		const unlistenPromise = listen<ShortcutChangedPayload>('shortcut-changed', ({ payload }) => {
+			applyTrigger(payload.triggerDescription).catch((err) =>
+				console.error('settings save failed after external shortcut rebind:', err),
+			);
+		}).then((fn) => {
+			// Guard against the race where the rebind happened before this webview
+			// subscribed — check once for a trigger the event listener would have missed.
+			if (!cancelled) {
+				desktopIntegration
+					.checkShortcutTriggerDescription()
+					.then((trigger) => {
+						if (cancelled || !trigger) return;
+						return getLastSyncedExternalTrigger().then((lastSynced) => {
+							if (cancelled || trigger === lastSynced) return;
+							return applyTrigger(trigger);
+						});
+					})
+					.catch((err) =>
+						console.error('settings save failed after external shortcut rebind:', err),
+					);
+			}
+			return fn;
+		});
+		return () => {
+			cancelled = true;
+			unlistenPromise.then((fn) => fn());
+		};
+	}, [loaded, update]);
 
 	// Esc key hides the picker (or closes settings). Blocked during shortcut-setup
 	// while waiting for portal approval; allowed once an error is shown.
