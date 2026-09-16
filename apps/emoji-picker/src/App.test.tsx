@@ -5,7 +5,10 @@
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 import App from './App';
+
+const { updateMock } = vi.hoisted(() => ({ updateMock: vi.fn(() => Promise.resolve()) }));
 
 vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(() => Promise.resolve()),
@@ -35,7 +38,7 @@ vi.mock('./hooks/useSettings', () => ({
 			autostart: false,
 		},
 		loaded: true,
-		update: vi.fn(),
+		update: updateMock,
 	}),
 }));
 
@@ -70,5 +73,68 @@ describe('App', () => {
 				label: 'grinning face',
 			}),
 		);
+	});
+
+	it('saves the stored shortcut when the compositor rebinds it externally', async () => {
+		render(<App />);
+
+		const shortcutChangedCall = await waitFor(() => {
+			const call = vi
+				.mocked(listen)
+				.mock.calls.find(([eventName]) => eventName === 'shortcut-changed');
+			if (!call) throw new Error('shortcut-changed listener not registered yet');
+			return call;
+		});
+		const handler = shortcutChangedCall[1] as (event: { payload: unknown }) => void;
+
+		// Real payload shape confirmed live on GNOME: instructional text ("Press …")
+		// with GTK/XKB accelerator syntax embedded in it, not the human-formatted text
+		// GNOME Settings' own UI shows for the same bind, and not bare accelerator
+		// syntax on its own either.
+		handler({ payload: { sessionId: 'emoji-nook-toggle', triggerDescription: 'Press <Super>e' } });
+
+		await waitFor(() =>
+			expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ shortcut: 'Super+E' })),
+		);
+	});
+
+	it('saves the stored shortcut from bare accelerator syntax with no surrounding text', async () => {
+		render(<App />);
+
+		const shortcutChangedCall = await waitFor(() => {
+			const call = vi
+				.mocked(listen)
+				.mock.calls.find(([eventName]) => eventName === 'shortcut-changed');
+			if (!call) throw new Error('shortcut-changed listener not registered yet');
+			return call;
+		});
+		const handler = shortcutChangedCall[1] as (event: { payload: unknown }) => void;
+
+		handler({ payload: { sessionId: 'emoji-nook-toggle', triggerDescription: '<Shift><Alt>e' } });
+
+		await waitFor(() =>
+			expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ shortcut: 'Shift+Alt+E' })),
+		);
+	});
+
+	it('ignores an external trigger that does not look like GTK/XKB accelerator syntax', async () => {
+		render(<App />);
+
+		const shortcutChangedCall = await waitFor(() => {
+			const call = vi
+				.mocked(listen)
+				.mock.calls.find(([eventName]) => eventName === 'shortcut-changed');
+			if (!call) throw new Error('shortcut-changed listener not registered yet');
+			return call;
+		});
+		const handler = shortcutChangedCall[1] as (event: { payload: unknown }) => void;
+
+		handler({
+			payload: { sessionId: 'emoji-nook-toggle', triggerDescription: 'not a real trigger' },
+		});
+
+		// Give any (incorrect) async update a chance to fire before asserting it didn't.
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(updateMock).not.toHaveBeenCalled();
 	});
 });

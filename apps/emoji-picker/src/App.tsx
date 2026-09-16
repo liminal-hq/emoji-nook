@@ -6,6 +6,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { desktopIntegration } from '@liminal-hq/plugin-desktop-integration';
+import type { ShortcutChangedPayload } from '@liminal-hq/plugin-desktop-integration';
 import { listen } from '@tauri-apps/api/event';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import PickerShell from './components/PickerShell';
@@ -16,6 +17,53 @@ import { useTheme } from './hooks/useTheme';
 import { useSettings } from './hooks/useSettings';
 import type { Settings } from './hooks/useSettings';
 import './App.css';
+
+const XDG_MODIFIER_TO_TAURI: Record<string, string> = {
+	Ctrl: 'Ctrl',
+	Alt: 'Alt',
+	Shift: 'Shift',
+	Super: 'Super',
+};
+
+/**
+ * Best-effort parse of the GTK/XKB accelerator syntax embedded in the
+ * GlobalShortcuts portal's trigger_description, back into this app's own
+ * accelerator format ("Alt+Shift+E"). trigger_description is documented as
+ * user-readable text describing *how to trigger* the shortcut, not a bare
+ * machine-parseable value — confirmed live on GNOME, it's literally
+ * "Press <Super>e" (an instructional phrase with the same syntax
+ * `to_xdg_trigger`, tauri-plugin-xdg-portal, produces going the other
+ * direction, embedded in it), not just "<Super>e" alone. Searches for that
+ * embedded syntax anywhere in the string rather than assuming the whole
+ * string is one, since the surrounding wording isn't guaranteed (a different
+ * compositor, or a different system language, could phrase it differently).
+ * Returns null rather than guessing when no such substring is found — the
+ * caller must not persist a value that fails to parse as this app's own
+ * `shortcut` setting, since that also gets fed back into re-registration on
+ * next launch.
+ */
+function parseXdgTrigger(trigger: string): string | null {
+	const accelerator = trigger.match(/(?:<(?:Ctrl|Alt|Shift|Super)>)+\S+/);
+	if (!accelerator) return null;
+
+	const modifierPattern = /^<(Ctrl|Alt|Shift|Super)>/;
+	const parts: string[] = [];
+	let rest = accelerator[0];
+	for (let match = rest.match(modifierPattern); match; match = rest.match(modifierPattern)) {
+		parts.push(XDG_MODIFIER_TO_TAURI[match[1]]);
+		rest = rest.slice(match[0].length);
+	}
+	if (parts.length === 0 || rest.length === 0) return null;
+
+	let key = rest;
+	if (key === 'space') key = 'Space';
+	else if (key === 'plus') key = '+';
+	else if (key.length === 1) key = key.toUpperCase();
+	// else: preserve named-key casing as-is (Tab, Return, F1, Left, BackSpace, …)
+
+	parts.push(key);
+	return parts.join('+');
+}
 
 function formatBindError(err: string): { headline: string; hint: string } {
 	// ashpd PortalError::Other means the portal rejected the request — on GNOME this
@@ -104,6 +152,51 @@ function App() {
 			unlistenPromise.then((fn) => fn());
 		};
 	}, [view]);
+
+	// Wayland only: keep the stored shortcut in sync if the compositor's own settings
+	// UI rebinds it externally (e.g. GNOME Settings → Apps → Emoji Nook → Global
+	// Shortcuts) instead of through this app's own Settings dialog. Confirmed live on
+	// GNOME: the portal's trigger_description is instructional text with GTK/XKB
+	// accelerator syntax embedded in it (e.g. "Press <Alt><Shift>e"), not the nicely
+	// formatted text GNOME Settings' own UI shows for the same shortcut —
+	// parseXdgTrigger extracts and translates the embedded syntax back to this app's
+	// own format, or returns null (leaving the stored value untouched) if it can't
+	// find any.
+	useEffect(() => {
+		let cancelled = false;
+		const unlistenPromise = listen<ShortcutChangedPayload>('shortcut-changed', ({ payload }) => {
+			const shortcut = parseXdgTrigger(payload.triggerDescription);
+			if (!shortcut) {
+				console.warn('unrecognised external shortcut trigger:', payload.triggerDescription);
+				return;
+			}
+			update({ ...settings, shortcut }).catch((err) =>
+				console.error('settings save failed after external shortcut rebind:', err),
+			);
+		}).then((fn) => {
+			// Guard against the race where the rebind happened before this webview
+			// subscribed — check for a trigger the event listener would have missed.
+			if (!cancelled) {
+				desktopIntegration
+					.checkShortcutTriggerDescription()
+					.then((trigger) => {
+						if (cancelled || !trigger) return;
+						const shortcut = parseXdgTrigger(trigger);
+						if (shortcut && shortcut !== settings.shortcut) {
+							update({ ...settings, shortcut }).catch((err) =>
+								console.error('settings save failed after external shortcut rebind:', err),
+							);
+						}
+					})
+					.catch(() => {});
+			}
+			return fn;
+		});
+		return () => {
+			cancelled = true;
+			unlistenPromise.then((fn) => fn());
+		};
+	}, [settings, update]);
 
 	// Esc key hides the picker (or closes settings). Blocked during shortcut-setup
 	// while waiting for portal approval; allowed once an error is shown.

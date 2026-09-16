@@ -4178,9 +4178,9 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-desktop-integration"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3cb43c5e624ab6dd29e29611d1686050fa74691e99643bd00f6bab21d9404b4b"
+checksum = "e2c06b396dc0c605a09908eb68c80ea622ff2d508fcd981a94c1bc890e41dbb2"
 dependencies = [
  "ashpd",
  "gdk",
@@ -4274,9 +4274,9 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-xdg-portal"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f671c0d7b1c267ca50c6d510cfb0f311e494a14f3449a88d335f5c5a1d309c73"
+checksum = "acef88fadc656f35c3b5afe86cf77a7ed13a83a1242cd7c0955fa82873ef61f3"
 dependencies = [
  "ashpd",
  "futures-util",
