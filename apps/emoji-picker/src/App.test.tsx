@@ -296,6 +296,37 @@ describe('App', () => {
 		expect(updateMock).not.toHaveBeenCalled();
 	});
 
+	it('processes a live external rebind even if it matches an earlier one', async () => {
+		render(<App />);
+
+		const shortcutChangedCall = await waitFor(() => {
+			const call = vi
+				.mocked(listen)
+				.mock.calls.find(([eventName]) => eventName === 'shortcut-changed');
+			if (!call) throw new Error('shortcut-changed listener not registered yet');
+			return call;
+		});
+		const handler = shortcutChangedCall[1] as (event: { payload: unknown }) => void;
+
+		// Rebind externally to A.
+		handler({ payload: { sessionId: 'emoji-nook-toggle', triggerDescription: 'Press <Super>a' } });
+		await waitFor(() =>
+			expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ shortcut: 'Super+A' })),
+		);
+
+		// Change the shortcut locally to something else, then rebind externally back
+		// to A — the raw trigger text is now identical to the first live event, but
+		// this is a genuinely new rebind and must still be applied, not discarded as
+		// an already-seen catch-up value.
+		settingsMock.settings = { ...settingsMock.settings, shortcut: 'Ctrl+Alt+F' };
+		updateMock.mockClear();
+		handler({ payload: { sessionId: 'emoji-nook-toggle', triggerDescription: 'Press <Super>a' } });
+
+		await waitFor(() =>
+			expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ shortcut: 'Super+A' })),
+		);
+	});
+
 	it('does not persist a cached external rebind before settings have finished loading', async () => {
 		settingsMock.loaded = false;
 		checkShortcutTriggerDescriptionMock.mockResolvedValue('Press <Super>e');

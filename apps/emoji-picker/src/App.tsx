@@ -188,38 +188,38 @@ function App() {
 	// Depends only on `loaded`/`update` (not `settings`) so it attaches exactly once
 	// per mount, reading `settingsRef.current` for the latest values instead.
 	//
-	// Both the live listener and the missed-event catch-up check below compare the
-	// raw trigger string against `lastSyncedExternalTrigger` — a value persisted
-	// to this app's own settings store, not just React state — rather than against
-	// the current shortcut. The picker window (and this whole component tree) is
-	// recreated on every show, and the portal plugin's own cache of the last trigger
-	// is never cleared once read, so comparing against the *current* shortcut would
-	// re-detect the same old external rebind as "new" on every future picker open,
-	// reverting any local edit made in between back to that stale value. Comparing
-	// against a persisted "already synced this one" marker survives that recreation.
+	// `lastSyncedExternalTrigger` — a raw-trigger-string value persisted to this
+	// app's own settings store, not just React state — records what the missed-event
+	// catch-up check below has already acted on, so it can tell a genuinely new
+	// external rebind apart from the same stale plugin-cache value that keeps
+	// coming back on every fresh picker mount (the picker window, and this whole
+	// component tree, is recreated on every show; the plugin never clears its cache
+	// once read). Deliberately applied ONLY to the catch-up path, not the live
+	// listener: a live `shortcut-changed` event always represents a rebind that just
+	// happened, even if its raw text happens to match an earlier catch-up value
+	// (e.g. the user rebound to A, edited locally to B, then rebound externally back
+	// to A) — deduplicating that against history would wrongly discard it and leave
+	// the stale local edit in place.
 	useEffect(() => {
 		if (!loaded) return;
 		let cancelled = false;
 
-		function syncIfNew(trigger: string) {
-			getLastSyncedExternalTrigger()
-				.then((lastSynced) => {
-					if (cancelled || trigger === lastSynced) return;
-					const shortcut = parseXdgTrigger(trigger);
-					if (!shortcut) {
-						console.warn('unrecognised external shortcut trigger:', trigger);
-						return;
-					}
-					return setLastSyncedExternalTrigger(trigger).then(() => {
-						if (cancelled) return;
-						return update({ ...settingsRef.current, shortcut });
-					});
-				})
-				.catch((err) => console.error('settings save failed after external shortcut rebind:', err));
+		function applyTrigger(trigger: string) {
+			const shortcut = parseXdgTrigger(trigger);
+			if (!shortcut) {
+				console.warn('unrecognised external shortcut trigger:', trigger);
+				return Promise.resolve();
+			}
+			return setLastSyncedExternalTrigger(trigger).then(() => {
+				if (cancelled) return;
+				return update({ ...settingsRef.current, shortcut });
+			});
 		}
 
 		const unlistenPromise = listen<ShortcutChangedPayload>('shortcut-changed', ({ payload }) => {
-			syncIfNew(payload.triggerDescription);
+			applyTrigger(payload.triggerDescription).catch((err) =>
+				console.error('settings save failed after external shortcut rebind:', err),
+			);
 		}).then((fn) => {
 			// Guard against the race where the rebind happened before this webview
 			// subscribed — check once for a trigger the event listener would have missed.
@@ -227,9 +227,15 @@ function App() {
 				desktopIntegration
 					.checkShortcutTriggerDescription()
 					.then((trigger) => {
-						if (!cancelled && trigger) syncIfNew(trigger);
+						if (cancelled || !trigger) return;
+						return getLastSyncedExternalTrigger().then((lastSynced) => {
+							if (cancelled || trigger === lastSynced) return;
+							return applyTrigger(trigger);
+						});
 					})
-					.catch(() => {});
+					.catch((err) =>
+						console.error('settings save failed after external shortcut rebind:', err),
+					);
 			}
 			return fn;
 		});
