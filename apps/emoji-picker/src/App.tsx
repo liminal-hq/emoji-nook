@@ -37,21 +37,22 @@ const XDG_MODIFIER_TO_TAURI: Record<string, string> = {
  * embedded syntax anywhere in the string rather than assuming the whole
  * string is one, since the surrounding wording isn't guaranteed (a different
  * compositor, or a different system language, could phrase it differently).
- * The key token matches either a run of two or more letters/digits (named
- * keysyms — Return, BackSpace, F1, space, plus, …) or exactly one arbitrary
+ * The key token matches either a run of two or more letters/digits/underscores
+ * (named keysyms — Return, BackSpace, F1, space, plus, and underscored
+ * multi-word names like KP_Add or ISO_Left_Tab) or exactly one arbitrary
  * character (single-character keysyms, which this app's own shortcut capture
  * allows to be any key including punctuation, e.g. "Alt+."). Preferring the
- * longer alphanumeric run first means a single-character key followed by
- * trailing prose punctuation (e.g. a closing parenthesis or full stop) stops
- * at that one character instead of folding the punctuation into the key, while
- * a single punctuation character on its own is still accepted as a real key.
+ * longer run first means a single-character key followed by trailing prose
+ * punctuation (e.g. a closing parenthesis or full stop) stops at that one
+ * character instead of folding the punctuation into the key, while a single
+ * punctuation character on its own is still accepted as a real key.
  * Returns null rather than guessing when no such substring is found — the
  * caller must not persist a value that fails to parse as this app's own
  * `shortcut` setting, since that also gets fed back into re-registration on
  * next launch.
  */
 function parseXdgTrigger(trigger: string): string | null {
-	const accelerator = trigger.match(/(?:<(?:Ctrl|Alt|Shift|Super)>)+(?:[A-Za-z0-9]{2,}|\S)/);
+	const accelerator = trigger.match(/(?:<(?:Ctrl|Alt|Shift|Super)>)+(?:[A-Za-z0-9_]{2,}|\S)/);
 	if (!accelerator) return null;
 
 	const modifierPattern = /^<(Ctrl|Alt|Shift|Super)>/;

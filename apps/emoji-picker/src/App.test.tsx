@@ -183,6 +183,32 @@ describe('App', () => {
 		);
 	});
 
+	it('parses complete underscored XKB keysym names', async () => {
+		render(<App />);
+
+		const shortcutChangedCall = await waitFor(() => {
+			const call = vi
+				.mocked(listen)
+				.mock.calls.find(([eventName]) => eventName === 'shortcut-changed');
+			if (!call) throw new Error('shortcut-changed listener not registered yet');
+			return call;
+		});
+		const handler = shortcutChangedCall[1] as (event: { payload: unknown }) => void;
+
+		// Keypad and ISO keys use underscored multi-word XKB keysym names — a
+		// compositor can bind to these even though this app's own capture UI can't
+		// produce them, and the parser must not truncate at the underscore.
+		handler({
+			payload: { sessionId: 'emoji-nook-toggle', triggerDescription: 'Press <Super>KP_Add' },
+		});
+
+		await waitFor(() =>
+			expect(updateMock).toHaveBeenCalledWith(
+				expect.objectContaining({ shortcut: 'Super+KP_Add' }),
+			),
+		);
+	});
+
 	it('ignores an external trigger that does not look like GTK/XKB accelerator syntax', async () => {
 		render(<App />);
 
