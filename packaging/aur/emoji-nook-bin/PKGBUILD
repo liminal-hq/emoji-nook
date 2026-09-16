@@ -16,9 +16,11 @@ optdepends=(
   'ydotool: primary emoji injection via kernel uinput (recommended, works everywhere)'
   'wtype: Wayland fallback emoji injection (Sway, Hyprland — not GNOME)'
   'xdotool: X11/XWayland fallback emoji injection'
+  'gnome-shell-extension-appindicator: tray icon on GNOME Shell (GNOME ships no tray host itself; not needed on KDE and other desktops with native tray support)'
 )
 provides=('emoji-nook')
 conflicts=('emoji-nook')
+install=emoji-nook-bin.install
 
 source=(
   "LICENSE-APACHE::https://raw.githubusercontent.com/liminal-hq/emoji-nook/v${pkgver}/LICENSE-APACHE"
