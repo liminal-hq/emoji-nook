@@ -202,6 +202,30 @@ describe('App', () => {
 		expect(updateMock).not.toHaveBeenCalled();
 	});
 
+	it('does not re-consume a stale cached external trigger after a later local edit', async () => {
+		checkShortcutTriggerDescriptionMock.mockResolvedValue('Press <Super>e');
+
+		const { rerender } = render(<App />);
+
+		// Initial catch-up sync consumes the cached external trigger once.
+		await waitFor(() =>
+			expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ shortcut: 'Super+E' })),
+		);
+		expect(checkShortcutTriggerDescriptionMock).toHaveBeenCalledTimes(1);
+		const updateCallsAfterInitialSync = updateMock.mock.calls.length;
+
+		// Simulate a later local edit (e.g. saved via the Settings dialog) that
+		// changes `settings` to a new object, then re-render as React would after
+		// that state update. The Rust-side cache is not cleared on consumption, so
+		// a naive re-check here would revert the local edit back to "Super+E".
+		settingsMock.settings = { ...settingsMock.settings, shortcut: 'Ctrl+Alt+F' };
+		rerender(<App />);
+
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(checkShortcutTriggerDescriptionMock).toHaveBeenCalledTimes(1);
+		expect(updateMock.mock.calls.length).toBe(updateCallsAfterInitialSync);
+	});
+
 	it('does not persist a cached external rebind before settings have finished loading', async () => {
 		settingsMock.loaded = false;
 		checkShortcutTriggerDescriptionMock.mockResolvedValue('Press <Super>e');

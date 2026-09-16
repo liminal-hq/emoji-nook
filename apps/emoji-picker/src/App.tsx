@@ -100,6 +100,11 @@ function App() {
 	const [bindError, setBindError] = useState<string | null>(null);
 	const searchRef = useRef<HTMLInputElement>(null);
 	const isDraggingRef = useRef(false);
+	const settingsRef = useRef(settings);
+	useEffect(() => {
+		settingsRef.current = settings;
+	}, [settings]);
+
 	const handleSelect = useCallback(
 		(selection: EmojiSelection) => {
 			invoke('insert_emoji', {
@@ -174,6 +179,13 @@ function App() {
 	// `settings` is still the DEFAULTS placeholder, and persisting `{ ...settings,
 	// shortcut }` at that point would overwrite the user's actual skin tone,
 	// close-on-select, and autostart preferences with those defaults.
+	//
+	// Depends only on `loaded`/`update` (not `settings`) so it attaches exactly
+	// once, right after load — reading `settingsRef.current` for the latest
+	// values instead. `update` re-running `settings` would otherwise re-run this
+	// effect on every save, and the missed-event check below would re-fire with
+	// the same cached trigger description each time, reverting any local edit
+	// made afterwards back to that stale external value.
 	useEffect(() => {
 		if (!loaded) return;
 		let cancelled = false;
@@ -183,20 +195,22 @@ function App() {
 				console.warn('unrecognised external shortcut trigger:', payload.triggerDescription);
 				return;
 			}
-			update({ ...settings, shortcut }).catch((err) =>
+			update({ ...settingsRef.current, shortcut }).catch((err) =>
 				console.error('settings save failed after external shortcut rebind:', err),
 			);
 		}).then((fn) => {
 			// Guard against the race where the rebind happened before this webview
-			// subscribed — check for a trigger the event listener would have missed.
+			// subscribed — check once for a trigger the event listener would have
+			// missed. Runs only on this initial attachment, not on every settings
+			// change, since the cached value doesn't clear once consumed.
 			if (!cancelled) {
 				desktopIntegration
 					.checkShortcutTriggerDescription()
 					.then((trigger) => {
 						if (cancelled || !trigger) return;
 						const shortcut = parseXdgTrigger(trigger);
-						if (shortcut && shortcut !== settings.shortcut) {
-							update({ ...settings, shortcut }).catch((err) =>
+						if (shortcut && shortcut !== settingsRef.current.shortcut) {
+							update({ ...settingsRef.current, shortcut }).catch((err) =>
 								console.error('settings save failed after external shortcut rebind:', err),
 							);
 						}
@@ -209,7 +223,7 @@ function App() {
 			cancelled = true;
 			unlistenPromise.then((fn) => fn());
 		};
-	}, [loaded, settings, update]);
+	}, [loaded, update]);
 
 	// Esc key hides the picker (or closes settings). Blocked during shortcut-setup
 	// while waiting for portal approval; allowed once an error is shown.
