@@ -14,13 +14,22 @@ import EmojiPickerPanel from './components/EmojiPickerPanel';
 import SettingsPanel from './components/SettingsPanel';
 import type { EmojiSelection } from './components/EmojiPickerPanel';
 import { useTheme } from './hooks/useTheme';
-import {
-	useSettings,
-	getLastSyncedExternalTrigger,
-	setLastSyncedExternalTrigger,
-} from './hooks/useSettings';
+import { useSettings } from './hooks/useSettings';
 import type { Settings } from './hooks/useSettings';
 import './App.css';
+
+// Process-lifetime (not persisted) bookkeeping for the Wayland external-rebind sync
+// below — backed by Rust-side app state that survives a picker webview being
+// recreated on every show, but resets on every app restart, unlike the settings
+// store, so a stale value from a previous run can't suppress reconciliation with a
+// freshly created portal session.
+function getLastSyncedExternalTrigger(): Promise<string | null> {
+	return invoke<string | null>('get_last_synced_external_trigger');
+}
+
+function setLastSyncedExternalTrigger(trigger: string): Promise<void> {
+	return invoke('set_last_synced_external_trigger', { trigger });
+}
 
 const XDG_MODIFIER_TO_TAURI: Record<string, string> = {
 	Ctrl: 'Ctrl',
@@ -80,6 +89,10 @@ function parseXdgTrigger(trigger: string): string | null {
 	}
 	rest = rest.slice(consumed);
 	if (parts.length === 0 || rest.length === 0) return null;
+	// A leftover bare "<" or ">" means the accelerator was truncated or malformed
+	// (e.g. an unclosed tag) rather than a real key — reject instead of persisting
+	// the stray bracket itself as the key.
+	if (rest === '<' || rest === '>') return null;
 
 	let key = rest;
 	if (key === 'space') key = 'Space';
@@ -201,18 +214,21 @@ function App() {
 	// Depends only on `loaded`/`update` (not `settings`) so it attaches exactly once
 	// per mount, reading `settingsRef.current` for the latest values instead.
 	//
-	// `lastSyncedExternalTrigger` — a raw-trigger-string value persisted to this
-	// app's own settings store, not just React state — records what the missed-event
-	// catch-up check below has already acted on, so it can tell a genuinely new
-	// external rebind apart from the same stale plugin-cache value that keeps
-	// coming back on every fresh picker mount (the picker window, and this whole
-	// component tree, is recreated on every show; the plugin never clears its cache
-	// once read). Deliberately applied ONLY to the catch-up path, not the live
-	// listener: a live `shortcut-changed` event always represents a rebind that just
-	// happened, even if its raw text happens to match an earlier catch-up value
-	// (e.g. the user rebound to A, edited locally to B, then rebound externally back
-	// to A) — deduplicating that against history would wrongly discard it and leave
-	// the stale local edit in place.
+	// `lastSyncedExternalTrigger` — a raw-trigger-string value held in Rust-side
+	// app state for this process's lifetime, not React state or the settings
+	// store — records what the missed-event catch-up check below has already acted
+	// on, so it can tell a genuinely new external rebind apart from the same stale
+	// plugin-cache value that keeps coming back on every fresh picker mount (the
+	// picker window, and this whole component tree, is recreated on every show;
+	// the plugin never clears its cache once read). Scoped to the process, not
+	// persisted to disk, so a stale value from a previous run can't suppress
+	// reconciliation with a freshly created portal session after an app restart.
+	// Deliberately applied ONLY to the catch-up path, not the live listener: a live
+	// `shortcut-changed` event always represents a rebind that just happened, even
+	// if its raw text happens to match an earlier catch-up value (e.g. the user
+	// rebound to A, edited locally to B, then rebound externally back to A) —
+	// deduplicating that against history would wrongly discard it and leave the
+	// stale local edit in place.
 	useEffect(() => {
 		if (!loaded) return;
 		let cancelled = false;

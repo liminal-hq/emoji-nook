@@ -29,6 +29,12 @@ struct LifecycleState {
     quit_requested: AtomicBool,
     picker_counter: AtomicUsize,
     current_picker_label: Mutex<Option<String>>,
+    /// Trigger description already synced from an external Wayland rebind, scoped
+    /// to this process's lifetime rather than persisted — it must survive picker
+    /// webviews being recreated on every show, but reset on every app restart so a
+    /// stale value from a previous run can't suppress reconciliation with a freshly
+    /// created portal session.
+    last_synced_external_trigger: Mutex<Option<String>>,
 }
 
 /// Reads the saved shortcut from the settings store, falling back to the default.
@@ -205,6 +211,25 @@ fn update_shortcut(app: AppHandle, shortcut: String) {
     });
 }
 
+/// Reads the trigger description already synced from an external Wayland rebind
+/// during this process's lifetime, or `None` if none has been recorded yet.
+#[tauri::command]
+fn get_last_synced_external_trigger(state: tauri::State<LifecycleState>) -> Option<String> {
+    state
+        .last_synced_external_trigger
+        .lock()
+        .ok()
+        .and_then(|trigger| trigger.clone())
+}
+
+/// Records the trigger description just synced from an external Wayland rebind.
+#[tauri::command]
+fn set_last_synced_external_trigger(state: tauri::State<LifecycleState>, trigger: String) {
+    if let Ok(mut last_synced) = state.last_synced_external_trigger.lock() {
+        *last_synced = Some(trigger);
+    }
+}
+
 /// Creates the system tray icon with a context menu.
 fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let show = MenuItemBuilder::with_id("show", "Show Picker").build(app)?;
@@ -259,7 +284,9 @@ pub fn run() {
             insert_emoji,
             show_picker,
             hide_picker,
-            update_shortcut
+            update_shortcut,
+            get_last_synced_external_trigger,
+            set_last_synced_external_trigger
         ])
         .setup(|app| {
             let handle = app.handle().clone();

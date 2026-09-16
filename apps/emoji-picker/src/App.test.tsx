@@ -8,36 +8,37 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import App from './App';
 
-const {
-	updateMock,
-	settingsMock,
-	checkShortcutTriggerDescriptionMock,
-	lastSyncedTriggerStore,
-	setLastSyncedExternalTriggerMock,
-} = vi.hoisted(() => ({
-	updateMock: vi.fn(() => Promise.resolve()),
-	settingsMock: {
-		settings: {
-			shortcut: 'Alt+Shift+E',
-			skinTone: 'none',
-			closeOnSelect: true,
-			autostart: false,
+const { updateMock, settingsMock, checkShortcutTriggerDescriptionMock, lastSyncedTriggerStore } =
+	vi.hoisted(() => ({
+		updateMock: vi.fn(() => Promise.resolve()),
+		settingsMock: {
+			settings: {
+				shortcut: 'Alt+Shift+E',
+				skinTone: 'none',
+				closeOnSelect: true,
+				autostart: false,
+			},
+			loaded: true,
 		},
-		loaded: true,
-	},
-	checkShortcutTriggerDescriptionMock: vi.fn((): Promise<string | null> => Promise.resolve(null)),
-	// A plain mutable value, not React state — stands in for the real persisted
-	// store, which is exactly what must survive a picker window (and its whole
-	// component tree) being recreated, unlike anything held in React state.
-	lastSyncedTriggerStore: { current: null as string | null },
-	setLastSyncedExternalTriggerMock: vi.fn((trigger: string): Promise<void> => {
-		lastSyncedTriggerStore.current = trigger;
-		return Promise.resolve();
-	}),
-}));
+		checkShortcutTriggerDescriptionMock: vi.fn((): Promise<string | null> => Promise.resolve(null)),
+		// A plain mutable value, not React state — stands in for the real Rust-side
+		// process-lifetime state, which is exactly what must survive a picker window
+		// (and its whole component tree) being recreated, unlike anything held in
+		// React state.
+		lastSyncedTriggerStore: { current: null as string | null },
+	}));
 
 vi.mock('@tauri-apps/api/core', () => ({
-	invoke: vi.fn(() => Promise.resolve()),
+	invoke: vi.fn((cmd: string, args?: Record<string, unknown>) => {
+		if (cmd === 'get_last_synced_external_trigger') {
+			return Promise.resolve(lastSyncedTriggerStore.current);
+		}
+		if (cmd === 'set_last_synced_external_trigger') {
+			lastSyncedTriggerStore.current = args?.trigger as string;
+			return Promise.resolve();
+		}
+		return Promise.resolve();
+	}),
 }));
 
 vi.mock('@tauri-apps/api/event', () => ({
@@ -65,9 +66,6 @@ vi.mock('./hooks/useTheme', () => ({
 
 vi.mock('./hooks/useSettings', () => ({
 	useSettings: () => ({ ...settingsMock, update: updateMock }),
-	getLastSyncedExternalTrigger: (): Promise<string | null> =>
-		Promise.resolve(lastSyncedTriggerStore.current),
-	setLastSyncedExternalTrigger: setLastSyncedExternalTriggerMock,
 }));
 
 vi.mock('./components/EmojiPickerPanel', () => ({
@@ -294,6 +292,26 @@ describe('App', () => {
 		expect(updateMock).not.toHaveBeenCalled();
 	});
 
+	it('rejects a truncated accelerator with a stray unclosed tag', async () => {
+		render(<App />);
+
+		const shortcutChangedCall = await waitFor(() => {
+			const call = vi
+				.mocked(listen)
+				.mock.calls.find(([eventName]) => eventName === 'shortcut-changed');
+			if (!call) throw new Error('shortcut-changed listener not registered yet');
+			return call;
+		});
+		const handler = shortcutChangedCall[1] as (event: { payload: unknown }) => void;
+
+		// A truncated or malformed description could leave a bare "<" or ">" as the
+		// only thing after the recognised modifiers, which isn't a real key.
+		handler({ payload: { sessionId: 'emoji-nook-toggle', triggerDescription: 'Press <Shift><' } });
+
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(updateMock).not.toHaveBeenCalled();
+	});
+
 	it('does not mark a trigger consumed if saving the shortcut fails', async () => {
 		updateMock.mockRejectedValueOnce(new Error('store write failed'));
 
@@ -314,7 +332,7 @@ describe('App', () => {
 		// Give the rejected save's rejection handler a chance to run before asserting
 		// the trigger was not marked consumed despite the save having failed.
 		await new Promise((resolve) => setTimeout(resolve, 0));
-		expect(setLastSyncedExternalTriggerMock).not.toHaveBeenCalled();
+		expect(lastSyncedTriggerStore.current).toBeNull();
 	});
 
 	it('does not re-consume a stale cached external trigger after a later local edit', async () => {
@@ -352,8 +370,8 @@ describe('App', () => {
 
 		// The picker window (and this whole component tree) is destroyed and
 		// recreated on every show, so simulate that with a local edit in between and
-		// a brand new mount — the persisted `lastSyncedTriggerStore` (unlike React
-		// state) must survive this and still prevent the stale value from returning.
+		// a brand new mount — process-lifetime state (unlike React state) must
+		// survive this and still prevent the stale value from returning.
 		settingsMock.settings = { ...settingsMock.settings, shortcut: 'Ctrl+Alt+F' };
 		updateMock.mockClear();
 		checkShortcutTriggerDescriptionMock.mockClear();
