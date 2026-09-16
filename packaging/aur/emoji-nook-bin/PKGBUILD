@@ -5,7 +5,7 @@
 # Maintainer: Scott Morris <scott.moris@gmail.com>
 
 pkgname=emoji-nook-bin
-pkgver=0.3.2
+pkgver=0.4.0
 pkgrel=1
 pkgdesc="A native Linux emoji picker that blends with your desktop"
 arch=('x86_64' 'aarch64')
@@ -36,8 +36,8 @@ sha256sums=(
   'bc89642e9291dcc22326b905cde5edd36742c172181e5b0e9fe34c99ba7c825b'
   '6ee93439eff25f28a98402a1e629ef73c4ab90d359f663d4dddcf62a3bf13f21'
 )
-sha256sums_x86_64=('f3dc4978638a5cacbcde5133ca366d3e27e9a4bdae95839f513312e7782a20d1')
-sha256sums_aarch64=('d96ac435468ec5109c0f16c3f8a9d8d8f55ff0d3a1bada1328d754df492c23de')
+sha256sums_x86_64=('b22c2775707d4a1b07f78bbf4fe42a08354d7e978ff89cd840e079eb0d5a7df8')
+sha256sums_aarch64=('2c8086e5b9a8cb35747b0e7e48f2838998fcb2048c4c2bf50414d2317e4cd0cf')
 
 prepare() {
   bsdtar -xf "${srcdir}"/emoji-nook-*.deb -C "${srcdir}"
