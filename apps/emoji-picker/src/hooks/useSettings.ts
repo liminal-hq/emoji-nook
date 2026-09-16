@@ -58,6 +58,24 @@ export async function saveSettings(settings: Settings): Promise<void> {
 	await store.save();
 }
 
+const LAST_SYNCED_EXTERNAL_TRIGGER_KEY = 'lastSyncedExternalTrigger';
+
+// Bookkeeping for the Wayland external-rebind sync, kept out of `Settings` since it
+// isn't a user preference — it's the raw trigger_description already acted on, used to
+// tell a genuinely new external rebind apart from the same stale one the portal's
+// plugin cache keeps returning after a picker window (and its whole React tree) has
+// been recreated, which happens on every show.
+export async function getLastSyncedExternalTrigger(): Promise<string | null> {
+	const store = await getStore();
+	return ((await store.get(LAST_SYNCED_EXTERNAL_TRIGGER_KEY)) as string | undefined) ?? null;
+}
+
+export async function setLastSyncedExternalTrigger(trigger: string): Promise<void> {
+	const store = await getStore();
+	await store.set(LAST_SYNCED_EXTERNAL_TRIGGER_KEY, trigger);
+	await store.save();
+}
+
 export function useSettings() {
 	const [settings, setSettings] = useState<Settings>(DEFAULTS);
 	const [loaded, setLoaded] = useState(false);

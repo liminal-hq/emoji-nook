@@ -8,7 +8,13 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import App from './App';
 
-const { updateMock, settingsMock, checkShortcutTriggerDescriptionMock } = vi.hoisted(() => ({
+const {
+	updateMock,
+	settingsMock,
+	checkShortcutTriggerDescriptionMock,
+	lastSyncedTriggerStore,
+	setLastSyncedExternalTriggerMock,
+} = vi.hoisted(() => ({
 	updateMock: vi.fn(() => Promise.resolve()),
 	settingsMock: {
 		settings: {
@@ -20,6 +26,14 @@ const { updateMock, settingsMock, checkShortcutTriggerDescriptionMock } = vi.hoi
 		loaded: true,
 	},
 	checkShortcutTriggerDescriptionMock: vi.fn((): Promise<string | null> => Promise.resolve(null)),
+	// A plain mutable value, not React state — stands in for the real persisted
+	// store, which is exactly what must survive a picker window (and its whole
+	// component tree) being recreated, unlike anything held in React state.
+	lastSyncedTriggerStore: { current: null as string | null },
+	setLastSyncedExternalTriggerMock: vi.fn((trigger: string): Promise<void> => {
+		lastSyncedTriggerStore.current = trigger;
+		return Promise.resolve();
+	}),
 }));
 
 vi.mock('@tauri-apps/api/core', () => ({
@@ -51,6 +65,9 @@ vi.mock('./hooks/useTheme', () => ({
 
 vi.mock('./hooks/useSettings', () => ({
 	useSettings: () => ({ ...settingsMock, update: updateMock }),
+	getLastSyncedExternalTrigger: (): Promise<string | null> =>
+		Promise.resolve(lastSyncedTriggerStore.current),
+	setLastSyncedExternalTrigger: setLastSyncedExternalTriggerMock,
 }));
 
 vi.mock('./components/EmojiPickerPanel', () => ({
@@ -77,6 +94,7 @@ describe('App', () => {
 			autostart: false,
 		};
 		checkShortcutTriggerDescriptionMock.mockResolvedValue(null);
+		lastSyncedTriggerStore.current = null;
 	});
 
 	afterEach(() => {
@@ -252,6 +270,30 @@ describe('App', () => {
 		await new Promise((resolve) => setTimeout(resolve, 0));
 		expect(checkShortcutTriggerDescriptionMock).toHaveBeenCalledTimes(1);
 		expect(updateMock.mock.calls.length).toBe(updateCallsAfterInitialSync);
+	});
+
+	it('does not re-consume a stale cached external trigger across a fresh picker mount', async () => {
+		checkShortcutTriggerDescriptionMock.mockResolvedValue('Press <Super>e');
+
+		const { unmount } = render(<App />);
+		await waitFor(() =>
+			expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ shortcut: 'Super+E' })),
+		);
+		unmount();
+
+		// The picker window (and this whole component tree) is destroyed and
+		// recreated on every show, so simulate that with a local edit in between and
+		// a brand new mount — the persisted `lastSyncedTriggerStore` (unlike React
+		// state) must survive this and still prevent the stale value from returning.
+		settingsMock.settings = { ...settingsMock.settings, shortcut: 'Ctrl+Alt+F' };
+		updateMock.mockClear();
+		checkShortcutTriggerDescriptionMock.mockClear();
+
+		render(<App />);
+
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(checkShortcutTriggerDescriptionMock).toHaveBeenCalledTimes(1);
+		expect(updateMock).not.toHaveBeenCalled();
 	});
 
 	it('does not persist a cached external rebind before settings have finished loading', async () => {

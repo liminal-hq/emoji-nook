@@ -14,7 +14,11 @@ import EmojiPickerPanel from './components/EmojiPickerPanel';
 import SettingsPanel from './components/SettingsPanel';
 import type { EmojiSelection } from './components/EmojiPickerPanel';
 import { useTheme } from './hooks/useTheme';
-import { useSettings } from './hooks/useSettings';
+import {
+	useSettings,
+	getLastSyncedExternalTrigger,
+	setLastSyncedExternalTrigger,
+} from './hooks/useSettings';
 import type { Settings } from './hooks/useSettings';
 import './App.css';
 
@@ -181,40 +185,49 @@ function App() {
 	// shortcut }` at that point would overwrite the user's actual skin tone,
 	// close-on-select, and autostart preferences with those defaults.
 	//
-	// Depends only on `loaded`/`update` (not `settings`) so it attaches exactly
-	// once, right after load — reading `settingsRef.current` for the latest
-	// values instead. `update` re-running `settings` would otherwise re-run this
-	// effect on every save, and the missed-event check below would re-fire with
-	// the same cached trigger description each time, reverting any local edit
-	// made afterwards back to that stale external value.
+	// Depends only on `loaded`/`update` (not `settings`) so it attaches exactly once
+	// per mount, reading `settingsRef.current` for the latest values instead.
+	//
+	// Both the live listener and the missed-event catch-up check below compare the
+	// raw trigger string against `lastSyncedExternalTrigger` — a value persisted
+	// to this app's own settings store, not just React state — rather than against
+	// the current shortcut. The picker window (and this whole component tree) is
+	// recreated on every show, and the portal plugin's own cache of the last trigger
+	// is never cleared once read, so comparing against the *current* shortcut would
+	// re-detect the same old external rebind as "new" on every future picker open,
+	// reverting any local edit made in between back to that stale value. Comparing
+	// against a persisted "already synced this one" marker survives that recreation.
 	useEffect(() => {
 		if (!loaded) return;
 		let cancelled = false;
+
+		function syncIfNew(trigger: string) {
+			getLastSyncedExternalTrigger()
+				.then((lastSynced) => {
+					if (cancelled || trigger === lastSynced) return;
+					const shortcut = parseXdgTrigger(trigger);
+					if (!shortcut) {
+						console.warn('unrecognised external shortcut trigger:', trigger);
+						return;
+					}
+					return setLastSyncedExternalTrigger(trigger).then(() => {
+						if (cancelled) return;
+						return update({ ...settingsRef.current, shortcut });
+					});
+				})
+				.catch((err) => console.error('settings save failed after external shortcut rebind:', err));
+		}
+
 		const unlistenPromise = listen<ShortcutChangedPayload>('shortcut-changed', ({ payload }) => {
-			const shortcut = parseXdgTrigger(payload.triggerDescription);
-			if (!shortcut) {
-				console.warn('unrecognised external shortcut trigger:', payload.triggerDescription);
-				return;
-			}
-			update({ ...settingsRef.current, shortcut }).catch((err) =>
-				console.error('settings save failed after external shortcut rebind:', err),
-			);
+			syncIfNew(payload.triggerDescription);
 		}).then((fn) => {
 			// Guard against the race where the rebind happened before this webview
-			// subscribed — check once for a trigger the event listener would have
-			// missed. Runs only on this initial attachment, not on every settings
-			// change, since the cached value doesn't clear once consumed.
+			// subscribed — check once for a trigger the event listener would have missed.
 			if (!cancelled) {
 				desktopIntegration
 					.checkShortcutTriggerDescription()
 					.then((trigger) => {
-						if (cancelled || !trigger) return;
-						const shortcut = parseXdgTrigger(trigger);
-						if (shortcut && shortcut !== settingsRef.current.shortcut) {
-							update({ ...settingsRef.current, shortcut }).catch((err) =>
-								console.error('settings save failed after external shortcut rebind:', err),
-							);
-						}
+						if (!cancelled && trigger) syncIfNew(trigger);
 					})
 					.catch(() => {});
 			}
