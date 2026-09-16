@@ -8,7 +8,19 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import App from './App';
 
-const { updateMock } = vi.hoisted(() => ({ updateMock: vi.fn(() => Promise.resolve()) }));
+const { updateMock, settingsMock, checkShortcutTriggerDescriptionMock } = vi.hoisted(() => ({
+	updateMock: vi.fn(() => Promise.resolve()),
+	settingsMock: {
+		settings: {
+			shortcut: 'Alt+Shift+E',
+			skinTone: 'none',
+			closeOnSelect: true,
+			autostart: false,
+		},
+		loaded: true,
+	},
+	checkShortcutTriggerDescriptionMock: vi.fn((): Promise<string | null> => Promise.resolve(null)),
+}));
 
 vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(() => Promise.resolve()),
@@ -16,6 +28,14 @@ vi.mock('@tauri-apps/api/core', () => ({
 
 vi.mock('@tauri-apps/api/event', () => ({
 	listen: vi.fn(() => Promise.resolve(() => {})),
+}));
+
+vi.mock('@liminal-hq/plugin-desktop-integration', () => ({
+	desktopIntegration: {
+		checkShortcutBindingComplete: vi.fn(() => Promise.resolve(false)),
+		checkShortcutBindingError: vi.fn(() => Promise.resolve(null)),
+		checkShortcutTriggerDescription: checkShortcutTriggerDescriptionMock,
+	},
 }));
 
 vi.mock('@tauri-apps/api/webviewWindow', () => ({
@@ -30,16 +50,7 @@ vi.mock('./hooks/useTheme', () => ({
 }));
 
 vi.mock('./hooks/useSettings', () => ({
-	useSettings: () => ({
-		settings: {
-			shortcut: 'Alt+Shift+E',
-			skinTone: 'none',
-			closeOnSelect: true,
-			autostart: false,
-		},
-		loaded: true,
-		update: updateMock,
-	}),
+	useSettings: () => ({ ...settingsMock, update: updateMock }),
 }));
 
 vi.mock('./components/EmojiPickerPanel', () => ({
@@ -57,6 +68,11 @@ vi.mock('./components/EmojiPickerPanel', () => ({
 }));
 
 describe('App', () => {
+	beforeEach(() => {
+		settingsMock.loaded = true;
+		checkShortcutTriggerDescriptionMock.mockResolvedValue(null);
+	});
+
 	afterEach(() => {
 		vi.clearAllMocks();
 	});
@@ -134,6 +150,18 @@ describe('App', () => {
 		});
 
 		// Give any (incorrect) async update a chance to fire before asserting it didn't.
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(updateMock).not.toHaveBeenCalled();
+	});
+
+	it('does not persist a cached external rebind before settings have finished loading', async () => {
+		settingsMock.loaded = false;
+		checkShortcutTriggerDescriptionMock.mockResolvedValue('Press <Super>e');
+
+		render(<App />);
+
+		// Give the race-guard's async checkShortcutTriggerDescription() call a chance
+		// to resolve and (incorrectly, if the loaded gate were missing) fire update().
 		await new Promise((resolve) => setTimeout(resolve, 0));
 		expect(updateMock).not.toHaveBeenCalled();
 	});

@@ -162,7 +162,13 @@ function App() {
 	// parseXdgTrigger extracts and translates the embedded syntax back to this app's
 	// own format, or returns null (leaving the stored value untouched) if it can't
 	// find any.
+	//
+	// Gated on `loaded`: until the real persisted settings have finished loading,
+	// `settings` is still the DEFAULTS placeholder, and persisting `{ ...settings,
+	// shortcut }` at that point would overwrite the user's actual skin tone,
+	// close-on-select, and autostart preferences with those defaults.
 	useEffect(() => {
+		if (!loaded) return;
 		let cancelled = false;
 		const unlistenPromise = listen<ShortcutChangedPayload>('shortcut-changed', ({ payload }) => {
 			const shortcut = parseXdgTrigger(payload.triggerDescription);
@@ -196,7 +202,7 @@ function App() {
 			cancelled = true;
 			unlistenPromise.then((fn) => fn());
 		};
-	}, [settings, update]);
+	}, [loaded, settings, update]);
 
 	// Esc key hides the picker (or closes settings). Blocked during shortcut-setup
 	// while waiting for portal approval; allowed once an error is shown.
