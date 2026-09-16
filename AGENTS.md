@@ -77,6 +77,23 @@ Examples:
 - Keep TypeScript and Rust APIs strongly typed.
 - Keep platform logic explicit (`Wayland` vs `X11` detection/handling in backend).
 
+## Authoring Voice
+
+**REQUIREMENT:** Ship the result, not how the conversation arrived at it. Write every
+outward-facing line — code comments, identifier names, changelog/changeset entries, PR
+descriptions — as the author of the artifact, for the reader who will encounter it
+later, not as a record of the debugging or review process that produced it.
+
+- Don't reference "this PR", "the review", a reviewer's name, or a commit SHA inside
+  code comments or changelog prose. State the fact or the reasoning directly, as if it
+  had always been true.
+- When a comment gets edited more than once across a change, rewrite it as one clean
+  explanation — don't leave layered fragments from each edit stacked on top of each
+  other.
+- Commit messages are the exception: they're a legitimate place to record _why_ a
+  change happened, including review feedback or debugging context — that's what git
+  history is for.
+
 ## Commit Messages
 
 **REQUIREMENT:** Use Conventional Commits format (for example: `feat: ...`, `fix: ...`, `docs: ...`, `test: ...`).
