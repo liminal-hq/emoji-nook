@@ -1,0 +1,37 @@
+# Post-install reminders for Emoji Nook — the two things easy to miss
+#
+# (c) Copyright 2026 Liminal HQ, Scott Morris
+# SPDX-License-Identifier: Apache-2.0 OR MIT
+
+_emoji_nook_notes() {
+  cat <<'EOF'
+
+==> Emoji Nook: two setup steps are easy to miss.
+
+  1. Emoji injection works best with ydotool, but installing the package
+     alone is not enough — it also needs the input group and its user
+     service running:
+
+       sudo usermod -aG input "$USER"
+       # log out and back in, then:
+       systemctl --user enable --now ydotool
+
+     Without this, injection silently falls back to wtype (does not work
+     on GNOME) or xdotool (X11/XWayland only).
+
+  2. On GNOME Shell, the tray icon will not appear without an AppIndicator
+     host extension — GNOME removed native tray support in 3.26. Install
+     and enable gnome-shell-extension-appindicator (already listed as an
+     optional dependency). Not needed on KDE or other desktops with
+     native tray support.
+
+EOF
+}
+
+post_install() {
+  _emoji_nook_notes
+}
+
+post_upgrade() {
+  _emoji_nook_notes
+}

@@ -1,0 +1,57 @@
+# Emoji Nook — Arch Linux binary package, built from the tagged .deb release
+#
+# (c) Copyright 2026 Liminal HQ, Scott Morris
+# SPDX-License-Identifier: Apache-2.0 OR MIT
+# Maintainer: Scott Morris <scott.moris@gmail.com>
+
+pkgname=emoji-nook-bin
+pkgver=0.4.0
+pkgrel=1
+pkgdesc="A native Linux emoji picker that blends with your desktop"
+arch=('x86_64' 'aarch64')
+url="https://github.com/liminal-hq/emoji-nook"
+license=('Apache-2.0' 'MIT')
+# libayatana-appindicator is dlopen()'d at runtime for the tray icon, not
+# linked into the ELF — namcap can't see the NEEDED entry and will flag it
+# as possibly unused. It is needed; leave it.
+depends=('gtk3' 'webkit2gtk-4.1' 'libayatana-appindicator')
+optdepends=(
+  'ydotool: primary emoji injection via kernel uinput (recommended, works everywhere)'
+  'wtype: Wayland fallback emoji injection (Sway, Hyprland — not GNOME)'
+  'xdotool: X11/XWayland fallback emoji injection'
+  'gnome-shell-extension-appindicator: tray icon on GNOME Shell (GNOME ships no tray host itself; not needed on KDE and other desktops with native tray support)'
+)
+provides=('emoji-nook')
+conflicts=('emoji-nook')
+install=emoji-nook-bin.install
+
+source=(
+  "LICENSE-APACHE::https://raw.githubusercontent.com/liminal-hq/emoji-nook/v${pkgver}/LICENSE-APACHE"
+  "LICENSE-MIT::https://raw.githubusercontent.com/liminal-hq/emoji-nook/v${pkgver}/LICENSE-MIT"
+)
+source_x86_64=("emoji-nook-${pkgver}-amd64.deb::https://github.com/liminal-hq/emoji-nook/releases/download/v${pkgver}/Emoji.Nook_${pkgver}_amd64.deb")
+source_aarch64=("emoji-nook-${pkgver}-arm64.deb::https://github.com/liminal-hq/emoji-nook/releases/download/v${pkgver}/Emoji.Nook_${pkgver}_arm64.deb")
+
+sha256sums=(
+  'bc89642e9291dcc22326b905cde5edd36742c172181e5b0e9fe34c99ba7c825b'
+  '6ee93439eff25f28a98402a1e629ef73c4ab90d359f663d4dddcf62a3bf13f21'
+)
+sha256sums_x86_64=('b22c2775707d4a1b07f78bbf4fe42a08354d7e978ff89cd840e079eb0d5a7df8')
+sha256sums_aarch64=('2c8086e5b9a8cb35747b0e7e48f2838998fcb2048c4c2bf50414d2317e4cd0cf')
+
+prepare() {
+  bsdtar -xf "${srcdir}"/emoji-nook-*.deb -C "${srcdir}"
+}
+
+package() {
+  tar -xf "${srcdir}"/data.tar.* -C "${pkgdir}"
+
+  # xdg-desktop-portal's GlobalShortcuts requires the installed desktop-file
+  # id to match the app's own identifier, or shortcut registration fails
+  # with "An app id is required" on Wayland.
+  mv "${pkgdir}/usr/share/applications/Emoji Nook.desktop" \
+    "${pkgdir}/usr/share/applications/ca.liminalhq.emoji-nook.desktop"
+
+  install -Dm644 "${srcdir}/LICENSE-APACHE" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE-APACHE"
+  install -Dm644 "${srcdir}/LICENSE-MIT" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE-MIT"
+}
