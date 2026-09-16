@@ -37,17 +37,21 @@ const XDG_MODIFIER_TO_TAURI: Record<string, string> = {
  * embedded syntax anywhere in the string rather than assuming the whole
  * string is one, since the surrounding wording isn't guaranteed (a different
  * compositor, or a different system language, could phrase it differently).
- * The key token is matched as letters/digits only (not `\S+`) since every
- * real XKB keysym name this app can produce or accept is alphanumeric —
- * this stops the match at trailing prose punctuation (e.g. a closing
- * parenthesis or full stop) instead of folding it into the parsed key.
+ * The key token matches either a run of two or more letters/digits (named
+ * keysyms — Return, BackSpace, F1, space, plus, …) or exactly one arbitrary
+ * character (single-character keysyms, which this app's own shortcut capture
+ * allows to be any key including punctuation, e.g. "Alt+."). Preferring the
+ * longer alphanumeric run first means a single-character key followed by
+ * trailing prose punctuation (e.g. a closing parenthesis or full stop) stops
+ * at that one character instead of folding the punctuation into the key, while
+ * a single punctuation character on its own is still accepted as a real key.
  * Returns null rather than guessing when no such substring is found — the
  * caller must not persist a value that fails to parse as this app's own
  * `shortcut` setting, since that also gets fed back into re-registration on
  * next launch.
  */
 function parseXdgTrigger(trigger: string): string | null {
-	const accelerator = trigger.match(/(?:<(?:Ctrl|Alt|Shift|Super)>)+[A-Za-z0-9]+/);
+	const accelerator = trigger.match(/(?:<(?:Ctrl|Alt|Shift|Super)>)+(?:[A-Za-z0-9]{2,}|\S)/);
 	if (!accelerator) return null;
 
 	const modifierPattern = /^<(Ctrl|Alt|Shift|Super)>/;
@@ -96,7 +100,6 @@ function App() {
 	const [bindError, setBindError] = useState<string | null>(null);
 	const searchRef = useRef<HTMLInputElement>(null);
 	const isDraggingRef = useRef(false);
-
 	const handleSelect = useCallback(
 		(selection: EmojiSelection) => {
 			invoke('insert_emoji', {

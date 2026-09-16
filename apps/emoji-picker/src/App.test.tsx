@@ -70,6 +70,12 @@ vi.mock('./components/EmojiPickerPanel', () => ({
 describe('App', () => {
 	beforeEach(() => {
 		settingsMock.loaded = true;
+		settingsMock.settings = {
+			shortcut: 'Alt+Shift+E',
+			skinTone: 'none',
+			closeOnSelect: true,
+			autostart: false,
+		};
 		checkShortcutTriggerDescriptionMock.mockResolvedValue(null);
 	});
 
@@ -151,6 +157,27 @@ describe('App', () => {
 
 		await waitFor(() =>
 			expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ shortcut: 'Super+E' })),
+		);
+	});
+
+	it('accepts a single punctuation character as the shortcut key', async () => {
+		render(<App />);
+
+		const shortcutChangedCall = await waitFor(() => {
+			const call = vi
+				.mocked(listen)
+				.mock.calls.find(([eventName]) => eventName === 'shortcut-changed');
+			if (!call) throw new Error('shortcut-changed listener not registered yet');
+			return call;
+		});
+		const handler = shortcutChangedCall[1] as (event: { payload: unknown }) => void;
+
+		// This app's own shortcut capture accepts any single character as a key
+		// (see SettingsPanel.tsx), including punctuation — the parser must too.
+		handler({ payload: { sessionId: 'emoji-nook-toggle', triggerDescription: 'Press <Alt>.' } });
+
+		await waitFor(() =>
+			expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ shortcut: 'Alt+.' })),
 		);
 	});
 
