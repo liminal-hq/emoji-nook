@@ -37,13 +37,17 @@ const XDG_MODIFIER_TO_TAURI: Record<string, string> = {
  * embedded syntax anywhere in the string rather than assuming the whole
  * string is one, since the surrounding wording isn't guaranteed (a different
  * compositor, or a different system language, could phrase it differently).
+ * The key token is matched as letters/digits only (not `\S+`) since every
+ * real XKB keysym name this app can produce or accept is alphanumeric —
+ * this stops the match at trailing prose punctuation (e.g. a closing
+ * parenthesis or full stop) instead of folding it into the parsed key.
  * Returns null rather than guessing when no such substring is found — the
  * caller must not persist a value that fails to parse as this app's own
  * `shortcut` setting, since that also gets fed back into re-registration on
  * next launch.
  */
 function parseXdgTrigger(trigger: string): string | null {
-	const accelerator = trigger.match(/(?:<(?:Ctrl|Alt|Shift|Super)>)+\S+/);
+	const accelerator = trigger.match(/(?:<(?:Ctrl|Alt|Shift|Super)>)+[A-Za-z0-9]+/);
 	if (!accelerator) return null;
 
 	const modifierPattern = /^<(Ctrl|Alt|Shift|Super)>/;

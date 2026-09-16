@@ -133,6 +133,27 @@ describe('App', () => {
 		);
 	});
 
+	it('does not fold trailing prose punctuation into the parsed key', async () => {
+		render(<App />);
+
+		const shortcutChangedCall = await waitFor(() => {
+			const call = vi
+				.mocked(listen)
+				.mock.calls.find(([eventName]) => eventName === 'shortcut-changed');
+			if (!call) throw new Error('shortcut-changed listener not registered yet');
+			return call;
+		});
+		const handler = shortcutChangedCall[1] as (event: { payload: unknown }) => void;
+
+		// A compositor or translation could delimit the accelerator without whitespace
+		// (e.g. wrapping it in parentheses, or ending the sentence right after it).
+		handler({ payload: { sessionId: 'emoji-nook-toggle', triggerDescription: 'Press (<Super>e)' } });
+
+		await waitFor(() =>
+			expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ shortcut: 'Super+E' })),
+		);
+	});
+
 	it('ignores an external trigger that does not look like GTK/XKB accelerator syntax', async () => {
 		render(<App />);
 
