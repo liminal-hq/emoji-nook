@@ -18,6 +18,13 @@ Examples:
 - `cancelled` not `canceled`
 - `licence` (noun) / `license` (verb)
 
+## Markdown Formatting
+
+**REQUIREMENT:** Do not hard-wrap markdown prose. Write each paragraph or bullet as a single unwrapped line in the source, no matter how long — let the renderer (GitHub, a browser, an editor's soft-wrap) reflow it for display. This applies everywhere: commit bodies, PR descriptions, docs under `docs/`, README files, code comments written in Markdown.
+
+- Manual line breaks mid-paragraph don't survive Markdown rendering as intended (they either collapse into the same line anyway or break formatting), and they create noisy diffs when a later edit only changes one word but reflows the whole wrapped block.
+- This does not apply to genuinely separate list items, headings, or intentional line breaks (e.g. two-space trailing breaks, blank lines between paragraphs) — only to breaking up one continuous sentence/paragraph across multiple lines.
+
 ## Repository Layout
 
 - `apps/emoji-picker/`: React + TypeScript frontend for the desktop app.
@@ -79,20 +86,11 @@ Examples:
 
 ## Authoring Voice
 
-**REQUIREMENT:** Ship the result, not how the conversation arrived at it. Write every
-outward-facing line — code comments, identifier names, changelog/changeset entries, PR
-descriptions — as the author of the artifact, for the reader who will encounter it
-later, not as a record of the debugging or review process that produced it.
+**REQUIREMENT:** Ship the result, not how the conversation arrived at it. Write every outward-facing line — code comments, identifier names, changelog/changeset entries, PR descriptions — as the author of the artifact, for the reader who will encounter it later, not as a record of the debugging or review process that produced it.
 
-- Don't reference "this PR", "the review", a reviewer's name, or a commit SHA inside
-  code comments or changelog prose. State the fact or the reasoning directly, as if it
-  had always been true.
-- When a comment gets edited more than once across a change, rewrite it as one clean
-  explanation — don't leave layered fragments from each edit stacked on top of each
-  other.
-- Commit messages are the exception: they're a legitimate place to record _why_ a
-  change happened, including review feedback or debugging context — that's what git
-  history is for.
+- Don't reference "this PR", "the review", a reviewer's name, or a commit SHA inside code comments or changelog prose. State the fact or the reasoning directly, as if it had always been true.
+- When a comment gets edited more than once across a change, rewrite it as one clean explanation — don't leave layered fragments from each edit stacked on top of each other.
+- Commit messages are the exception: they're a legitimate place to record _why_ a change happened, including review feedback or debugging context — that's what git history is for.
 
 ## Commit Messages
 
