@@ -1,6 +1,6 @@
 [package]
 name = "emoji-picker"
-version = "0.3.2"
+version = "0.4.0"
 description = "A native Linux emoji picker that blends with your desktop"
 authors = ["Liminal HQ, Scott Morris"]
 license.workspace = true
