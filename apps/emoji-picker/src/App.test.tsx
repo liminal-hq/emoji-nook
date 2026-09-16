@@ -271,6 +271,29 @@ describe('App', () => {
 		expect(updateMock).not.toHaveBeenCalled();
 	});
 
+	it('does not mark a trigger consumed if saving the shortcut fails', async () => {
+		updateMock.mockRejectedValueOnce(new Error('store write failed'));
+
+		render(<App />);
+
+		const shortcutChangedCall = await waitFor(() => {
+			const call = vi
+				.mocked(listen)
+				.mock.calls.find(([eventName]) => eventName === 'shortcut-changed');
+			if (!call) throw new Error('shortcut-changed listener not registered yet');
+			return call;
+		});
+		const handler = shortcutChangedCall[1] as (event: { payload: unknown }) => void;
+
+		handler({ payload: { sessionId: 'emoji-nook-toggle', triggerDescription: 'Press <Super>e' } });
+
+		await waitFor(() => expect(updateMock).toHaveBeenCalled());
+		// Give the rejected save's rejection handler a chance to run before asserting
+		// the trigger was not marked consumed despite the save having failed.
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(setLastSyncedExternalTriggerMock).not.toHaveBeenCalled();
+	});
+
 	it('does not re-consume a stale cached external trigger after a later local edit', async () => {
 		checkShortcutTriggerDescriptionMock.mockResolvedValue('Press <Super>e');
 

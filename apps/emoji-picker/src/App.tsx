@@ -209,15 +209,21 @@ function App() {
 		if (!loaded) return;
 		let cancelled = false;
 
+		// Marks the trigger consumed only *after* the shortcut save succeeds — the
+		// reverse order would risk the marker persisting while the shortcut never
+		// actually got saved (the picker window closing mid-chain, or the save
+		// itself failing), which would then permanently skip that trigger on every
+		// future catch-up check even though the real shortcut was never updated.
 		function applyTrigger(trigger: string) {
 			const shortcut = parseXdgTrigger(trigger);
 			if (!shortcut) {
 				console.warn('unrecognised external shortcut trigger:', trigger);
 				return Promise.resolve();
 			}
-			return setLastSyncedExternalTrigger(trigger).then(() => {
+			if (cancelled) return Promise.resolve();
+			return update({ ...settingsRef.current, shortcut }).then(() => {
 				if (cancelled) return;
-				return update({ ...settingsRef.current, shortcut });
+				return setLastSyncedExternalTrigger(trigger);
 			});
 		}
 
