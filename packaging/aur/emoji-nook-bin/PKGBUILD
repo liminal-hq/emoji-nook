@@ -11,6 +11,9 @@ pkgdesc="A native Linux emoji picker that blends with your desktop"
 arch=('x86_64' 'aarch64')
 url="https://github.com/liminal-hq/emoji-nook"
 license=('Apache-2.0' 'MIT')
+# libayatana-appindicator is dlopen()'d at runtime for the tray icon, not
+# linked into the ELF — namcap can't see the NEEDED entry and will flag it
+# as possibly unused. It is needed; leave it.
 depends=('gtk3' 'webkit2gtk-4.1' 'libayatana-appindicator')
 optdepends=(
   'ydotool: primary emoji injection via kernel uinput (recommended, works everywhere)'
