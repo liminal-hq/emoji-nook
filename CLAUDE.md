@@ -14,6 +14,7 @@ Emoji Nook is a native Linux emoji picker built with Tauri v2 + React 19. It run
 - **Licence header** required as the first content of every authored source file (`.rs`, `.ts`, `.tsx`, `.js`, `.css`, `.scss`, authored `.svg`) — see `AGENTS.md` for the exact block. Generated/config/doc files are exempt.
 - **Conventional Commits** for commit messages; `test:` for test changes (reserve `fix:` for app-code fixes). PR titles are human-readable summaries with **no** Conventional Commit prefix.
 - For commit bodies with backticks/`$()`/shell-sensitive chars, write to a file and `git commit -F <file>`.
+- **Ship the result, not how the conversation arrived at it** — code comments, identifier names, and changelog/PR prose are written for the reader of the artifact, not as a record of the review process (no "this PR", no reviewer names, no commit SHAs). Commit messages are the one place process context belongs.
 
 ## Commands
 
