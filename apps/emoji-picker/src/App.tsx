@@ -53,10 +53,15 @@ const XDG_MODIFIER_TO_TAURI: Record<string, string> = {
  * Returns null rather than guessing when no such substring is found — the
  * caller must not persist a value that fails to parse as this app's own
  * `shortcut` setting, since that also gets fed back into re-registration on
- * next launch.
+ * next launch. A leading `(?<!>)` requires a boundary before the first
+ * matched modifier: without it, an accelerator starting with a modifier
+ * outside this allowlist (e.g. GTK's portable "<Primary>", or "<Hyper>",
+ * neither of which this app's own accelerator format can represent) would
+ * still match starting from its first *recognised* modifier, silently
+ * dropping the unsupported one instead of rejecting the whole accelerator.
  */
 function parseXdgTrigger(trigger: string): string | null {
-	const accelerator = trigger.match(/(?:<(?:Ctrl|Alt|Shift|Super)>)+(?:[A-Za-z0-9_]{2,}|\S)/);
+	const accelerator = trigger.match(/(?<!>)(?:<(?:Ctrl|Alt|Shift|Super)>)+(?:[A-Za-z0-9_]{2,}|\S)/);
 	if (!accelerator) return null;
 
 	const modifierPattern = /^<(Ctrl|Alt|Shift|Super)>/;

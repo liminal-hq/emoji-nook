@@ -248,6 +248,29 @@ describe('App', () => {
 		expect(updateMock).not.toHaveBeenCalled();
 	});
 
+	it('rejects an accelerator with an unsupported leading modifier', async () => {
+		render(<App />);
+
+		const shortcutChangedCall = await waitFor(() => {
+			const call = vi
+				.mocked(listen)
+				.mock.calls.find(([eventName]) => eventName === 'shortcut-changed');
+			if (!call) throw new Error('shortcut-changed listener not registered yet');
+			return call;
+		});
+		const handler = shortcutChangedCall[1] as (event: { payload: unknown }) => void;
+
+		// GTK's portable "<Primary>" (Ctrl-or-Cmd) isn't in this app's own modifier
+		// vocabulary. Dropping it and parsing just the recognised suffix would
+		// register a shortcut missing a modifier the compositor actually requires.
+		handler({
+			payload: { sessionId: 'emoji-nook-toggle', triggerDescription: 'Press <Primary><Shift>e' },
+		});
+
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(updateMock).not.toHaveBeenCalled();
+	});
+
 	it('does not re-consume a stale cached external trigger after a later local edit', async () => {
 		checkShortcutTriggerDescriptionMock.mockResolvedValue('Press <Super>e');
 
