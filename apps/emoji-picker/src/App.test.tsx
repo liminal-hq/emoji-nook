@@ -271,6 +271,29 @@ describe('App', () => {
 		expect(updateMock).not.toHaveBeenCalled();
 	});
 
+	it('rejects an accelerator with an unsupported trailing modifier', async () => {
+		render(<App />);
+
+		const shortcutChangedCall = await waitFor(() => {
+			const call = vi
+				.mocked(listen)
+				.mock.calls.find(([eventName]) => eventName === 'shortcut-changed');
+			if (!call) throw new Error('shortcut-changed listener not registered yet');
+			return call;
+		});
+		const handler = shortcutChangedCall[1] as (event: { payload: unknown }) => void;
+
+		// An unsupported modifier after a recognised one is worse than one before it
+		// — it isn't matched as a tag at all, so its leading "<" would otherwise be
+		// read as the key itself, producing garbage like "Shift+<".
+		handler({
+			payload: { sessionId: 'emoji-nook-toggle', triggerDescription: 'Press <Shift><Primary>e' },
+		});
+
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(updateMock).not.toHaveBeenCalled();
+	});
+
 	it('does not mark a trigger consumed if saving the shortcut fails', async () => {
 		updateMock.mockRejectedValueOnce(new Error('store write failed'));
 

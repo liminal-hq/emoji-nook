@@ -53,24 +53,32 @@ const XDG_MODIFIER_TO_TAURI: Record<string, string> = {
  * Returns null rather than guessing when no such substring is found — the
  * caller must not persist a value that fails to parse as this app's own
  * `shortcut` setting, since that also gets fed back into re-registration on
- * next launch. A leading `(?<!>)` requires a boundary before the first
- * matched modifier: without it, an accelerator starting with a modifier
- * outside this allowlist (e.g. GTK's portable "<Primary>", or "<Hyper>",
- * neither of which this app's own accelerator format can represent) would
- * still match starting from its first *recognised* modifier, silently
- * dropping the unsupported one instead of rejecting the whole accelerator.
+ * next launch. The outer match captures *any* `<word>` tag run (not just
+ * recognised modifiers), and every tag in it is then validated below —
+ * rejecting the whole accelerator if any single tag isn't one of
+ * Ctrl/Alt/Shift/Super, in any position. A narrower match that only matched
+ * recognised modifiers would still find a match starting after an
+ * unsupported one (e.g. GTK's portable "<Primary>", or "<Hyper>", neither
+ * representable in this app's own accelerator format), silently dropping it
+ * instead of rejecting the accelerator; a trailing or embedded unsupported
+ * modifier is worse still, since it isn't matched as a tag at all and its
+ * leading `<` gets read as the key itself.
  */
 function parseXdgTrigger(trigger: string): string | null {
-	const accelerator = trigger.match(/(?<!>)(?:<(?:Ctrl|Alt|Shift|Super)>)+(?:[A-Za-z0-9_]{2,}|\S)/);
+	const accelerator = trigger.match(/(?:<\w+>)+(?:[A-Za-z0-9_]{2,}|\S)/);
 	if (!accelerator) return null;
 
-	const modifierPattern = /^<(Ctrl|Alt|Shift|Super)>/;
+	const tagPattern = /<(\w+)>/g;
 	const parts: string[] = [];
 	let rest = accelerator[0];
-	for (let match = rest.match(modifierPattern); match; match = rest.match(modifierPattern)) {
-		parts.push(XDG_MODIFIER_TO_TAURI[match[1]]);
-		rest = rest.slice(match[0].length);
+	let consumed = 0;
+	for (let match = tagPattern.exec(rest); match; match = tagPattern.exec(rest)) {
+		const modifier = XDG_MODIFIER_TO_TAURI[match[1]];
+		if (!modifier) return null;
+		parts.push(modifier);
+		consumed = tagPattern.lastIndex;
 	}
+	rest = rest.slice(consumed);
 	if (parts.length === 0 || rest.length === 0) return null;
 
 	let key = rest;
