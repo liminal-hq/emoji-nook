@@ -153,7 +153,9 @@ describe('App', () => {
 
 		// A compositor or translation could delimit the accelerator without whitespace
 		// (e.g. wrapping it in parentheses, or ending the sentence right after it).
-		handler({ payload: { sessionId: 'emoji-nook-toggle', triggerDescription: 'Press (<Super>e)' } });
+		handler({
+			payload: { sessionId: 'emoji-nook-toggle', triggerDescription: 'Press (<Super>e)' },
+		});
 
 		await waitFor(() =>
 			expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ shortcut: 'Super+E' })),
